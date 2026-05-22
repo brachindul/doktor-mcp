@@ -64,7 +64,8 @@ export function composeDoctorLegalInformationPack(
       articleNumber: provision.articleNumber,
       verbatimQuote: provision.verbatimText,
       connection: provision.connection,
-      sourceDocumentId: provision.evidence.documentId
+      sourceDocumentId: provision.evidence.documentId,
+      ...(provision.sourceTrace ? { sourceTrace: provision.sourceTrace } : {})
     })),
     verifiedHighCourtPrecedents: precedents.map(formatPrecedent),
     missingInformation: classification.missingInformation,
@@ -78,6 +79,9 @@ export function composeDoctorLegalInformationPack(
             ? "Mevzuat maddesi canli resmi kaynaktan cikartildi; yuksek mahkeme adapterleri bu surumde mock kalir."
             : "MVP mock kaynaklarla calisir; canli resmi kaynak entegrasyonu bu pack icin kullanilmadi."]
         : ["Kaynak yokken madde veya karar uretilmedi."],
-    ...(sourceUnavailable.length > 0 ? { sourceUnavailable } : {})
+    ...(sourceUnavailable.length > 0 ? { sourceUnavailable } : {}),
+    ...(provisions.some((provision) => provision.sourceTrace)
+      ? { sourceTrace: provisions.flatMap((provision) => provision.sourceTrace ? [provision.sourceTrace] : []) }
+      : {})
   };
 }

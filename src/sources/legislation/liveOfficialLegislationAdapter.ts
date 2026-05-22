@@ -1,5 +1,9 @@
 import { PDFParse } from "pdf-parse";
-import type { ClassifiedMedicalLegalQuestion, LegislationProvision } from "../../contracts/legal.js";
+import type {
+  ClassifiedMedicalLegalQuestion,
+  LegislationProvision,
+  LegislationSourceTrace
+} from "../../contracts/legal.js";
 import type { LegislationSourceAdapter } from "../types.js";
 import { extractArticlesFromOfficialText } from "./articleParser.js";
 import { healthLegislationHints } from "./healthMappings.js";
@@ -52,34 +56,71 @@ export class LiveOfficialLegislationAdapter implements LegislationSourceAdapter 
         "document_not_found",
         `No MVP health legislation mapping matched "${query}".`,
         false,
-        "Refine the health-law query or add a verified official legislation hint."
+        "Refine the health-law query or add a verified official legislation hint.",
+        [emptyTrace(query, null, {
+          attemptedHealthMappings: healthLegislationHints.map((hint) => hint.sourceId),
+          error: "No health mapping matched the query."
+        })]
       );
     }
 
     const documents: LiveLegislationDocument[] = [];
     const provisions: LegislationProvision[] = [];
-    const searchResults = hints.map(mapHintToSearchResult);
+    const searchResults: OfficialLegislationSearchResult[] = [];
+    const sourceTrace: LegislationSourceTrace[] = [];
 
     for (const hint of hints) {
-      const document = await this.getDocument(mapHintToSearchResult(hint));
-      if (isUnavailable(document)) return document;
+      const officialSearch = await this.searchOfficialLegislation(hint.query);
+      const trace = emptyTrace(query, hint, { officialSearchRequest: officialSearchRequest(hint.query) });
+      if (isUnavailable(officialSearch)) {
+        return withTrace(officialSearch, [completeTrace(trace, {
+          error: officialSearch.message
+        })]);
+      }
+
+      trace.officialSearchResultsCount = officialSearch.length;
+      trace.officialSearchResults = officialSearch.map(traceSearchResult);
+      const mappedResult = mapHintToSearchResult(hint);
+      const selectedSearchResult = officialSearch.find((result) => result.sourceId === hint.sourceId) ?? mappedResult;
+      trace.selectedSearchResult = traceSearchResult(selectedSearchResult);
+      trace.selectedResultReason = officialSearch.some((result) => result.sourceId === hint.sourceId)
+        ? "Official search result matched the verified health mapping sourceId."
+        : "Verified health mapping document path selected because official search returned no exact sourceId match.";
+      searchResults.push(selectedSearchResult);
+
+      const document = await this.getDocument(selectedSearchResult);
+      if (isUnavailable(document)) return withTrace(document, [completeTrace(trace, {
+        landingUrl: selectedSearchResult.sourceUrl,
+        detailUrl: selectedSearchResult.sourceUrl,
+        fullTextUrl: selectedSearchResult.documentUrl,
+        error: document.message
+      })]);
       documents.push(document);
 
       const selected = extractArticlesFromOfficialText(document.text)
         .filter((article) => hint.articleNumbers.includes(article.articleNumber));
+      Object.assign(trace, traceDocument(document, selected.map((article) => article.articleNumber)));
       if (selected.length === 0) {
         return unavailable(
           "provision_not_found",
           `Official text was retrieved for ${hint.title}, but mapped articles ${hint.articleNumbers.join(", ")} were not extracted.`,
           false,
-          "Inspect the official text parser before using this provision in an answer."
+          "Inspect the official text parser before using this provision in an answer.",
+          [completeTrace(trace, { error: "Mapped articles were absent after article extraction." })]
         );
       }
 
-      provisions.push(...selected.map((article) => provisionFromArticle(hint, article.text, article.articleNumber, document)));
+      sourceTrace.push(trace);
+      provisions.push(...selected.map((article) => provisionFromArticle(
+        hint,
+        article.text,
+        article.articleNumber,
+        document,
+        trace
+      )));
     }
 
-    return { status: "ok", source: OFFICIAL_SOURCE, query, searchResults, documents, provisions };
+    return { status: "ok", source: OFFICIAL_SOURCE, query, searchResults, documents, provisions, sourceTrace };
   }
 
   async searchOfficialLegislation(query: string): Promise<OfficialLegislationSearchResult[] | LiveLegislationUnavailable> {
@@ -91,7 +132,7 @@ export class LiveOfficialLegislationAdapter implements LegislationSourceAdapter 
         start: 0,
         length: 10,
         parameters: {
-          AranacakIfade: query,
+          AranacakIfade: Buffer.from(query, "utf8").toString("base64"),
           AranacakYer: "Tumu",
           TamCumle: false,
           MevzuatTur: 0,
@@ -114,7 +155,7 @@ export class LiveOfficialLegislationAdapter implements LegislationSourceAdapter 
           sourceId: `mevzuat:${type}.${arrangement}.${number}`,
           title,
           sourceUrl: new URL(stringField(row.url) || `/mevzuat?MevzuatNo=${number}&MevzuatTur=${type}&MevzuatTertip=${arrangement}`, BASE_URL).toString(),
-          documentUrl: officialPdfUrl(type, arrangement, number),
+          documentUrl: officialDocumentUrlForParts(type, arrangement, number),
           legislationNumber: number,
           legislationType: type,
           legislationArrangement: arrangement
@@ -212,7 +253,13 @@ export class LiveOfficialLegislationAdapter implements LegislationSourceAdapter 
   }
 }
 
-function provisionFromArticle(hint: HealthLegislationHint, text: string, articleNumber: string, document: LiveLegislationDocument): LegislationProvision {
+function provisionFromArticle(
+  hint: HealthLegislationHint,
+  text: string,
+  articleNumber: string,
+  document: LiveLegislationDocument,
+  sourceTrace: LegislationSourceTrace
+): LegislationProvision {
   return {
     documentId: document.sourceId,
     legislationName: document.title,
@@ -220,6 +267,7 @@ function provisionFromArticle(hint: HealthLegislationHint, text: string, article
     verbatimText: text,
     connection: `Official MVP mapping for ${hint.query}; quote extracted from article ${articleNumber} source text.`,
     dimensions: hint.dimensions,
+    sourceTrace,
     evidence: {
       source: "legislation",
       documentId: document.sourceId,
@@ -267,9 +315,13 @@ function officialGeneratedPdfUrl(type: string, arrangement: string, number: stri
 }
 
 function officialDocumentUrl(hint: HealthLegislationHint) {
-  return hint.legislationType === "7"
-    ? officialGeneratedPdfUrl(hint.legislationType, hint.legislationArrangement, hint.legislationNumber)
-    : officialPdfUrl(hint.legislationType, hint.legislationArrangement, hint.legislationNumber);
+  return officialDocumentUrlForParts(hint.legislationType, hint.legislationArrangement, hint.legislationNumber);
+}
+
+function officialDocumentUrlForParts(type: string, arrangement: string, number: string) {
+  return type === "7"
+    ? officialGeneratedPdfUrl(type, arrangement, number)
+    : officialPdfUrl(type, arrangement, number);
 }
 
 function officialHeaders(contentType?: string): Record<string, string> {
@@ -281,12 +333,18 @@ function officialHeaders(contentType?: string): Record<string, string> {
   };
 }
 
-function unavailable(errorCode: LiveLegislationUnavailable["errorCode"], message: string, retryable: boolean, recommendedNextStep: string): LiveLegislationUnavailable {
-  return { status: "unavailable", source: OFFICIAL_SOURCE, errorCode, message, retryable, recommendedNextStep };
+function unavailable(
+  errorCode: LiveLegislationUnavailable["errorCode"],
+  message: string,
+  retryable: boolean,
+  recommendedNextStep: string,
+  sourceTrace?: LegislationSourceTrace[]
+): LiveLegislationUnavailable {
+  return { status: "unavailable", source: OFFICIAL_SOURCE, errorCode, message, retryable, recommendedNextStep, ...(sourceTrace ? { sourceTrace } : {}) };
 }
 
-function isUnavailable(value: Response | LiveLegislationDocument | LiveLegislationUnavailable): value is LiveLegislationUnavailable {
-  return "status" in value && value.status === "unavailable";
+function isUnavailable(value: unknown): value is LiveLegislationUnavailable {
+  return typeof value === "object" && value !== null && "status" in value && value.status === "unavailable";
 }
 
 function normalize(value: string) {
@@ -295,4 +353,75 @@ function normalize(value: string) {
 
 function stringField(value: unknown) {
   return value === undefined || value === null ? "" : String(value);
+}
+
+function officialSearchRequest(phrase: string): LegislationSourceTrace["officialSearchRequest"] {
+  return {
+    url: `${BASE_URL}/anasayfa/MevzuatDatatable`,
+    phrase,
+    searchArea: "Tumu",
+    pageSize: 10
+  };
+}
+
+function emptyTrace(
+  query: string,
+  hint: HealthLegislationHint | null,
+  extra: Partial<LegislationSourceTrace> = {}
+): LegislationSourceTrace {
+  return {
+    query,
+    matchedHealthMapping: hint ? {
+      sourceId: hint.sourceId,
+      query: hint.query,
+      title: hint.title,
+      articleNumbers: hint.articleNumbers
+    } : null,
+    officialSearchRequest: null,
+    officialSearchResultsCount: null,
+    selectedSearchResult: null,
+    selectedResultReason: null,
+    landingUrl: null,
+    detailUrl: null,
+    fullTextUrl: null,
+    directPdfUrl: null,
+    generatedPdfUrl: null,
+    contentType: null,
+    extractionMethod: null,
+    extractedArticleNumbers: [],
+    retrievedAt: null,
+    ...extra
+  };
+}
+
+function traceSearchResult(result: OfficialLegislationSearchResult) {
+  return {
+    sourceId: result.sourceId,
+    title: result.title,
+    landingUrl: result.sourceUrl,
+    documentUrl: result.documentUrl
+  };
+}
+
+function traceDocument(document: LiveLegislationDocument, extractedArticleNumbers: string[]): Partial<LegislationSourceTrace> {
+  const isGenerated = document.documentUrl.includes("/File/GeneratePdf");
+  return {
+    landingUrl: document.sourceUrl,
+    detailUrl: document.sourceUrl,
+    fullTextUrl: document.documentUrl,
+    directPdfUrl: isGenerated ? null : document.documentUrl,
+    generatedPdfUrl: isGenerated ? document.documentUrl : null,
+    contentType: document.contentType,
+    extractionMethod: "pdf-text > article-marker",
+    extractedArticleNumbers,
+    retrievedAt: document.retrievedAt
+  };
+}
+
+function completeTrace(trace: LegislationSourceTrace, extra: Partial<LegislationSourceTrace>) {
+  return { ...trace, ...extra };
+}
+
+function withTrace(unavailableResult: LiveLegislationUnavailable, sourceTrace: LegislationSourceTrace[]) {
+  return { ...unavailableResult, sourceTrace };
 }

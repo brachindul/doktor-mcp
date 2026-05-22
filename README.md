@@ -144,6 +144,49 @@ cannot return a verified provision.
 Mock mode uses local fixture provisions. Live mode uses official legislation text from
 `mevzuat.gov.tr`; Yargitay, Danistay, and AYM precedent adapters remain mock in both modes.
 
+## Source Trace
+
+v0.4 adds `sourceTrace` to live legislation output for audit rather than legal reasoning.
+Each trace shows how a provision moved from a health-law mapping to an official document and
+article extraction step:
+
+- original `query`
+- `matchedHealthMapping` and mapping candidates tried when no mapping matches
+- `officialSearchRequest`, official search result count, and compact official results
+- `selectedSearchResult` and `selectedResultReason`
+- landing/detail URL and direct or generated PDF URL
+- `contentType`, extraction method, extracted article numbers, and retrieval time
+
+Live `search_health_legislation` includes the trace alongside selected provisions. Live
+`get_legislation_provisions` carries trace on each returned provision. Live
+`prepare_doctor_legal_information_pack` keeps trace both on relevant legislation entries
+and the pack-level `sourceTrace` array, so the composed quote can be checked against the
+same extracted provision.
+
+An unavailable live pack also preserves audit context:
+
+```json
+{
+  "sourceUnavailable": [
+    {
+      "status": "unavailable",
+      "source": "mevzuat.gov.tr",
+      "errorCode": "document_not_found",
+      "sourceTrace": [
+        {
+          "query": "bilinmeyen konu",
+          "matchedHealthMapping": null,
+          "attemptedHealthMappings": ["mevzuat:7.5.4847", "mevzuat:1.5.6698"]
+        }
+      ]
+    }
+  ]
+}
+```
+
+Trace fields explain source selection and extraction only. They do not create legal
+propositions and never replace the verbatim official provision text.
+
 ## Development
 
 ```powershell

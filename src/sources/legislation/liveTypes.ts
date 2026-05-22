@@ -1,4 +1,4 @@
-import type { LegalDimension, LegislationProvision } from "../../contracts/legal.js";
+import type { LegalDimension, LegislationProvision, LegislationSourceTrace } from "../../contracts/legal.js";
 
 export interface LiveLegislationUnavailable {
   status: "unavailable";
@@ -14,6 +14,7 @@ export interface LiveLegislationUnavailable {
   message: string;
   retryable: boolean;
   recommendedNextStep: string;
+  sourceTrace?: LegislationSourceTrace[];
 }
 
 export interface OfficialLegislationSearchResult {
@@ -43,6 +44,7 @@ export interface LiveLegislationProvisionResult {
   searchResults: OfficialLegislationSearchResult[];
   documents: LiveLegislationDocument[];
   provisions: LegislationProvision[];
+  sourceTrace: LegislationSourceTrace[];
 }
 
 export type LiveLegislationResult = LiveLegislationProvisionResult | LiveLegislationUnavailable;

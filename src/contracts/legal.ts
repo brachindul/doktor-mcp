@@ -42,6 +42,7 @@ export interface LegislationProvision {
   connection: string;
   dimensions: LegalDimension[];
   evidence: SourceEvidence;
+  sourceTrace?: LegislationSourceTrace;
 }
 
 export interface CourtDecision {
@@ -102,12 +103,14 @@ export interface DoctorLegalInformationPack {
     verbatimQuote: string;
     connection: string;
     sourceDocumentId: string;
+    sourceTrace?: LegislationSourceTrace;
   }>;
   verifiedHighCourtPrecedents: VerifiedPrecedentEntry[];
   missingInformation: string[];
   lawyerReviewPoints: string[];
   sourceWarnings: string[];
   sourceUnavailable?: SourceUnavailable[];
+  sourceTrace?: LegislationSourceTrace[];
 }
 
 export interface PrepareInformationPackInput {
@@ -122,4 +125,46 @@ export interface SourceUnavailable {
   message: string;
   retryable: boolean;
   recommendedNextStep: string;
+  sourceTrace?: LegislationSourceTrace[];
+}
+
+export interface LegislationSourceTrace {
+  query: string;
+  matchedHealthMapping: {
+    sourceId: string;
+    query: string;
+    title: string;
+    articleNumbers: string[];
+  } | null;
+  attemptedHealthMappings?: string[];
+  officialSearchRequest: {
+    url: string;
+    phrase: string;
+    searchArea: string;
+    pageSize: number;
+  } | null;
+  officialSearchResultsCount: number | null;
+  officialSearchResults?: Array<{
+    sourceId: string;
+    title: string;
+    landingUrl: string;
+    documentUrl: string;
+  }>;
+  selectedSearchResult: {
+    sourceId: string;
+    title: string;
+    landingUrl: string;
+    documentUrl: string;
+  } | null;
+  selectedResultReason: string | null;
+  landingUrl: string | null;
+  detailUrl: string | null;
+  fullTextUrl: string | null;
+  directPdfUrl: string | null;
+  generatedPdfUrl: string | null;
+  contentType: string | null;
+  extractionMethod: string | null;
+  extractedArticleNumbers: string[];
+  retrievedAt: string | null;
+  error?: string;
 }

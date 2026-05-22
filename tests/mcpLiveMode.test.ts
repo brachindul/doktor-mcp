@@ -20,6 +20,38 @@ const liveProvision: LegislationProvision = {
     retrievedAt: "2026-05-22T00:00:00.000Z",
     official: true,
     fullText: true
+  },
+  sourceTrace: {
+    query: "kişisel sağlık verisi",
+    matchedHealthMapping: {
+      sourceId: "mevzuat:1.5.6698",
+      query: "Kisisel Verilerin Korunmasi Kanunu",
+      title: "Kisisel Verilerin Korunmasi Kanunu",
+      articleNumbers: ["6"]
+    },
+    officialSearchRequest: {
+      url: "https://www.mevzuat.gov.tr/anasayfa/MevzuatDatatable",
+      phrase: "Kisisel Verilerin Korunmasi Kanunu",
+      searchArea: "Tumu",
+      pageSize: 10
+    },
+    officialSearchResultsCount: 1,
+    selectedSearchResult: {
+      sourceId: "mevzuat:1.5.6698",
+      title: "Kisisel Verilerin Korunmasi Kanunu",
+      landingUrl: "https://www.mevzuat.gov.tr/mevzuat?MevzuatNo=6698&MevzuatTur=1&MevzuatTertip=5",
+      documentUrl: "https://www.mevzuat.gov.tr/MevzuatMetin/1.5.6698.pdf"
+    },
+    selectedResultReason: "Official search result matched the verified health mapping sourceId.",
+    landingUrl: "https://www.mevzuat.gov.tr/mevzuat?MevzuatNo=6698&MevzuatTur=1&MevzuatTertip=5",
+    detailUrl: "https://www.mevzuat.gov.tr/mevzuat?MevzuatNo=6698&MevzuatTur=1&MevzuatTertip=5",
+    fullTextUrl: "https://www.mevzuat.gov.tr/MevzuatMetin/1.5.6698.pdf",
+    directPdfUrl: "https://www.mevzuat.gov.tr/MevzuatMetin/1.5.6698.pdf",
+    generatedPdfUrl: null,
+    contentType: "application/pdf",
+    extractionMethod: "pdf-text > article-marker",
+    extractedArticleNumbers: ["6"],
+    retrievedAt: "2026-05-22T00:00:00.000Z"
   }
 };
 
@@ -87,6 +119,7 @@ describe("MCP legislation sourceMode", () => {
 
     expect(pack.relevantLegislation[0]?.verbatimQuote).toBe(liveProvision.verbatimText);
     expect(pack.relevantLegislation[0]?.sourceDocumentId).toBe(liveProvision.documentId);
+    expect(pack.sourceTrace?.[0]?.extractedArticleNumbers).toContain("6");
   });
 
   it("carries live unavailable without inventing legislation or MVP-excluded headings", async () => {
