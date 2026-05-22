@@ -67,6 +67,7 @@ export interface CourtDecision {
   topicTags: string[];
   fullText?: string;
   evidence: SourceEvidence;
+  decisionSourceTrace?: DecisionSourceTrace;
 }
 
 export interface ClassifiedMedicalLegalQuestion {

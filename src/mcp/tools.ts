@@ -35,8 +35,10 @@ export function createMedicalLegalToolHandlers(service = new PhysicianLegalInfor
       const parsed = provisionIdsSchema.parse(input);
       return service.getLegislationProvisions(parsed.documentIds, parsed.sourceMode);
     },
-    search_health_precedents: async (input: unknown) =>
-      service.searchPrecedents(service.classify(questionSchema.parse(input).question)),
+    search_health_precedents: async (input: unknown) => {
+      const parsed = legislationQuestionSchema.parse(input);
+      return service.searchPrecedents(service.classify(parsed.question), parsed.sourceMode);
+    },
     filter_reasoned_precedents: async (input: unknown) => {
       const parsed = decisionsSchema.parse(input);
       const filtered = service.filterPrecedents(parsed.decisions);
@@ -70,7 +72,7 @@ export function registerMedicalLegalTools(
   }, async (input) => jsonResult(await handlers.get_legislation_provisions(input)));
 
   server.registerTool("search_health_precedents", {
-    description: "Searches high court precedent candidates through mock source adapters.",
+    description: "Searches high court precedent candidates. Uses live Yargıtay adapter in live mode; Danıştay and AYM remain mock.",
     inputSchema: legislationQuestionSchema.shape
   }, async (input) => jsonResult(await handlers.search_health_precedents(input)));
 

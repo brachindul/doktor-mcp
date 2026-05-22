@@ -323,7 +323,7 @@ apply:
 
 - `fullTextAvailable: false` — full decision text is not available (→ `metadata_only`)
 - `legalReasoning` is empty or missing (→ `no_reasoning`)
-- Decision text contains a bare procedural marker: `salt onama`, `salt bozma`, `usul`
+- Decision text contains a bare procedural marker: `salt onama`, `salt bozma`, `usul karar`
   (→ `procedural_only`)
 - Legal reasoning is only `onama` or `bozma` without substantive content
   (→ `procedural_only`)
@@ -351,9 +351,73 @@ The diagnostic includes:
 Diagnostics summarize selection and exclusion only. They do not provide legal
 interpretation and do not add any decision to the pack.
 
-Live Yargıtay, Danıştay, and AYM adapters are not part of this version. All three court
-sources remain mock adapters. A future release (v0.9 or later) may introduce the first
-live court decision adapter once the audit contract established in v0.8 is confirmed.
+## Live Yargıtay Adapter (v0.9)
+
+v0.9 adds the first live court decision adapter: `LiveYargitayAdapter`
+(`src/sources/yargitay/liveYargitayAdapter.ts`). Danıştay and AYM remain mock adapters.
+
+**Source and endpoint:** Targets `https://emsal.yargitay.gov.tr/BilgiBankasiIslem` with a
+JSON POST body containing the health law search term. Retries up to three times with
+adaptive back-off for 429 and 5xx errors.
+
+**`sourceMode: "live"` precedent behavior:**
+
+- `search_health_precedents` uses the live Yargıtay adapter; Danıştay and AYM remain mock.
+- `prepare_doctor_legal_information_pack` with `sourceMode: "live"` searches live Yargıtay
+  decisions in addition to live legislation.
+- Health law search terms are mapped from the classified question: `riza/rıza/onam` →
+  `"aydınlatılmış rıza"`, `tibbi/müdahale` → `"tıbbi müdahale"`, etc.
+- Only `precedent_usable` decisions enter `verifiedHighCourtPrecedents`. All others are
+  logged in `precedentDiagnostics.excludedDecisions` with their exclusion reasons.
+
+**`DecisionSourceTrace` live example:**
+
+```json
+{
+  "query": "aydınlatılmış rıza",
+  "source": "yargitay",
+  "court": "yargitay",
+  "searchRequest": {
+    "url": "https://emsal.yargitay.gov.tr/BilgiBankasiIslem",
+    "phrase": "aydınlatılmış rıza",
+    "pageSize": 5
+  },
+  "searchResultsCount": 12,
+  "selectedResult": { "documentId": "yargitay:99001" },
+  "selectedResultReason": "Health law term 'aydınlatılmış rıza' matched Yargıtay emsal search.",
+  "fullTextAvailable": true,
+  "fullTextRetrievalMethod": "html-text",
+  "retrievedAt": "2026-05-22T10:00:00.000Z",
+  "eligibilityStatus": "precedent_usable",
+  "eligibilityReasons": [
+    "Tam karar metni mevcut.",
+    "Hukuki gerekçe alanı dolu.",
+    "Sağlık hukuku olayıyla bağlantı kurulmuş.",
+    "Emsal olarak kullanılabilir."
+  ],
+  "exclusionReasons": []
+}
+```
+
+**Live source failure behavior:** If `emsal.yargitay.gov.tr` is unreachable or returns a
+non-parseable response, the adapter returns a structured unavailable result:
+
+```json
+{
+  "status": "unavailable",
+  "source": "yargitay.gov.tr",
+  "errorCode": "source_error",
+  "message": "Yargıtay request failed: fetch failed",
+  "retryable": true,
+  "recommendedNextStep": "Retry after checking network access to emsal.yargitay.gov.tr.",
+  "sourceTrace": [{ "query": "aydınlatılmış rıza", "searchRequest": { ... } }]
+}
+```
+
+No decisions are invented. The pack continues to run with mock Danıştay and AYM results
+and shows 0 selected precedents in `precedentDiagnostics` for the Yargıtay source.
+
+Danıştay and AYM adapters remain mock adapters in v0.9.
 
 ## Development
 
@@ -364,18 +428,21 @@ npm run build
 npm run smoke -- "Aydinlatilmis riza kaydi eksikse hangi resmi kaynaklar eslesir?"
 npm run smoke:legislation -- "kisisel saglik verisi mahremiyet"
 npm run smoke:legislation -- "aydınlatılmış rıza"
+npm run smoke:precedents -- "aydınlatılmış rıza" -- --sourceMode live
 npm run smoke:mcp -- "kişisel sağlık verisi mahremiyet" -- --sourceMode live
-npm run dev:mcp
 npm run smoke:mcp -- "hasta haklari tibbi mudahale" -- --sourceMode live
-npm run smoke:mcp -- "acil mudahale hekim yukumlulugu" -- --sourceMode live
+npm run smoke:mcp -- "riza belgesi" -- --sourceMode mock
+npm run dev:mcp
 ```
 
-`smoke:legislation` prints JSON. On success it includes the extracted official provisions,
-the composed pack, and `quoteMatchesProvisionText: true`. On live-source failure it prints
-the structured `unavailable` result. Mock legislation remains the default MCP service path
-for existing callers unless `sourceMode: "live"` is supplied. `smoke:mcp` calls the same
-MCP handler flow as `prepare_doctor_legal_information_pack` and prints JSON. Yargitay,
-Danistay, and AYM adapters are still mock adapters.
+`smoke:precedents` calls `LiveYargitayAdapter.searchAndNormalize(query)` directly and
+prints JSON including `sourceTraces` with `eligibilityStatus` for each candidate decision.
+If the live source is unreachable, it prints the structured `unavailable` result with
+`sourceTrace` showing what was attempted. JSON parse-ability is always preserved.
+
+`smoke:mcp` calls the full `prepare_doctor_legal_information_pack` handler. With
+`sourceMode: "live"` it uses both the live legislation and live Yargıtay adapters. Mock
+legislation remains the default path. Danıştay and AYM remain mock adapters in all modes.
 
 After `npm run build`, run the compiled stdio MCP server with:
 

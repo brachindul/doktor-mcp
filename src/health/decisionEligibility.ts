@@ -1,6 +1,6 @@
 import type { CourtDecision, PrecedentStatus } from "../contracts/legal.js";
 
-const proceduralMarkers = ["salt onama", "usul", "salt bozma"];
+const proceduralMarkers = ["salt onama", "usul karar", "salt bozma"];
 const bareVerdictPattern = /^(onama|bozma)[.!]?$/;
 
 export interface EligibilityResult {

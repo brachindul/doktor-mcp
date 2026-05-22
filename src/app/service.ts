@@ -21,17 +21,20 @@ import type { LiveLegislationResult } from "../sources/legislation/liveTypes.js"
 import { buildLegislationSelectionDiagnostics } from "../sources/legislation/selectionDiagnostics.js";
 import type { PrecedentSourceAdapter } from "../sources/types.js";
 import { MockYargitayAdapter } from "../sources/yargitay/mockYargitayAdapter.js";
+import { LiveYargitayAdapter } from "../sources/yargitay/liveYargitayAdapter.js";
 
 export interface PhysicianLegalInformationServiceOptions {
   mockLegislation?: MockLegislationAdapter;
   liveLegislation?: LiveOfficialLegislationAdapter;
+  liveYargitay?: LiveYargitayAdapter;
 }
 
 export class PhysicianLegalInformationService {
   private readonly mockLegislation: MockLegislationAdapter;
   private readonly liveLegislation: LiveOfficialLegislationAdapter;
+  private readonly liveYargitay: LiveYargitayAdapter;
   private readonly legislationMapper: LegislationMapper;
-  private readonly precedentAdapters: PrecedentSourceAdapter[] = [
+  private readonly mockPrecedentAdapters: PrecedentSourceAdapter[] = [
     new MockYargitayAdapter(),
     new MockDanistayAdapter(),
     new MockAymAdapter()
@@ -40,6 +43,7 @@ export class PhysicianLegalInformationService {
   constructor(options: PhysicianLegalInformationServiceOptions = {}) {
     this.mockLegislation = options.mockLegislation ?? new MockLegislationAdapter();
     this.liveLegislation = options.liveLegislation ?? new LiveOfficialLegislationAdapter();
+    this.liveYargitay = options.liveYargitay ?? new LiveYargitayAdapter();
     this.legislationMapper = new LegislationMapper(this.mockLegislation);
   }
 
@@ -90,9 +94,20 @@ export class PhysicianLegalInformationService {
     return this.mockLegislation.getLegislationProvisions(documentIds);
   }
 
-  async searchPrecedents(classification: ClassifiedMedicalLegalQuestion): Promise<CourtDecision[]> {
+  async searchPrecedents(
+    classification: ClassifiedMedicalLegalQuestion,
+    sourceMode: LegislationSourceMode = "mock"
+  ): Promise<CourtDecision[]> {
+    if (sourceMode === "live") {
+      const [liveYargitay, danistay, aym] = await Promise.all([
+        this.liveYargitay.searchHealthPrecedents(classification),
+        new MockDanistayAdapter().searchHealthPrecedents(classification),
+        new MockAymAdapter().searchHealthPrecedents(classification)
+      ]);
+      return [...liveYargitay, ...danistay, ...aym];
+    }
     const results = await Promise.all(
-      this.precedentAdapters.map((adapter) => adapter.searchHealthPrecedents(classification))
+      this.mockPrecedentAdapters.map((adapter) => adapter.searchHealthPrecedents(classification))
     );
     return results.flat();
   }
@@ -105,7 +120,7 @@ export class PhysicianLegalInformationService {
     const classification = this.classify(input.question);
     const [legislation, decisions] = await Promise.all([
       this.searchLegislation(classification, input.sourceMode),
-      this.searchPrecedents(classification)
+      this.searchPrecedents(classification, input.sourceMode)
     ]);
     const filtered = this.filterPrecedents(decisions);
     const liveUnavailable = isLiveUnavailable(legislation) ? [legislation] : [];
