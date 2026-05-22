@@ -6,3 +6,12 @@ coverage/
 .DS_Store
 .cache/
 fixtures/raw/
+task.md
+implementation_plan.md
+walkthrough.md
+pack.json
+*.tmp
+debug*.json
+probe*.json
+smoke*.json
+audit*.json
