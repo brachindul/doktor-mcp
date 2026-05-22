@@ -36,6 +36,31 @@ describe("normalizeDanistaySearchResults", () => {
     expect(results[0].sourceUrl).toContain("98765");
   });
 
+  it("normalizes a simulated captured fixture shape", () => {
+    // Tests the structure exactly as we expect from a raw browser capture
+    const rawCaptured = {
+      data: [{
+        KARAR_ID: "445566",
+        OZET: "This is a real captured summary test.",
+        KARAR_TARIHI: "2026-05-22",
+        DAIRESI: "15. Daire",
+        ESAS_YILI: "2025",
+        ESAS_SIRASI: "100",
+        KARAR_YILI: "2026",
+        KARAR_SIRASI: "200"
+      }]
+    };
+    const results = normalizeDanistaySearchResults(rawCaptured);
+    expect(results).toHaveLength(1);
+    expect(results[0].documentId).toBe("danistay:445566");
+    expect(results[0].sourceId).toBe("445566");
+    expect(results[0].chamber).toBe("15. Daire");
+    expect(results[0].meritsNumber).toBe("2025/100");
+    expect(results[0].decisionNumber).toBe("2026/200");
+    expect(results[0].summaryText).toBe("This is a real captured summary test.");
+    expect(results[0].date).toBe("2026-05-22");
+  });
+
   it("handles items without ID by skipping them", () => {
     const raw = { data: [{ OZET: "no id" }, { ID: "55", OZET: "has id" }] };
     const results = normalizeDanistaySearchResults(raw);

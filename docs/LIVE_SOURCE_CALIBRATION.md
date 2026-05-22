@@ -39,14 +39,12 @@ This saves a sanitized shape fixture (no raw body) to `fixtures/live-samples/`.
 
 For Danıştay:
 1. Open `https://karararama.danistay.gov.tr` in a browser.
-2. Open DevTools → Network tab.
-3. Type a search query and click Search.
-4. Find the XHR/fetch request that returns JSON decisions.
-   - The path will likely be something other than `YargitayBilgiBankasiIstemciService`.
-   - Look for requests returning `application/json` with a `data` or `kararlar` array.
-5. Copy: URL, method, request headers, request body (JSON), and response body.
-6. Save raw response body to `fixtures/raw/danistay-raw-<date>.json` (gitignored).
-7. Update `danistayNormalizer.ts` field names to match real response.
+2. Open DevTools → Network tab → Fetch/XHR.
+3. Type a search query (e.g., `hizmet kusuru tıbbi müdahale`) and click Search.
+4. Find the actual search request returning JSON decisions.
+   - Look for request URL, method, headers, payload, response content-type, and response preview.
+5. Save raw response body to `fixtures/raw/danistay-raw.json` (gitignored). Do not commit this file.
+6. The raw body is saved ONLY in `fixtures/raw/`.
 
 ### Step 3: Update fixture
 After capturing:

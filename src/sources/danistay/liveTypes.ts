@@ -34,7 +34,9 @@ export interface LiveDanistayUnavailable {
     | "source_error"
     | "document_not_found"
     | "parse_failed"
-    | "no_health_mapping";
+    | "no_health_mapping"
+    | "needs_browser_capture"
+    | "fixture_required";
   message: string;
   retryable: boolean;
   recommendedNextStep: string;

@@ -68,8 +68,10 @@ export class LiveDanistayAdapter implements PrecedentSourceAdapter {
             : kind === "captcha_or_block"
               ? "Endpoint returned a CAPTCHA/block page. Retry from a different network or use browser session."
               : "Check the search endpoint format and retry.";
+        const errorCode = kind === "needs_browser_capture" || kind === "html_shell_response" || kind === "xml_soap_response"
+          ? "needs_browser_capture" : "parse_failed";
         return unavailable(
-          "parse_failed",
+          errorCode,
           `Danıştay emsal search response is not parseable JSON (${kind}).`,
           kind !== "captcha_or_block",
           nextStep,

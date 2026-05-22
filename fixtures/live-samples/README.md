@@ -45,17 +45,17 @@ Each committed fixture must include:
 ## How to Capture a Real Fixture
 
 1. Open the target court website in a browser.
-2. Open DevTools → Network tab.
+2. Open DevTools → Network tab → Fetch/XHR.
 3. Perform a search.
-4. Find the XHR/fetch request that returns JSON decisions.
+4. Find the actual XHR/fetch request that returns JSON decisions.
 5. Copy: URL, request method, headers, request body, and response body.
-6. Save raw response to `fixtures/raw/<source>-raw-<date>.json` (gitignored).
-7. Run:
+6. Save raw response to `fixtures/raw/<source>-raw.json` (gitignored).
+7. Run the ingest command to generate a sanitized fixture:
    ```
-   npm run probe:precedents -- "query" -- --source <source> --save-fixture
+   npm run ingest:fixture -- --source <source> --raw fixtures/raw/<source>-raw.json --query "query"
    ```
-8. Update `normalizedResultPreview` in the sanitized fixture with a sample of the normalized output.
-9. Update `calibrationStatus` to `fixture_verified`.
+8. The sanitized fixture will be written to `fixtures/live-samples/<source>-captured-<date>.json`.
+9. The script will automatically parse the shape, discard PII and large texts, and update calibrationStatus.
 
 ## Current Status (v0.12, confirmed 2026-05-22)
 

@@ -1,0 +1,84 @@
+{
+  "tool": "prepare_doctor_legal_information_pack",
+  "input": {
+    "question": "hizmet kusuru t─▒bbi m├╝dahale --sourceMode live",
+    "sourceMode": "mock"
+  },
+  "result": {
+    "shortAnswer": "Soru resmi kaynak kayitlariyla eslestirildi; asagidaki paket nihai hukuki kanaat degildir.",
+    "legalClassification": {
+      "criminal": [],
+      "civilCompensation": [],
+      "disciplinaryAdministrative": [],
+      "patientRights": [
+        "Hasta haklari boyutu soru ile eslestirildi."
+      ],
+      "privacyKvkk": [],
+      "professionalEthics": []
+    },
+    "relevantLegislation": [
+      {
+        "legislationName": "Hasta Haklari Yonetmeligi",
+        "articleNumber": "24",
+        "verbatimQuote": "Tibbi mudahalelerde hastanin rizasi gerekir. Hasta kucuk veya mahcur ise velisinden veya vasisinden izin alinir.",
+        "connection": "Aydinlatma ve riza sorularinda resmi madde metni eslestirmesi icin mock kayittir.",
+        "sourceDocumentId": "leg-patient-rights-24"
+      }
+    ],
+    "verifiedHighCourtPrecedents": [],
+    "missingInformation": [
+      "Mudahalenin turu, tarihi ve aciliyet durumu",
+      "Hangi resmi kayitlarin mevcut oldugu",
+      "Sorunun ceza, tazminat, idari veya mahremiyet boyutundan hangisine odaklandigi"
+    ],
+    "lawyerReviewPoints": [
+      "Somut olay belgeleri ile resmi kaynak eslestirmesinin avukat tarafindan kontrolu",
+      "Guncel mevzuat metni ve karar tam metninin canli kaynaktan yeniden dogrulanmasi"
+    ],
+    "sourceWarnings": [
+      "MVP mock kaynaklarla calisir; canli resmi kaynak entegrasyonu bu pack icin kullanilmadi."
+    ],
+    "precedentDiagnostics": {
+      "query": "hizmet kusuru t─▒bbi m├╝dahale --sourceMode live",
+      "selectedPrecedentCount": 0,
+      "excludedDecisionCount": 0,
+      "sourceSummaries": [
+        {
+          "source": "yargitay",
+          "mode": "mock",
+          "searched": true,
+          "searchResultsCount": 0,
+          "candidateCount": 0,
+          "selectedCount": 0,
+          "excludedCount": 0,
+          "unavailableCount": 0,
+          "errorCodes": []
+        },
+        {
+          "source": "danistay",
+          "mode": "mock",
+          "searched": true,
+          "searchResultsCount": 0,
+          "candidateCount": 0,
+          "selectedCount": 0,
+          "excludedCount": 0,
+          "unavailableCount": 0,
+          "errorCodes": []
+        },
+        {
+          "source": "aym",
+          "mode": "mock",
+          "searched": true,
+          "searchResultsCount": 0,
+          "candidateCount": 0,
+          "selectedCount": 0,
+          "excludedCount": 0,
+          "unavailableCount": 0,
+          "errorCodes": []
+        }
+      ],
+      "selectedPrecedents": [],
+      "excludedDecisions": []
+    }
+  }
+}
