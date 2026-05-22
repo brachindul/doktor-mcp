@@ -3,6 +3,8 @@ import type {
   DecisionSourceTrace,
   FilteredPrecedent,
   PrecedentSelectionDiagnostics,
+  PrecedentSource,
+  PrecedentSourceResult,
   PrecedentStatus
 } from "../contracts/legal.js";
 import { assessDecisionEligibility } from "./decisionEligibility.js";
@@ -50,18 +52,38 @@ export function buildDecisionSourceTraces(
 
 export function buildPrecedentSelectionDiagnostics(
   filtered: FilteredPrecedent[],
-  query: string
+  query: string,
+  sourceResults?: PrecedentSourceResult[]
 ): PrecedentSelectionDiagnostics {
   const selected = filtered.filter((e) => e.status === "precedent_usable");
   const excluded = filtered.filter((e) => e.status !== "precedent_usable");
+
+  const sourceSummaries = (sourceResults ?? []).map((sr) => {
+    const srFiltered = filtered.filter((e) => e.decision.court === sr.source);
+    const srSelected = srFiltered.filter((e) => e.status === "precedent_usable");
+    const srExcluded = srFiltered.filter((e) => e.status !== "precedent_usable");
+    return {
+      source: sr.source,
+      mode: sr.mode,
+      searched: !sr.unavailable,
+      searchResultsCount: sr.searchResultsCount,
+      candidateCount: srFiltered.length,
+      selectedCount: srSelected.length,
+      excludedCount: srExcluded.length,
+      unavailableCount: sr.unavailable ? 1 : 0,
+      errorCodes: sr.errorCodes
+    };
+  });
 
   return {
     query,
     selectedPrecedentCount: selected.length,
     excludedDecisionCount: excluded.length,
+    sourceSummaries,
     selectedPrecedents: selected.map((e) => {
       const { eligibilityReasons } = assessDecisionEligibility(e.decision);
       return {
+        source: e.decision.court as PrecedentSource,
         court: e.decision.court,
         chamber: e.decision.chamber,
         date: e.decision.decisionDate,
@@ -75,6 +97,7 @@ export function buildPrecedentSelectionDiagnostics(
     excludedDecisions: excluded.map((e) => {
       const { exclusionReasons } = assessDecisionEligibility(e.decision);
       return {
+        source: e.decision.court as PrecedentSource,
         court: e.decision.court,
         date: e.decision.decisionDate,
         status: e.status as Exclude<PrecedentStatus, "precedent_usable">,

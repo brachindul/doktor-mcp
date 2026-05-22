@@ -1,5 +1,7 @@
 export type SourceKind = "legislation" | "yargitay" | "danistay" | "aym";
 export type LegislationSourceMode = "mock" | "live";
+export type PrecedentSource = "yargitay" | "danistay" | "aym";
+export type PrecedentSourceMode = "live" | "mock" | "disabled";
 
 export type LegalDimension =
   | "criminal"
@@ -128,6 +130,28 @@ export interface DoctorLegalInformationPack {
 export interface PrepareInformationPackInput {
   question: string;
   sourceMode?: LegislationSourceMode;
+  precedentSources?: PrecedentSource[];
+}
+
+export interface PrecedentSourceSummary {
+  source: PrecedentSource;
+  mode: PrecedentSourceMode;
+  searched: boolean;
+  searchResultsCount: number | null;
+  candidateCount: number;
+  selectedCount: number;
+  excludedCount: number;
+  unavailableCount: number;
+  errorCodes: string[];
+}
+
+export interface PrecedentSourceResult {
+  source: PrecedentSource;
+  mode: PrecedentSourceMode;
+  decisions: CourtDecision[];
+  searchResultsCount: number | null;
+  unavailable: boolean;
+  errorCodes: string[];
 }
 
 export interface SourceUnavailable {
@@ -163,7 +187,9 @@ export interface PrecedentSelectionDiagnostics {
   query: string;
   selectedPrecedentCount: number;
   excludedDecisionCount: number;
+  sourceSummaries: PrecedentSourceSummary[];
   selectedPrecedents: Array<{
+    source: PrecedentSource;
     court: string;
     chamber?: string;
     date?: string;
@@ -174,6 +200,7 @@ export interface PrecedentSelectionDiagnostics {
     eligibilityReasons: string[];
   }>;
   excludedDecisions: Array<{
+    source: PrecedentSource;
     court: string;
     date?: string;
     status: PrecedentStatus;

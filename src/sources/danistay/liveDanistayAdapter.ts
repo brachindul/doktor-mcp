@@ -2,25 +2,25 @@ import type { ClassifiedMedicalLegalQuestion, CourtDecision, DecisionSourceTrace
 import { assessDecisionEligibility } from "../../health/decisionEligibility.js";
 import { pickHealthLawQuery } from "../../health/healthLawQueryExpansion.js";
 import type { PrecedentSourceAdapter } from "../types.js";
-import type { LiveYargitayResult, LiveYargitaySearchResult, LiveYargitayUnavailable } from "./liveTypes.js";
-import { YARGITAY_SOURCE } from "./liveTypes.js";
+import type { LiveDanistayResult, LiveDanistaySearchResult, LiveDanistayUnavailable } from "./liveTypes.js";
+import { DANISTAY_SOURCE } from "./liveTypes.js";
 
-const BASE_URL = "https://emsal.yargitay.gov.tr";
-const SEARCH_URL = `${BASE_URL}/BilgiBankasiIslem`;
+const BASE_URL = "https://karararama.danistay.gov.tr";
+const SEARCH_URL = `${BASE_URL}/YargitayBilgiBankasiIstemciService`;
 const MAX_RESULTS_PER_QUERY = 5;
 
-export interface LiveYargitayAdapterOptions {
+export interface LiveDanistayAdapterOptions {
   fetchImpl?: typeof fetch;
   now?: () => Date;
   wait?: (ms: number) => Promise<void>;
 }
 
-export class LiveYargitayAdapter implements PrecedentSourceAdapter {
+export class LiveDanistayAdapter implements PrecedentSourceAdapter {
   private readonly fetchImpl: typeof fetch;
   private readonly now: () => Date;
   private readonly wait: (ms: number) => Promise<void>;
 
-  constructor(options: LiveYargitayAdapterOptions = {}) {
+  constructor(options: LiveDanistayAdapterOptions = {}) {
     this.fetchImpl = options.fetchImpl ?? fetch;
     this.now = options.now ?? (() => new Date());
     this.wait = options.wait ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
@@ -32,18 +32,18 @@ export class LiveYargitayAdapter implements PrecedentSourceAdapter {
     return result.status === "ok" ? result.decisions : [];
   }
 
-  async searchAndNormalize(query: string): Promise<LiveYargitayResult> {
+  async searchAndNormalize(query: string): Promise<LiveDanistayResult> {
     const searchRequest = { url: SEARCH_URL, phrase: query, pageSize: MAX_RESULTS_PER_QUERY };
     const emptyTrace = buildEmptyTrace(query, searchRequest);
 
     const response = await this.fetchWithRetry(SEARCH_URL, {
       method: "POST",
-      headers: yargitayHeaders("application/json; charset=utf-8"),
+      headers: danistayHeaders("application/json; charset=utf-8"),
       body: JSON.stringify(buildSearchBody(query))
     });
 
     if (isUnavailable(response)) {
-      const err = response as LiveYargitayUnavailable;
+      const err = response as LiveDanistayUnavailable;
       return { ...err, sourceTrace: [{ ...emptyTrace, error: err.message }] };
     }
 
@@ -53,7 +53,7 @@ export class LiveYargitayAdapter implements PrecedentSourceAdapter {
     } catch {
       return unavailable(
         "parse_failed",
-        "Yargıtay emsal search response is not parseable JSON.",
+        "Danıştay emsal search response is not parseable JSON.",
         true,
         "Check the search endpoint format and retry.",
         [{ ...emptyTrace, error: "JSON parse failed" }]
@@ -67,21 +67,19 @@ export class LiveYargitayAdapter implements PrecedentSourceAdapter {
     if (searchResultsCount === 0) {
       return {
         status: "ok",
-        source: YARGITAY_SOURCE,
+        source: DANISTAY_SOURCE,
         query,
         searchResultsCount: 0,
         selectedResult: null,
         decisions: [],
-        sourceTraces: [
-          {
-            ...emptyTrace,
-            searchResultsCount: 0,
-            retrievedAt,
-            eligibilityStatus: "metadata_only",
-            eligibilityReasons: [],
-            exclusionReasons: ["Arama sonucu bulunamadı."]
-          }
-        ]
+        sourceTraces: [{
+          ...emptyTrace,
+          searchResultsCount: 0,
+          retrievedAt,
+          eligibilityStatus: "metadata_only",
+          eligibilityReasons: [],
+          exclusionReasons: ["Arama sonucu bulunamadı."]
+        }]
       };
     }
 
@@ -107,7 +105,7 @@ export class LiveYargitayAdapter implements PrecedentSourceAdapter {
         ...emptyTrace,
         searchResultsCount,
         selectedResult: { documentId: searchResult.documentId },
-        selectedResultReason: `Health law term '${query}' matched Yargıtay emsal search.`,
+        selectedResultReason: `Health law term '${query}' matched Danıştay emsal search.`,
         documentId: searchResult.documentId,
         sourceId: searchResult.sourceId,
         fullTextAvailable: fullText !== null,
@@ -124,7 +122,7 @@ export class LiveYargitayAdapter implements PrecedentSourceAdapter {
 
     return {
       status: "ok",
-      source: YARGITAY_SOURCE,
+      source: DANISTAY_SOURCE,
       query,
       searchResultsCount,
       selectedResult: searchResults[0] ?? null,
@@ -135,7 +133,7 @@ export class LiveYargitayAdapter implements PrecedentSourceAdapter {
 
   private async fetchFullText(url: string): Promise<string | null> {
     try {
-      const response = await this.fetchWithRetry(url, { headers: yargitayHeaders() });
+      const response = await this.fetchWithRetry(url, { headers: danistayHeaders() });
       if (isUnavailable(response)) return null;
       const resp = response as Response;
       const contentType = resp.headers.get("content-type") ?? "";
@@ -149,7 +147,7 @@ export class LiveYargitayAdapter implements PrecedentSourceAdapter {
     }
   }
 
-  private async fetchWithRetry(url: string, init: RequestInit): Promise<Response | LiveYargitayUnavailable> {
+  private async fetchWithRetry(url: string, init: RequestInit): Promise<Response | LiveDanistayUnavailable> {
     const attempts = [0, 250, 750];
 
     for (const delay of attempts) {
@@ -162,11 +160,11 @@ export class LiveYargitayAdapter implements PrecedentSourceAdapter {
         if (response.status >= 500 && delay !== attempts.at(-1)) continue;
 
         if (response.status === 403 || response.status === 429) {
-          return unavailable("source_blocked", `Yargıtay source returned HTTP ${response.status}.`, true, "Retry after the source cools down.");
+          return unavailable("source_blocked", `Danıştay source returned HTTP ${response.status}.`, true, "Retry after the source cools down.");
         }
         return unavailable(
           response.status >= 500 ? "source_error" : "document_not_found",
-          `Yargıtay source returned HTTP ${response.status}.`,
+          `Danıştay source returned HTTP ${response.status}.`,
           response.status >= 500,
           "Retry the request or verify the endpoint."
         );
@@ -174,14 +172,14 @@ export class LiveYargitayAdapter implements PrecedentSourceAdapter {
         if (delay !== attempts.at(-1)) continue;
         return unavailable(
           "source_error",
-          `Yargıtay request failed: ${error instanceof Error ? error.message : String(error)}`,
+          `Danıştay request failed: ${error instanceof Error ? error.message : String(error)}`,
           true,
-          "Retry after checking network access to emsal.yargitay.gov.tr."
+          "Retry after checking network access to karararama.danistay.gov.tr."
         );
       }
     }
 
-    return unavailable("source_error", "Yargıtay request ended unexpectedly.", true, "Retry the request.");
+    return unavailable("source_error", "Danıştay request ended unexpectedly.", true, "Retry the request.");
   }
 }
 
@@ -189,23 +187,23 @@ function buildSearchBody(query: string) {
   return {
     data: {
       arananKelime: query,
-      birimYrgKurulDaire: 0,
-      birimYrgHGK: 0,
-      birimYrgBGK: 0,
+      birimDanistayDaire: 0,
+      birimDanistayHGK: 0,
+      birimDanistayBGK: 0,
+      birimDanistayIDDK: 0,
       basTarih: "",
       bitTarih: "",
       esasYil: "",
       esasSira: "",
       kararYil: "",
       kararSira: "",
-      ilkDerece: 0,
       kayitSayisi: MAX_RESULTS_PER_QUERY,
       baslangicKayit: 0
     }
   };
 }
 
-function normalizeSearchResults(raw: unknown): LiveYargitaySearchResult[] {
+function normalizeSearchResults(raw: unknown): LiveDanistaySearchResult[] {
   if (!raw || typeof raw !== "object") return [];
 
   const asObj = raw as Record<string, unknown>;
@@ -220,29 +218,29 @@ function normalizeSearchResults(raw: unknown): LiveYargitaySearchResult[] {
     const id = str(row.ID ?? row.id ?? row.kararId ?? row.KARAR_ID);
     if (!id) return [];
 
-    const chamber = str(row.BIRIMI ?? row.birimi ?? row.daire ?? row.birim ?? row.BIRIM);
+    const chamber = str(row.DAIRESI ?? row.dairesi ?? row.BIRIMI ?? row.birimi ?? row.daire ?? row.birim ?? "");
     const esasYil = str(row.ESAS_YILI ?? row.esasYili ?? "");
     const esasSira = str(row.ESAS_SIRASI ?? row.esasSirasi ?? "");
     const kararYil = str(row.KARAR_YILI ?? row.kararYili ?? "");
     const kararSira = str(row.KARAR_SIRASI ?? row.kararSirasi ?? "");
 
     return [{
-      documentId: `yargitay:${id}`,
+      documentId: `danistay:${id}`,
       sourceId: id,
       title: str(row.OZET ?? row.ozet ?? row.title ?? row.baslik ?? ""),
       date: normalizeDate(str(row.KARAR_TARIHI ?? row.kararTarihi ?? row.tarih ?? "")),
       chamber: chamber || undefined,
       meritsNumber: esasYil && esasSira ? `${esasYil}/${esasSira}` : undefined,
       decisionNumber: kararYil && kararSira ? `${kararYil}/${kararSira}` : undefined,
-      sourceUrl: `${BASE_URL}/DetailMain.aspx?id=${id}`,
-      documentUrl: `${BASE_URL}/DownloadYargitayDoc?id=${id}`,
+      sourceUrl: `${BASE_URL}/DanistayDetail.aspx?id=${id}`,
+      documentUrl: `${BASE_URL}/DownloadDanistayDoc?id=${id}`,
       summaryText: str(row.OZET ?? row.ozet ?? "")
     }];
   });
 }
 
 function buildDecision(
-  result: LiveYargitaySearchResult,
+  result: LiveDanistaySearchResult,
   fullText: string | null,
   query: string,
   retrievedAt: string
@@ -255,7 +253,7 @@ function buildDecision(
 
   return {
     id: result.documentId,
-    court: "yargitay",
+    court: "danistay",
     chamber: result.chamber,
     decisionDate: result.date,
     meritsNumber: result.meritsNumber,
@@ -267,7 +265,7 @@ function buildDecision(
     topicTags: [],
     fullText: fullText ?? undefined,
     evidence: {
-      source: "yargitay",
+      source: "danistay",
       documentId: result.documentId,
       sourceId: result.sourceId,
       sourceUrl: result.sourceUrl,
@@ -284,8 +282,8 @@ function buildEmptyTrace(
 ): DecisionSourceTrace {
   return {
     query,
-    source: "yargitay",
-    court: "yargitay",
+    source: "danistay",
+    court: "danistay",
     searchRequest,
     searchResultsCount: null,
     selectedResult: null,
@@ -311,50 +309,43 @@ function extractTextFromHtml(html: string): string {
 function extractLegalReasoning(fullText: string): string | undefined {
   const markers = ["gerekçe", "değerlendirme", "hukuki değerlendirme", "inceleme", "gerekce", "degerlendirme"];
   const lower = fullText.toLocaleLowerCase("tr-TR");
-
   for (const marker of markers) {
     const idx = lower.indexOf(marker);
-    if (idx !== -1) {
-      return fullText.slice(idx, idx + 3000).trim();
-    }
+    if (idx !== -1) return fullText.slice(idx, idx + 3000).trim();
   }
-
   return fullText.length > 200 ? fullText.slice(0, 3000).trim() : undefined;
 }
 
 function extractOutcome(fullText: string): string | undefined {
-  const markers = ["sonuç", "hüküm", "karar", "sonuc", "huküm"];
+  const markers = ["sonuç", "hüküm", "karar", "sonuc"];
   const lower = fullText.toLocaleLowerCase("tr-TR");
-
   for (const marker of markers) {
     const idx = lower.lastIndexOf(marker);
-    if (idx !== -1 && idx > fullText.length / 2) {
-      return fullText.slice(idx, idx + 500).trim();
-    }
+    if (idx !== -1 && idx > fullText.length / 2) return fullText.slice(idx, idx + 500).trim();
   }
   return undefined;
 }
 
 function unavailable(
-  errorCode: LiveYargitayUnavailable["errorCode"],
+  errorCode: LiveDanistayUnavailable["errorCode"],
   message: string,
   retryable: boolean,
   recommendedNextStep: string,
   sourceTrace?: DecisionSourceTrace[]
-): LiveYargitayUnavailable {
-  return { status: "unavailable", source: YARGITAY_SOURCE, errorCode, message, retryable, recommendedNextStep, ...(sourceTrace ? { sourceTrace } : {}) };
+): LiveDanistayUnavailable {
+  return { status: "unavailable", source: DANISTAY_SOURCE, errorCode, message, retryable, recommendedNextStep, ...(sourceTrace ? { sourceTrace } : {}) };
 }
 
-function isUnavailable(value: unknown): value is LiveYargitayUnavailable {
+function isUnavailable(value: unknown): value is LiveDanistayUnavailable {
   return typeof value === "object" && value !== null && "status" in value && (value as { status: unknown }).status === "unavailable";
 }
 
-function yargitayHeaders(contentType?: string): Record<string, string> {
+function danistayHeaders(contentType?: string): Record<string, string> {
   return {
     Accept: "application/json, text/html;q=0.9",
     ...(contentType ? { "Content-Type": contentType } : {}),
     Referer: `${BASE_URL}/`,
-    "User-Agent": "physician-legal-mcp/0.9 yargitay-emsal-check"
+    "User-Agent": "physician-legal-mcp/0.10 danistay-emsal-check"
   };
 }
 

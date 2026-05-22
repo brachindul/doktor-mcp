@@ -419,6 +419,120 @@ and shows 0 selected precedents in `precedentDiagnostics` for the Yargıtay sour
 
 Danıştay and AYM adapters remain mock adapters in v0.9.
 
+## Multi-Source Live Precedent Pipeline (v0.10)
+
+v0.10 adds the live Danıştay adapter, a centralized health law query expansion module,
+per-source diagnostics (`sourceSummaries`), and a file-based result cache.
+
+### Live Danıştay Adapter
+
+`LiveDanistayAdapter` (`src/sources/danistay/liveDanistayAdapter.ts`) targets
+`https://karararama.danistay.gov.tr/YargitayBilgiBankasiIstemciService`. It follows the
+same retry, HTML full-text extraction, and eligibility assessment pattern as the Yargıtay
+adapter. `court` is set to `"danistay"` and document IDs are prefixed `danistay:`.
+
+The adapter uses `pickHealthLawQuery` from the centralized query expansion module instead
+of maintaining its own term map.
+
+### `precedentSources` Parameter
+
+`prepare_doctor_legal_information_pack` and `search_health_precedents` now accept an
+optional `precedentSources` array to select which courts are queried in live mode:
+
+```json
+{
+  "question": "aydınlatılmış rıza",
+  "sourceMode": "live",
+  "precedentSources": ["yargitay", "danistay"]
+}
+```
+
+Valid values: `"yargitay"`, `"danistay"`, `"aym"`. Default when omitted is all three.
+AYM remains a mock adapter in v0.10.
+
+When one source is unavailable, the others continue. The pack is never blocked on a single
+adapter failure.
+
+### Health Law Query Expansion (v0.10)
+
+`src/health/healthLawQueryExpansion.ts` provides deterministic term mapping shared by
+both the Yargıtay and Danıştay adapters:
+
+- `riza` / `onam` / `aydinlat` → `"aydınlatılmış rıza"`
+- `komplikasyon` → `"komplikasyon tıbbi müdahale"`
+- `malpraktis` → `"malpraktis hekim kusur"`
+- `hekim` → `"hekimin özen yükümlülüğü"`
+- `hasta` → `"hasta hakları"`
+- `veri` / `mahrem` → `"sağlık verisi mahremiyet"`
+- `kusur` → `"hizmet kusuru tıbbi müdahale"`
+- `acil` → `"acil müdahale hekim yükümlülüğü"`
+
+`pickHealthLawQuery` returns the highest-priority mapped term for a classified question.
+`pickHealthLawQueries` returns up to N distinct terms for multi-term searches.
+
+### `sourceSummaries` in `precedentDiagnostics` (v0.10)
+
+`PrecedentSelectionDiagnostics` now includes `sourceSummaries[]` with a per-source
+breakdown:
+
+```json
+{
+  "precedentDiagnostics": {
+    "query": "aydınlatılmış rıza",
+    "selectedPrecedentCount": 1,
+    "excludedDecisionCount": 2,
+    "sourceSummaries": [
+      {
+        "source": "yargitay",
+        "mode": "live",
+        "searched": true,
+        "searchResultsCount": 5,
+        "candidateCount": 2,
+        "selectedCount": 1,
+        "excludedCount": 1,
+        "unavailableCount": 0,
+        "errorCodes": []
+      },
+      {
+        "source": "danistay",
+        "mode": "live",
+        "searched": false,
+        "searchResultsCount": null,
+        "candidateCount": 0,
+        "selectedCount": 0,
+        "excludedCount": 0,
+        "unavailableCount": 1,
+        "errorCodes": ["source_error"]
+      }
+    ]
+  }
+}
+```
+
+`selectedPrecedents[]` and `excludedDecisions[]` entries also now include a `source` field
+(same value as `court`) to identify which adapter produced each decision.
+
+### File-Based Cache (v0.10)
+
+`PrecedentCache` (`src/sources/precedentCache.ts`) caches live adapter results to
+`.cache/precedents/` with a one-hour TTL. Cache files are keyed by source, query, and
+page size. Cache write failures are non-fatal.
+
+`smoke:precedents` supports three cache flags:
+
+```powershell
+# Use cache (default)
+npm run smoke:precedents -- "aydınlatılmış rıza"
+
+# Skip cache reads and writes
+npm run smoke:precedents -- "aydınlatılmış rıza" --no-cache
+
+# Force a fresh fetch and overwrite the cache entry
+npm run smoke:precedents -- "aydınlatılmış rıza" --refresh
+```
+
+`.cache/` is in `.gitignore` and is never committed.
+
 ## Development
 
 ```powershell
@@ -428,21 +542,32 @@ npm run build
 npm run smoke -- "Aydinlatilmis riza kaydi eksikse hangi resmi kaynaklar eslesir?"
 npm run smoke:legislation -- "kisisel saglik verisi mahremiyet"
 npm run smoke:legislation -- "aydınlatılmış rıza"
-npm run smoke:precedents -- "aydınlatılmış rıza" -- --sourceMode live
+
+# Smoke both Yargıtay and Danıştay (default)
+npm run smoke:precedents -- "aydınlatılmış rıza"
+
+# Smoke specific sources
+npm run smoke:precedents -- "hizmet kusuru" --precedentSources yargitay,danistay
+
+# Cache control
+npm run smoke:precedents -- "aydınlatılmış rıza" --no-cache
+npm run smoke:precedents -- "aydınlatılmış rıza" --refresh
+
 npm run smoke:mcp -- "kişisel sağlık verisi mahremiyet" -- --sourceMode live
 npm run smoke:mcp -- "hasta haklari tibbi mudahale" -- --sourceMode live
 npm run smoke:mcp -- "riza belgesi" -- --sourceMode mock
 npm run dev:mcp
 ```
 
-`smoke:precedents` calls `LiveYargitayAdapter.searchAndNormalize(query)` directly and
-prints JSON including `sourceTraces` with `eligibilityStatus` for each candidate decision.
-If the live source is unreachable, it prints the structured `unavailable` result with
-`sourceTrace` showing what was attempted. JSON parse-ability is always preserved.
+`smoke:precedents` queries live Yargıtay and Danıştay adapters in parallel, caches results,
+and prints JSON including per-source `results` with `sourceTraces` and `eligibilityStatus`
+for each candidate decision. If a source is unreachable, its structured `unavailable` result
+is printed alongside the other source's output. JSON parse-ability is always preserved.
 
 `smoke:mcp` calls the full `prepare_doctor_legal_information_pack` handler. With
-`sourceMode: "live"` it uses both the live legislation and live Yargıtay adapters. Mock
-legislation remains the default path. Danıştay and AYM remain mock adapters in all modes.
+`sourceMode: "live"` it uses both live legislation and live Yargıtay + Danıştay adapters.
+The optional `precedentSources` parameter selects which adapters are used. AYM remains a
+mock adapter.
 
 After `npm run build`, run the compiled stdio MCP server with:
 
