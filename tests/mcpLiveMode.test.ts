@@ -52,6 +52,12 @@ const liveProvision: LegislationProvision = {
     extractionMethod: "pdf-text > article-marker",
     extractedArticleNumbers: ["6"],
     retrievedAt: "2026-05-22T00:00:00.000Z"
+  },
+  ranking: {
+    score: 132,
+    matchedTerms: ["saglik", "verisi"],
+    rankingReasons: ["Article 6 is in the mapped article list."],
+    fromMappedArticleList: true
   }
 };
 
@@ -81,7 +87,8 @@ describe("MCP legislation sourceMode", () => {
       query: "kişisel sağlık verisi",
       searchResults: [],
       documents: [],
-      provisions: [liveProvision]
+      provisions: [liveProvision],
+      sourceTrace: [liveProvision.sourceTrace!]
     });
     const liveGet = vi.spyOn(liveLegislation, "getLegislationProvisions").mockResolvedValue([liveProvision]);
     const handlers = createMedicalLegalToolHandlers(new PhysicianLegalInformationService({ liveLegislation }));
@@ -96,7 +103,16 @@ describe("MCP legislation sourceMode", () => {
     });
 
     expect(search).toEqual(expect.objectContaining({ status: "ok", provisions: [liveProvision] }));
-    expect(get).toEqual([liveProvision]);
+    expect(search.selectionDiagnostics).toEqual(expect.objectContaining({
+      selectedLegislationCount: 1,
+      selectedProvisionCount: 1
+    }));
+    expect(search.selectionDiagnostics?.selectedProvisions[0]).toEqual(expect.objectContaining({
+      score: 132,
+      matchedTerms: ["saglik", "verisi"]
+    }));
+    expect(get).toEqual(expect.objectContaining({ sourceMode: "live", provisions: [liveProvision] }));
+    expect(get.selectionDiagnostics.selectedProvisionCount).toBe(1);
     expect(liveSearch).toHaveBeenCalledOnce();
     expect(liveGet).toHaveBeenCalledWith(["mevzuat:1.5.6698"]);
   });
@@ -109,7 +125,8 @@ describe("MCP legislation sourceMode", () => {
       query: "kişisel sağlık verisi",
       searchResults: [],
       documents: [],
-      provisions: [liveProvision]
+      provisions: [liveProvision],
+      sourceTrace: [liveProvision.sourceTrace!]
     });
     const handlers = createMedicalLegalToolHandlers(new PhysicianLegalInformationService({ liveLegislation }));
     const pack = await handlers.prepare_doctor_legal_information_pack({
@@ -120,6 +137,11 @@ describe("MCP legislation sourceMode", () => {
     expect(pack.relevantLegislation[0]?.verbatimQuote).toBe(liveProvision.verbatimText);
     expect(pack.relevantLegislation[0]?.sourceDocumentId).toBe(liveProvision.documentId);
     expect(pack.sourceTrace?.[0]?.extractedArticleNumbers).toContain("6");
+    expect(pack.selectionDiagnostics).toEqual(expect.objectContaining({
+      selectedLegislationCount: 1,
+      selectedProvisionCount: 1
+    }));
+    expect(pack.selectionDiagnostics?.selectedProvisions[0]?.topRankingReasons).not.toEqual([]);
   });
 
   it("carries live unavailable without inventing legislation or MVP-excluded headings", async () => {
@@ -133,7 +155,8 @@ describe("MCP legislation sourceMode", () => {
     const json = JSON.stringify(pack).toLocaleLowerCase("tr-TR");
 
     expect(pack.relevantLegislation).toEqual([]);
-    expect(pack.sourceUnavailable).toEqual([unavailable]);
+    expect(pack.sourceUnavailable).toEqual([expect.objectContaining(unavailable)]);
+    expect(pack.selectionDiagnostics?.unavailableCount).toBe(1);
     expect(json).not.toContain("risk seviyesi");
     expect(json).not.toContain("derhal yapilacak");
   });

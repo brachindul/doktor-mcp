@@ -244,6 +244,54 @@ KVKK remains `supporting_general` for personal-health-data and privacy questions
 not replace primary health legislation in ranking or pack ordering. Yargitay, Danistay,
 and AYM adapters remain mock adapters.
 
+## Selection Diagnostics
+
+v0.7 adds `selectionDiagnostics` to live legislation MCP responses. It is the short audit
+view for source selection: `sourceTrace` still contains the official request, document,
+extraction, candidate, ranking, and unavailable detail, while diagnostics summarize what
+was selected without requiring a full trace read.
+
+The compact diagnostic includes:
+
+- query and `sourceMode`
+- selected legislation and provision counts
+- each selected legislation role, topic cluster, priority, article numbers, rejected
+  article-number summary, and selection reason
+- each selected provision score, matched terms, top ranking reasons, and mapped-article flag
+- unavailable and warning counts
+
+Example live summary:
+
+```json
+{
+  "selectionDiagnostics": {
+    "query": "kisisel saglik verisi mahremiyet",
+    "sourceMode": "live",
+    "selectedLegislationCount": 2,
+    "selectedProvisionCount": 2,
+    "selectedLegislations": [
+      {
+        "legislationName": "Hasta Haklari Yonetmeligi",
+        "legislationRole": "health_primary",
+        "topicCluster": "patient_privacy",
+        "selectedArticleNumbers": ["21"]
+      },
+      {
+        "legislationName": "Kisisel Verilerin Korunmasi Kanunu",
+        "legislationRole": "supporting_general",
+        "topicCluster": "personal_health_data",
+        "selectedArticleNumbers": ["6"]
+      }
+    ],
+    "unavailableCount": 0
+  }
+}
+```
+
+Diagnostics are audit metadata only. They do not replace official provision quotes, do not
+create legal propositions, and keep KVKK in its supporting-general role. Yargitay,
+Danistay, and AYM adapters remain mock adapters.
+
 ## Development
 
 ```powershell

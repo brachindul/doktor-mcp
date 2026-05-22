@@ -2,6 +2,7 @@ import type {
   ClassifiedMedicalLegalQuestion,
   CourtDecision,
   LegislationSourceMode,
+  LegislationProvision,
   PrepareInformationPackInput
 } from "../contracts/legal.js";
 import { composeDoctorLegalInformationPack } from "../health/answerComposer.js";
@@ -13,6 +14,7 @@ import { MockDanistayAdapter } from "../sources/danistay/mockDanistayAdapter.js"
 import { MockLegislationAdapter } from "../sources/legislation/mockLegislationAdapter.js";
 import { LiveOfficialLegislationAdapter } from "../sources/legislation/liveOfficialLegislationAdapter.js";
 import type { LiveLegislationResult } from "../sources/legislation/liveTypes.js";
+import { buildLegislationSelectionDiagnostics } from "../sources/legislation/selectionDiagnostics.js";
 import type { PrecedentSourceAdapter } from "../sources/types.js";
 import { MockYargitayAdapter } from "../sources/yargitay/mockYargitayAdapter.js";
 
@@ -42,12 +44,45 @@ export class PhysicianLegalInformationService {
   }
 
   async searchLegislation(classification: ClassifiedMedicalLegalQuestion, sourceMode: LegislationSourceMode = "mock") {
-    if (sourceMode === "live") return this.liveLegislation.getMappedHealthProvisions(classification.question);
+    if (sourceMode === "live") {
+      const result = await this.liveLegislation.getMappedHealthProvisions(classification.question);
+      if (result.status === "ok") {
+        return {
+          ...result,
+          selectionDiagnostics: result.selectionDiagnostics ?? buildLegislationSelectionDiagnostics({
+            query: classification.question,
+            sourceMode,
+            provisions: result.provisions
+          })
+        };
+      }
+
+      return {
+        ...result,
+        selectionDiagnostics: result.selectionDiagnostics ?? buildLegislationSelectionDiagnostics({
+          query: classification.question,
+          sourceMode,
+          provisions: [],
+          sourceUnavailable: [result]
+        })
+      };
+    }
     return this.legislationMapper.mapQuestion(classification);
   }
 
   async getLegislationProvisions(documentIds: string[], sourceMode: LegislationSourceMode = "mock") {
-    if (sourceMode === "live") return this.liveLegislation.getLegislationProvisions(documentIds);
+    if (sourceMode === "live") {
+      const provisions = await this.liveLegislation.getLegislationProvisions(documentIds);
+      return {
+        sourceMode,
+        provisions,
+        selectionDiagnostics: buildLegislationSelectionDiagnostics({
+          query: queryFromProvisions(provisions, documentIds),
+          sourceMode,
+          provisions
+        })
+      };
+    }
     return this.mockLegislation.getLegislationProvisions(documentIds);
   }
 
@@ -74,19 +109,34 @@ export class PhysicianLegalInformationService {
       ? legislation.status === "ok" ? legislation.provisions : []
       : legislation;
 
-    return composeDoctorLegalInformationPack(
+    const pack = composeDoctorLegalInformationPack(
       classification,
       provisions,
       selectVerifiedPrecedents(filtered),
       liveUnavailable
     );
+    const selectionDiagnostics = input.sourceMode === "live"
+      ? buildLegislationSelectionDiagnostics({
+        query: input.question,
+        sourceMode: "live",
+        provisions,
+        sourceUnavailable: liveUnavailable,
+        warningCount: pack.sourceWarnings.length
+      })
+      : undefined;
+
+    return selectionDiagnostics ? { ...pack, selectionDiagnostics } : pack;
   }
 }
 
-function isLiveResult(value: Awaited<ReturnType<PhysicianLegalInformationService["searchLegislation"]>>): value is LiveLegislationResult {
+function isLiveResult(value: unknown): value is LiveLegislationResult {
   return !Array.isArray(value);
 }
 
 function isLiveUnavailable(value: Awaited<ReturnType<PhysicianLegalInformationService["searchLegislation"]>>) {
   return isLiveResult(value) && value.status === "unavailable";
+}
+
+function queryFromProvisions(provisions: LegislationProvision[], documentIds: string[]) {
+  return provisions[0]?.sourceTrace?.query ?? documentIds.join(" ");
 }

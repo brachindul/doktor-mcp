@@ -213,6 +213,10 @@ describe("live official legislation adapter", () => {
       "health_primary",
       "supporting_general"
     ]);
+    expect(result.selectionDiagnostics?.selectedLegislations.map((legislation) => legislation.legislationRole)).toEqual([
+      "health_primary",
+      "supporting_general"
+    ]);
   });
 
   it("maps medical intervention to primary health legislation", async () => {

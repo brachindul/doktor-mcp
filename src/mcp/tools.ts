@@ -53,7 +53,7 @@ export function registerMedicalLegalTools(
 
   server.registerTool("search_health_legislation", {
     description: "Searches health-related official legislation provisions through the adapter layer.",
-    inputSchema: questionSchema.shape
+    inputSchema: legislationQuestionSchema.shape
   }, async (input) => jsonResult(await handlers.search_health_legislation(input)));
 
   server.registerTool("get_legislation_provisions", {
@@ -73,6 +73,6 @@ export function registerMedicalLegalTools(
 
   server.registerTool("prepare_doctor_legal_information_pack", {
     description: "Prepares a source-grounded physician legal information pack without a final legal opinion.",
-    inputSchema: questionSchema.shape
+    inputSchema: legislationQuestionSchema.shape
   }, async (input) => jsonResult(await handlers.prepare_doctor_legal_information_pack(input)));
 }

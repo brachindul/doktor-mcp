@@ -120,6 +120,7 @@ export interface DoctorLegalInformationPack {
   sourceWarnings: string[];
   sourceUnavailable?: SourceUnavailable[];
   sourceTrace?: LegislationSourceTrace[];
+  selectionDiagnostics?: LegislationSelectionDiagnostics;
 }
 
 export interface PrepareInformationPackInput {
@@ -135,6 +136,32 @@ export interface SourceUnavailable {
   retryable: boolean;
   recommendedNextStep: string;
   sourceTrace?: LegislationSourceTrace[];
+}
+
+export interface LegislationSelectionDiagnostics {
+  query: string;
+  sourceMode: LegislationSourceMode;
+  selectedLegislationCount: number;
+  selectedProvisionCount: number;
+  selectedLegislations: Array<{
+    legislationName: string;
+    legislationRole: string | null;
+    topicCluster: string | null;
+    healthLawPriority: number | null;
+    selectedArticleNumbers: string[];
+    rejectedArticleNumbers: string[];
+    selectionReason: string | null;
+  }>;
+  selectedProvisions: Array<{
+    legislationName: string;
+    articleNumber: string;
+    score: number | null;
+    matchedTerms: string[];
+    topRankingReasons: string[];
+    fromMappedArticleList: boolean | null;
+  }>;
+  unavailableCount: number;
+  warningCount: number;
 }
 
 export interface LegislationSourceTrace {

@@ -8,6 +8,7 @@ import type { LegislationSourceAdapter } from "../types.js";
 import { extractArticlesFromOfficialText } from "./articleParser.js";
 import { healthLegislationHints } from "./healthMappings.js";
 import { PROVISION_RANKING_METHOD, rankExtractedArticles } from "./provisionRanker.js";
+import { buildLegislationSelectionDiagnostics } from "./selectionDiagnostics.js";
 import type {
   HealthLegislationHint,
   LiveLegislationDocument,
@@ -128,14 +129,20 @@ export class LiveOfficialLegislationAdapter implements LegislationSourceAdapter 
       )));
     }
 
+    const sortedProvisions = sortProvisionsByHealthPriority(provisions);
     return {
       status: "ok",
       source: OFFICIAL_SOURCE,
       query,
       searchResults,
       documents,
-      provisions: sortProvisionsByHealthPriority(provisions),
-      sourceTrace: sourceTrace.sort(tracePriority)
+      provisions: sortedProvisions,
+      sourceTrace: sourceTrace.sort(tracePriority),
+      selectionDiagnostics: buildLegislationSelectionDiagnostics({
+        query,
+        sourceMode: "live",
+        provisions: sortedProvisions
+      })
     };
   }
 
@@ -371,7 +378,18 @@ function unavailable(
   recommendedNextStep: string,
   sourceTrace?: LegislationSourceTrace[]
 ): LiveLegislationUnavailable {
-  return { status: "unavailable", source: OFFICIAL_SOURCE, errorCode, message, retryable, recommendedNextStep, ...(sourceTrace ? { sourceTrace } : {}) };
+  const result = { status: "unavailable" as const, source: OFFICIAL_SOURCE, errorCode, message, retryable, recommendedNextStep, ...(sourceTrace ? { sourceTrace } : {}) };
+  return {
+    ...result,
+    ...(sourceTrace ? {
+      selectionDiagnostics: buildLegislationSelectionDiagnostics({
+        query: sourceTrace[0]?.query ?? "",
+        sourceMode: "live",
+        provisions: [],
+        sourceUnavailable: [result]
+      })
+    } : {})
+  };
 }
 
 function isUnavailable(value: unknown): value is LiveLegislationUnavailable {
@@ -474,7 +492,16 @@ function completeTrace(trace: LegislationSourceTrace, extra: Partial<Legislation
 }
 
 function withTrace(unavailableResult: LiveLegislationUnavailable, sourceTrace: LegislationSourceTrace[]) {
-  return { ...unavailableResult, sourceTrace };
+  return {
+    ...unavailableResult,
+    sourceTrace,
+    selectionDiagnostics: buildLegislationSelectionDiagnostics({
+      query: sourceTrace[0]?.query ?? "",
+      sourceMode: "live",
+      provisions: [],
+      sourceUnavailable: [unavailableResult]
+    })
+  };
 }
 
 function sortProvisionsByHealthPriority(provisions: LegislationProvision[]) {

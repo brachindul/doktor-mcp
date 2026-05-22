@@ -4,6 +4,7 @@ import type {
   DoctorLegalInformationPack,
   LegalClassificationSection,
   LegislationProvision,
+  LegislationSelectionDiagnostics,
   SourceUnavailable
 } from "../contracts/legal.js";
 
@@ -47,7 +48,8 @@ export function composeDoctorLegalInformationPack(
   classification: ClassifiedMedicalLegalQuestion,
   provisions: LegislationProvision[],
   precedents: CourtDecision[],
-  sourceUnavailable: SourceUnavailable[] = []
+  sourceUnavailable: SourceUnavailable[] = [],
+  selectionDiagnostics?: LegislationSelectionDiagnostics
 ): DoctorLegalInformationPack {
   const groundedCount = provisions.length + precedents.length;
   const shortAnswer =
@@ -83,6 +85,7 @@ export function composeDoctorLegalInformationPack(
     ...(sourceUnavailable.length > 0 ? { sourceUnavailable } : {}),
     ...(provisions.some((provision) => provision.sourceTrace)
       ? { sourceTrace: provisions.flatMap((provision) => provision.sourceTrace ? [provision.sourceTrace] : []) }
-      : {})
+      : {}),
+    ...(selectionDiagnostics ? { selectionDiagnostics } : {})
   };
 }
