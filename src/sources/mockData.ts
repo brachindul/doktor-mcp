@@ -12,6 +12,26 @@ function evidence(source: SourceEvidence["source"], documentId: string, fullText
 
 export const mockLegislationProvisions: LegislationProvision[] = [
   {
+    documentId: "leg-deontology-18",
+    legislationName: "Tibbi Deontoloji Nizamnamesi",
+    articleNumber: "18",
+    verbatimText:
+      "Tabip ve dis tabibi, acil vakalar disinda, hastayi reddetme yetkisine sahiptir.",
+    connection: "Hekimin hastayi reddetme ve tedaviyi birakma hakki deontoloji kurallariyla duzenlenir.",
+    dimensions: ["professional_ethics", "civil_compensation"],
+    evidence: evidence("legislation", "leg-deontology-18", true)
+  },
+  {
+    documentId: "leg-tababet-1",
+    legislationName: "Tababet ve Suabati Sanatlarinin Tarzi Icrasina Dair Kanun",
+    articleNumber: "1",
+    verbatimText:
+      "Turkiye Cumhuriyeti dahilinde tababet icra etmek ve hasta tedavi edebilmek icin bu kanunun sartlarina haiz olmak lazimdir.",
+    connection: "Hekimlik icrasi ve mesleki yukumluluklerin yasal temelidir.",
+    dimensions: ["professional_ethics", "patient_rights"],
+    evidence: evidence("legislation", "leg-tababet-1", true)
+  },
+  {
     documentId: "leg-patient-rights-24",
     legislationName: "Hasta Haklari Yonetmeligi",
     articleNumber: "24",

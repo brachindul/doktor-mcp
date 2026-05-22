@@ -17,3 +17,4 @@ pack.json
 *audit*.json
 temp*.json
 fixtures/live-samples/*-probe-*.json
+exports/

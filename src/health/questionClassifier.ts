@@ -5,13 +5,15 @@ import type {
 
 const termDimensions: Array<{ terms: string[]; dimensions: LegalDimension[] }> = [
   { terms: ["riza", "rıza", "onam", "aydinlat", "aydınlat"], dimensions: ["patient_rights", "civil_compensation"] },
-  { terms: ["veri", "mahrem", "kvkk", "kayit", "kayıt", "saglik verisi", "sağlık verisi"], dimensions: ["privacy_kvkk", "patient_rights"] },
+  { terms: ["veri", "kvkk", "saglik verisi", "sağlık verisi", "sosyal medya", "paylaşım", "paylasim"], dimensions: ["privacy_kvkk", "patient_rights"] },
+  { terms: ["mahrem", "mahremiyet", "sir", "sır", "gizlilik", "kayit", "kayıt", "epikriz", "rapor", "dosya", "arsiv", "arşiv"], dimensions: ["patient_rights"] },
   { terms: ["ceza", "taksir", "yaralama"], dimensions: ["criminal"] },
   { terms: ["disiplin", "idari", "sorusturma"], dimensions: ["disciplinary_administrative"] },
-  { terms: ["etik", "meslek"], dimensions: ["professional_ethics"] },
+  { terms: ["etik", "meslek", "acil", "sevk", "nobet", "nöbet"], dimensions: ["professional_ethics", "patient_rights"] },
   { terms: ["hekim", "tibbi", "tıbbi", "mudahale", "müdahale"], dimensions: ["patient_rights"] },
   { terms: ["redde", "reddet", "kabul etme", "iliskisini sonlandir", "ilişkisini sonlandır", "tedaviyi birak", "tedaviyi bırak", "tedaviyi sonlandir", "kacinma", "kaçınma", "bakmama"], dimensions: ["professional_ethics", "civil_compensation"] },
   { terms: ["uymuyor", "uyumsu", "uygulamıyor", "uygulamiyor", "talimatlara uyma", "talimatlara uyulma"], dimensions: ["patient_rights", "professional_ethics"] },
+  { terms: ["komplikasyon", "malpraktis", "hata", "kusur", "özen", "ozen", "tazminat", "sorumluluk"], dimensions: ["professional_ethics", "civil_compensation"] },
   { terms: ["acil durum", "acil degil", "acil değil", "acil mudehale"], dimensions: ["professional_ethics", "patient_rights"] }
 ];
 

@@ -641,3 +641,38 @@ After `npm run build`, run the compiled stdio MCP server with:
 ```powershell
 npm run mcp
 ```
+
+## Physician Question Benchmark Suite (v0.16.0)
+
+v0.16.0 introduces a comprehensive quality evaluation and regression-testing benchmark suite specifically focused on typical physician-centric legal questions. 
+
+### Purpose
+- **Quality Measurement**: Systematically evaluate the performance, legislation mapping, precedent count, and schema conformity of 15-20 target questions across 15 separate medical-legal categories.
+- **Regression Prevention**: Enforce strict safety constraints, such as ensuring `Kisisel Verilerin Korunmasi Kanunu (KVKK)` is not present in non-privacy packs, ensuring physician-centric deontology codes take precedence over general patient-rights in refusal situations, and ensuring live mode contains no mock-precedents fallback.
+
+### How to Run
+
+Use the benchmark runner script to execute tests and view report outputs:
+
+```powershell
+# Run the complete benchmark in mock mode (default)
+npm run benchmark:doctor-questions
+
+# Run in live mode (queries live legislation and precedents)
+npm run benchmark:doctor-questions -- --sourceMode live
+
+# Limit the run to first N questions
+npm run benchmark:doctor-questions -- --limit 5
+
+# Specify a custom report directory (default is exports/doctor-benchmark)
+npm run benchmark:doctor-questions -- --out exports/my-custom-report
+```
+
+> [!WARNING]
+> Running the benchmark in `--sourceMode live` makes actual HTTP requests to Cumhurbaşkanlığı Mevzuat (`mevzuat.gov.tr`) and high court services (`bedesten.adalet.gov.tr` and `karararama.danistay.gov.tr`). Ensure you have stable internet and keep request volume sensible to avoid rate limiting (HTTP 429) or IP throttling by these servers.
+
+### Benchmark Reports & Exports
+All execution runs generate two files in the `exports/doctor-benchmark/` directory (which is git-ignored):
+- `doctor-benchmark-report.json`: Fully structured and parseable JSON report capturing exact details, prioritization lists, counts, and assertions.
+- `doctor-benchmark-report.md`: A human-friendly Markdown report containing summaries, breakdown tables, passing/failing statuses, and detailed question statistics.
+
