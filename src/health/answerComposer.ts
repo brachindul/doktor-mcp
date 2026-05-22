@@ -65,7 +65,8 @@ export function composeDoctorLegalInformationPack(
       verbatimQuote: provision.verbatimText,
       connection: provision.connection,
       sourceDocumentId: provision.evidence.documentId,
-      ...(provision.sourceTrace ? { sourceTrace: provision.sourceTrace } : {})
+      ...(provision.sourceTrace ? { sourceTrace: provision.sourceTrace } : {}),
+      ...(provision.ranking ? { ranking: provision.ranking } : {})
     })),
     verifiedHighCourtPrecedents: precedents.map(formatPrecedent),
     missingInformation: classification.missingInformation,

@@ -88,7 +88,11 @@ describe("live official legislation adapter", () => {
       selectedSearchResult: expect.objectContaining({ sourceId: "mevzuat:1.5.6698" }),
       directPdfUrl: "https://www.mevzuat.gov.tr/MevzuatMetin/1.5.6698.pdf",
       extractionMethod: "pdf-text > article-marker",
-      extractedArticleNumbers: ["6"]
+      extractedArticleNumbers: ["6"],
+      candidateArticleNumbers: ["5", "6", "7"],
+      rankedArticleNumbers: expect.arrayContaining(["6"]),
+      rejectedArticleNumbers: expect.arrayContaining(["5", "7"]),
+      rankingMethod: "deterministic-health-provision-ranking-v1"
     }));
   });
 
@@ -233,5 +237,34 @@ describe("live official legislation adapter", () => {
       topicCluster: "medical_intervention",
       legislationRole: "health_primary"
     }));
+  });
+
+  it("caps ranked live pack provisions per legislation", async () => {
+    const adapter = new LiveOfficialLegislationAdapter();
+    vi.spyOn(adapter, "searchOfficialLegislation").mockResolvedValue([]);
+    vi.spyOn(adapter, "getDocument").mockImplementation(async (result) => ({
+      sourceId: result.sourceId,
+      title: result.title,
+      sourceUrl: result.sourceUrl,
+      documentUrl: result.documentUrl,
+      text: result.sourceId === "mevzuat:7.5.4847"
+        ? [
+          "MADDE 15- Hasta tıbbi müdahale öncesi bilgilendirilir.",
+          "MADDE 24- Tıbbi müdahale için rıza metni.",
+          "MADDE 31- Rıza tıbbi müdahale kapsamını belirler.",
+          "MADDE 32- Tıbbi müdahale tıbbi müdahale tıbbi müdahale."
+        ].join("\n")
+        : "MADDE 1- Saglik hizmeti metni.\nMADDE 3- Hizmet esaslari metni.",
+      contentType: "application/pdf",
+      retrievedAt: "2026-05-22T00:00:00.000Z"
+    }));
+
+    const result = await adapter.getMappedHealthProvisions("hasta hakları tıbbi müdahale");
+    expect(result.status).toBe("ok");
+    if (result.status !== "ok") return;
+
+    const patientRightsProvisions = result.provisions.filter((provision) => provision.documentId === "mevzuat:7.5.4847");
+    expect(patientRightsProvisions.map((provision) => provision.articleNumber)).toEqual(["15", "24", "31"]);
+    expect(result.sourceTrace[0]?.rejectedArticleNumbers).toContain("32");
   });
 });

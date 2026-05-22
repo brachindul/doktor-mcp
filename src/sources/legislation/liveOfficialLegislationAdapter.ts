@@ -7,6 +7,7 @@ import type {
 import type { LegislationSourceAdapter } from "../types.js";
 import { extractArticlesFromOfficialText } from "./articleParser.js";
 import { healthLegislationHints } from "./healthMappings.js";
+import { PROVISION_RANKING_METHOD, rankExtractedArticles } from "./provisionRanker.js";
 import type {
   HealthLegislationHint,
   LiveLegislationDocument,
@@ -97,26 +98,33 @@ export class LiveOfficialLegislationAdapter implements LegislationSourceAdapter 
       })]);
       documents.push(document);
 
-      const selected = extractArticlesFromOfficialText(document.text)
-        .filter((article) => hint.articleNumbers.includes(article.articleNumber));
-      Object.assign(trace, traceDocument(document, selected.map((article) => article.articleNumber)));
+      const extracted = extractArticlesFromOfficialText(document.text);
+      const ranking = rankExtractedArticles(query, hint, extracted);
+      const selected = ranking.selected;
+      Object.assign(trace, traceDocument(document, selected.map(({ article }) => article.articleNumber), {
+        candidateArticleNumbers: extracted.map((article) => article.articleNumber),
+        rankedArticleNumbers: ranking.ranked.map(({ article }) => article.articleNumber),
+        rejectedArticleNumbers: ranking.rejected.map(({ article }) => article.articleNumber),
+        rankingMethod: PROVISION_RANKING_METHOD
+      }));
       if (selected.length === 0) {
         return unavailable(
           "provision_not_found",
-          `Official text was retrieved for ${hint.title}, but mapped articles ${hint.articleNumbers.join(", ")} were not extracted.`,
+          `Official text was retrieved for ${hint.title}, but no extracted article passed deterministic ranking.`,
           false,
-          "Inspect the official text parser before using this provision in an answer.",
-          [completeTrace(trace, { error: "Mapped articles were absent after article extraction." })]
+          "Inspect the official article extraction and ranking signals before using this provision in an answer.",
+          [completeTrace(trace, { error: "No extracted article passed provision ranking." })]
         );
       }
 
       sourceTrace.push(trace);
-      provisions.push(...selected.map((article) => provisionFromArticle(
+      provisions.push(...selected.map(({ article, ranking: articleRanking }) => provisionFromArticle(
         hint,
         article.text,
         article.articleNumber,
         document,
-        trace
+        trace,
+        articleRanking
       )));
     }
 
@@ -266,7 +274,8 @@ function provisionFromArticle(
   text: string,
   articleNumber: string,
   document: LiveLegislationDocument,
-  sourceTrace: LegislationSourceTrace
+  sourceTrace: LegislationSourceTrace,
+  ranking: LegislationProvision["ranking"]
 ): LegislationProvision {
   return {
     documentId: document.sourceId,
@@ -276,6 +285,7 @@ function provisionFromArticle(
     connection: `Official MVP mapping for ${hint.query}; quote extracted from article ${articleNumber} source text.`,
     dimensions: hint.dimensions,
     sourceTrace,
+    ...(ranking ? { ranking } : {}),
     evidence: {
       source: "legislation",
       documentId: document.sourceId,
@@ -418,6 +428,10 @@ function emptyTrace(
     contentType: null,
     extractionMethod: null,
     extractedArticleNumbers: [],
+    candidateArticleNumbers: [],
+    rankedArticleNumbers: [],
+    rejectedArticleNumbers: [],
+    rankingMethod: null,
     retrievedAt: null,
     ...extra
   };
@@ -432,7 +446,14 @@ function traceSearchResult(result: OfficialLegislationSearchResult) {
   };
 }
 
-function traceDocument(document: LiveLegislationDocument, extractedArticleNumbers: string[]): Partial<LegislationSourceTrace> {
+function traceDocument(
+  document: LiveLegislationDocument,
+  extractedArticleNumbers: string[],
+  rankingTrace: Pick<
+    LegislationSourceTrace,
+    "candidateArticleNumbers" | "rankedArticleNumbers" | "rejectedArticleNumbers" | "rankingMethod"
+  >
+): Partial<LegislationSourceTrace> {
   const isGenerated = document.documentUrl.includes("/File/GeneratePdf");
   return {
     landingUrl: document.sourceUrl,
@@ -443,6 +464,7 @@ function traceDocument(document: LiveLegislationDocument, extractedArticleNumber
     contentType: document.contentType,
     extractionMethod: "pdf-text > article-marker",
     extractedArticleNumbers,
+    ...rankingTrace,
     retrievedAt: document.retrievedAt
   };
 }

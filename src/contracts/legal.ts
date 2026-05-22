@@ -43,6 +43,14 @@ export interface LegislationProvision {
   dimensions: LegalDimension[];
   evidence: SourceEvidence;
   sourceTrace?: LegislationSourceTrace;
+  ranking?: ProvisionRanking;
+}
+
+export interface ProvisionRanking {
+  score: number;
+  matchedTerms: string[];
+  rankingReasons: string[];
+  fromMappedArticleList: boolean;
 }
 
 export interface CourtDecision {
@@ -104,6 +112,7 @@ export interface DoctorLegalInformationPack {
     connection: string;
     sourceDocumentId: string;
     sourceTrace?: LegislationSourceTrace;
+    ranking?: ProvisionRanking;
   }>;
   verifiedHighCourtPrecedents: VerifiedPrecedentEntry[];
   missingInformation: string[];
@@ -169,6 +178,10 @@ export interface LegislationSourceTrace {
   contentType: string | null;
   extractionMethod: string | null;
   extractedArticleNumbers: string[];
+  candidateArticleNumbers?: string[];
+  rankedArticleNumbers?: string[];
+  rejectedArticleNumbers?: string[];
+  rankingMethod?: string | null;
   retrievedAt: string | null;
   error?: string;
 }

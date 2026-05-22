@@ -66,6 +66,7 @@ describe("MVP legal information pack constraints", () => {
 
     expect(json).not.toContain("risk seviyesi");
     expect(json).not.toContain("derhal yapilacak");
+    expect(json).not.toContain("kesin hukuki kanaat");
     expect(pack).not.toHaveProperty("riskLevel");
     expect(pack).not.toHaveProperty("immediateActions");
   });

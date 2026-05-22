@@ -215,6 +215,35 @@ priority, and whether the selected mapping is primary health legislation or supp
 general legislation. Trace fields explain source selection and extraction only. They do
 not create legal propositions and never replace the verbatim official provision text.
 
+## Provision Ranking
+
+v0.6 adds deterministic live provision ranking after official article extraction. It
+selects a compact set of source articles for the pack; it does not create article text,
+legal advice, or legal conclusions.
+
+Ranking signals include:
+
+- physician query terms
+- the matched health-law topic cluster
+- mapping search terms
+- article heading text when the extracted article starts with a usable heading
+- keyword matches inside the extracted article text
+- a mapped article-list bonus
+- health-law priority and primary/supporting role ordering
+
+Live trace shows `candidateArticleNumbers`, `rankedArticleNumbers`,
+`rejectedArticleNumbers`, and `rankingMethod`. Each returned live provision also carries
+its deterministic score, matched terms, ranking reasons, and whether it came from the
+manual mapped article list. The live adapter limits a single legislation document to a
+small ranked article set, currently at most three provisions. Extracted mapped articles
+stay first; high-signal ranked fallback articles are considered only when the mapped
+articles are absent from the extraction. Trace preserves both the selected and rejected
+candidate trail.
+
+KVKK remains `supporting_general` for personal-health-data and privacy questions. It does
+not replace primary health legislation in ranking or pack ordering. Yargitay, Danistay,
+and AYM adapters remain mock adapters.
+
 ## Development
 
 ```powershell
