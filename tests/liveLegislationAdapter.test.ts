@@ -72,12 +72,12 @@ describe("live official legislation adapter", () => {
       retrievedAt: "2026-05-22T00:00:00.000Z"
     });
 
-    const result = await adapter.getMappedHealthProvisions("kisisel saglik verisi mahremiyet");
+    const result = await adapter.getMappedHealthProvisions("kisisel saglik verisi");
     expect(result.status).toBe("ok");
     if (result.status !== "ok") return;
 
     const pack = composeDoctorLegalInformationPack(
-      classifyMedicalLegalQuestion("kisisel saglik verisi mahremiyet"),
+      classifyMedicalLegalQuestion("kisisel saglik verisi"),
       result.provisions,
       []
     );
@@ -161,6 +161,77 @@ describe("live official legislation adapter", () => {
         matchedHealthMapping: null,
         attemptedHealthMappings: expect.arrayContaining(["mevzuat:1.5.6698", "mevzuat:7.5.4847"])
       })]
+    }));
+  });
+
+  it("prioritizes health legislation before KVKK for health data privacy queries", async () => {
+    const adapter = new LiveOfficialLegislationAdapter();
+    vi.spyOn(adapter, "searchOfficialLegislation").mockImplementation(async (query) => {
+      if (query.includes("Hasta")) return [{
+        sourceId: "mevzuat:7.5.4847",
+        title: "Hasta Haklari Yonetmeligi",
+        sourceUrl: "https://www.mevzuat.gov.tr/mevzuat?MevzuatNo=4847&MevzuatTur=7&MevzuatTertip=5",
+        documentUrl: "https://www.mevzuat.gov.tr/File/GeneratePdf?mevzuatNo=4847&mevzuatTur=KurumVeKurulusYonetmeligi&mevzuatTertip=5",
+        legislationNumber: "4847",
+        legislationType: "7",
+        legislationArrangement: "5"
+      }];
+      return [{
+        sourceId: "mevzuat:1.5.6698",
+        title: "Kisisel Verilerin Korunmasi Kanunu",
+        sourceUrl: "https://www.mevzuat.gov.tr/mevzuat?MevzuatNo=6698&MevzuatTur=1&MevzuatTertip=5",
+        documentUrl: "https://www.mevzuat.gov.tr/MevzuatMetin/1.5.6698.pdf",
+        legislationNumber: "6698",
+        legislationType: "1",
+        legislationArrangement: "5"
+      }];
+    });
+    vi.spyOn(adapter, "getDocument").mockImplementation(async (result) => ({
+      sourceId: result.sourceId,
+      title: result.title,
+      sourceUrl: result.sourceUrl,
+      documentUrl: result.documentUrl,
+      text: result.sourceId === "mevzuat:7.5.4847"
+        ? "MADDE 21- Hasta mahremiyeti metni.\nMADDE 22- Sonraki."
+        : "MADDE 6- Saglik verisi metni.\nMADDE 7- Sonraki.",
+      contentType: "application/pdf",
+      retrievedAt: "2026-05-22T00:00:00.000Z"
+    }));
+
+    const result = await adapter.getMappedHealthProvisions("kişisel sağlık verisi mahremiyet");
+    expect(result.status).toBe("ok");
+    if (result.status !== "ok") return;
+    expect(result.provisions.map((provision) => provision.documentId)).toEqual([
+      "mevzuat:7.5.4847",
+      "mevzuat:1.5.6698"
+    ]);
+    expect(result.sourceTrace.map((trace) => trace.matchedHealthMapping?.legislationRole)).toEqual([
+      "health_primary",
+      "supporting_general"
+    ]);
+  });
+
+  it("maps medical intervention to primary health legislation", async () => {
+    const adapter = new LiveOfficialLegislationAdapter();
+    vi.spyOn(adapter, "searchOfficialLegislation").mockResolvedValue([]);
+    vi.spyOn(adapter, "getDocument").mockImplementation(async (result) => ({
+      sourceId: result.sourceId,
+      title: result.title,
+      sourceUrl: result.sourceUrl,
+      documentUrl: result.documentUrl,
+      text: result.sourceId === "mevzuat:7.5.4847"
+        ? "MADDE 24- Tibbi mudahale metni.\nMADDE 31- Riza kapsami metni.\nMADDE 32- Sonraki."
+        : "MADDE 1- Tababet icrasi metni.\nMADDE 2- Sonraki.",
+      contentType: "application/pdf",
+      retrievedAt: "2026-05-22T00:00:00.000Z"
+    }));
+
+    const result = await adapter.getMappedHealthProvisions("tıbbi müdahale");
+    expect(result.status).toBe("ok");
+    if (result.status !== "ok") return;
+    expect(result.provisions[0]?.sourceTrace?.matchedHealthMapping).toEqual(expect.objectContaining({
+      topicCluster: "medical_intervention",
+      legislationRole: "health_primary"
     }));
   });
 });

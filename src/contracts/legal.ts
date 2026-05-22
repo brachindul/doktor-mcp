@@ -135,6 +135,10 @@ export interface LegislationSourceTrace {
     query: string;
     title: string;
     articleNumbers: string[];
+    topicCluster?: string;
+    legislationRole?: string;
+    healthLawPriority?: number;
+    selectionReason?: string;
   } | null;
   attemptedHealthMappings?: string[];
   officialSearchRequest: {

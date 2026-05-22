@@ -84,8 +84,8 @@ export class LiveOfficialLegislationAdapter implements LegislationSourceAdapter 
       const selectedSearchResult = officialSearch.find((result) => result.sourceId === hint.sourceId) ?? mappedResult;
       trace.selectedSearchResult = traceSearchResult(selectedSearchResult);
       trace.selectedResultReason = officialSearch.some((result) => result.sourceId === hint.sourceId)
-        ? "Official search result matched the verified health mapping sourceId."
-        : "Verified health mapping document path selected because official search returned no exact sourceId match.";
+        ? `${hint.selectionReason} Topic cluster: ${hint.topicCluster}. Role: ${hint.legislationRole}. Official search matched the verified mapping sourceId.`
+        : `${hint.selectionReason} Topic cluster: ${hint.topicCluster}. Role: ${hint.legislationRole}. Verified mapping path selected because official search returned no exact sourceId match.`;
       searchResults.push(selectedSearchResult);
 
       const document = await this.getDocument(selectedSearchResult);
@@ -120,7 +120,15 @@ export class LiveOfficialLegislationAdapter implements LegislationSourceAdapter 
       )));
     }
 
-    return { status: "ok", source: OFFICIAL_SOURCE, query, searchResults, documents, provisions, sourceTrace };
+    return {
+      status: "ok",
+      source: OFFICIAL_SOURCE,
+      query,
+      searchResults,
+      documents,
+      provisions: sortProvisionsByHealthPriority(provisions),
+      sourceTrace: sourceTrace.sort(tracePriority)
+    };
   }
 
   async searchOfficialLegislation(query: string): Promise<OfficialLegislationSearchResult[] | LiveLegislationUnavailable> {
@@ -148,7 +156,7 @@ export class LiveOfficialLegislationAdapter implements LegislationSourceAdapter 
         const number = stringField(row.mevzuatNo);
         const type = stringField(row.mevzuatTur);
         const arrangement = stringField(row.mevzuatTertip);
-        const title = stringField(row.mevAdi);
+        const title = cleanSearchTitle(stringField(row.mevAdi));
         if (!number || !type || !arrangement || !title) return [];
 
         return [{
@@ -290,7 +298,20 @@ function matchingHints(query: string): HealthLegislationHint[] {
   const matches = healthLegislationHints.filter((hint) =>
     hint.terms.some((term) => normalized.includes(normalize(term)))
   );
-  return [...new Map(matches.map((hint) => [hint.sourceId, hint])).values()];
+  const combined = new Map<string, HealthLegislationHint>();
+
+  for (const hint of matches.sort((a, b) => a.healthLawPriority - b.healthLawPriority)) {
+    const current = combined.get(hint.sourceId);
+    if (!current) {
+      combined.set(hint.sourceId, { ...hint, articleNumbers: [...hint.articleNumbers], terms: [...hint.terms] });
+      continue;
+    }
+
+    current.articleNumbers = [...new Set([...current.articleNumbers, ...hint.articleNumbers])];
+    current.terms = [...new Set([...current.terms, ...hint.terms])];
+  }
+
+  return [...combined.values()].sort((a, b) => a.healthLawPriority - b.healthLawPriority);
 }
 
 function mapHintToSearchResult(hint: HealthLegislationHint): OfficialLegislationSearchResult {
@@ -355,6 +376,10 @@ function stringField(value: unknown) {
   return value === undefined || value === null ? "" : String(value);
 }
 
+function cleanSearchTitle(value: string) {
+  return value.replace(/<[^>]+>/g, "").trim();
+}
+
 function officialSearchRequest(phrase: string): LegislationSourceTrace["officialSearchRequest"] {
   return {
     url: `${BASE_URL}/anasayfa/MevzuatDatatable`,
@@ -375,7 +400,11 @@ function emptyTrace(
       sourceId: hint.sourceId,
       query: hint.query,
       title: hint.title,
-      articleNumbers: hint.articleNumbers
+      articleNumbers: hint.articleNumbers,
+      topicCluster: hint.topicCluster,
+      legislationRole: hint.legislationRole,
+      healthLawPriority: hint.healthLawPriority,
+      selectionReason: hint.selectionReason
     } : null,
     officialSearchRequest: null,
     officialSearchResultsCount: null,
@@ -424,4 +453,16 @@ function completeTrace(trace: LegislationSourceTrace, extra: Partial<Legislation
 
 function withTrace(unavailableResult: LiveLegislationUnavailable, sourceTrace: LegislationSourceTrace[]) {
   return { ...unavailableResult, sourceTrace };
+}
+
+function sortProvisionsByHealthPriority(provisions: LegislationProvision[]) {
+  return provisions.sort((left, right) =>
+    (left.sourceTrace?.matchedHealthMapping?.healthLawPriority ?? Number.MAX_SAFE_INTEGER) -
+    (right.sourceTrace?.matchedHealthMapping?.healthLawPriority ?? Number.MAX_SAFE_INTEGER)
+  );
+}
+
+function tracePriority(left: LegislationSourceTrace, right: LegislationSourceTrace) {
+  return (left.matchedHealthMapping?.healthLawPriority ?? Number.MAX_SAFE_INTEGER) -
+    (right.matchedHealthMapping?.healthLawPriority ?? Number.MAX_SAFE_INTEGER);
 }

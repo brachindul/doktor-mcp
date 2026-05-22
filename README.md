@@ -17,7 +17,7 @@ inputs for this project.
 
 ## Live Legislation Status
 
-v0.3 wires the live official legislation adapter into optional MCP tool flows:
+The live official legislation adapter is wired into optional MCP tool flows:
 
 - adapter: `LiveOfficialLegislationAdapter`
 - official source: T.C. Cumhurbaşkanlığı Mevzuat Bilgi Sistemi at `mevzuat.gov.tr`
@@ -25,13 +25,17 @@ v0.3 wires the live official legislation adapter into optional MCP tool flows:
 - full-text capability: official `MevzuatMetin` document retrieval
 - current extraction proof: PDF text extraction and article splitting for mapped legislation
 
-The live smoke proof uses the official PDF form of `6698` article `6` for personal health
-data questions. Patient-rights and informed-consent questions now use the official generated
-PDF path for Hasta Haklari Yonetmeligi `4847`, including mapped articles `24` and `26`.
-Initial health-law hints also cover medical intervention, privacy, and physician obligation
-topics. When an official document does not arrive in an extractable format or a mapped
-article cannot be extracted, the live adapter returns structured `unavailable` output instead
-of creating a provision.
+v0.5 makes health legislation the first live mapping path. Patient-rights and
+informed-consent questions use the official generated PDF path for Hasta Haklari
+Yonetmeligi `4847`, including mapped articles `24` and `26`. Health-law mappings also
+cover Tibbi Deontoloji Nizamnamesi, Tababet ve Suabati Sanatlarinin Tarzi Icrasina Dair
+Kanun, and Saglik Hizmetleri Temel Kanunu. KVKK article `6` remains available for
+personal-health-data and privacy questions as supporting general legislation after
+health-specific sources.
+
+When an official document does not arrive in an extractable format or a mapped article
+cannot be extracted, the live adapter returns structured `unavailable` output instead of
+creating a provision.
 
 Live source failures use this contract:
 
@@ -54,8 +58,9 @@ The skeleton includes:
 - type contracts for official legislation evidence, court decision evidence, classification,
   precedent status, and the legal information pack
 - mock legislation and high court adapters
-- live official legislation adapter for v0.2 source verification
-- MCP `sourceMode` routing for live legislation in v0.3
+- live official legislation adapter for official source verification
+- MCP `sourceMode` routing for live legislation
+- health-prioritized legislation mappings and source trace metadata
 - health-law pipeline pieces:
   - question classifier
   - legislation mapper
@@ -144,9 +149,30 @@ cannot return a verified provision.
 Mock mode uses local fixture provisions. Live mode uses official legislation text from
 `mevzuat.gov.tr`; Yargitay, Danistay, and AYM precedent adapters remain mock in both modes.
 
+## Health Legislation Priority
+
+The live mapping layer groups physician questions into health-law topic clusters:
+
+- informed consent / onam
+- medical intervention
+- patient rights
+- patient privacy
+- personal health data
+- records, file, and epicrisis
+- emergency intervention
+- referral and consultation
+- physician duty of care
+- professional ethics
+
+Each mapping carries the target legislation, target article numbers, search terms, a
+selection reason, and a health-law priority. When more than one mapping matches, the
+pack orders primary health legislation before supporting general legislation. For example,
+a personal-health-data privacy question may return Hasta Haklari Yonetmeligi before KVKK;
+KVKK is not used as a broad fallback for unrelated physician questions.
+
 ## Source Trace
 
-v0.4 adds `sourceTrace` to live legislation output for audit rather than legal reasoning.
+`sourceTrace` audits live legislation output rather than supplying legal reasoning.
 Each trace shows how a provision moved from a health-law mapping to an official document and
 article extraction step:
 
@@ -184,8 +210,10 @@ An unavailable live pack also preserves audit context:
 }
 ```
 
-Trace fields explain source selection and extraction only. They do not create legal
-propositions and never replace the verbatim official provision text.
+`matchedHealthMapping` and `selectedResultReason` show the topic cluster, health-law
+priority, and whether the selected mapping is primary health legislation or supporting
+general legislation. Trace fields explain source selection and extraction only. They do
+not create legal propositions and never replace the verbatim official provision text.
 
 ## Development
 
@@ -198,6 +226,8 @@ npm run smoke:legislation -- "kisisel saglik verisi mahremiyet"
 npm run smoke:legislation -- "aydınlatılmış rıza"
 npm run smoke:mcp -- "kişisel sağlık verisi mahremiyet" -- --sourceMode live
 npm run dev:mcp
+npm run smoke:mcp -- "hasta haklari tibbi mudahale" -- --sourceMode live
+npm run smoke:mcp -- "acil mudahale hekim yukumlulugu" -- --sourceMode live
 ```
 
 `smoke:legislation` prints JSON. On success it includes the extracted official provisions,

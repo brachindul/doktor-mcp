@@ -50,6 +50,20 @@ export interface LiveLegislationProvisionResult {
 export type LiveLegislationResult = LiveLegislationProvisionResult | LiveLegislationUnavailable;
 
 export interface HealthLegislationHint {
+  topicCluster:
+    | "informed_consent"
+    | "medical_intervention"
+    | "patient_rights"
+    | "patient_privacy"
+    | "personal_health_data"
+    | "records_epicrisis"
+    | "emergency_intervention"
+    | "referral_consultation"
+    | "physician_duty_of_care"
+    | "professional_ethics";
+  legislationRole: "health_primary" | "supporting_general";
+  healthLawPriority: number;
+  selectionReason: string;
   terms: string[];
   query: string;
   title: string;
