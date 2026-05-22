@@ -1,6 +1,6 @@
 {
   "name": "physician-legal-mcp",
-  "version": "0.15.1",
+  "version": "0.15.2",
   "description": "Source-grounded MCP skeleton for physician legal information packs.",
   "type": "module",
   "bin": {

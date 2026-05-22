@@ -33,7 +33,7 @@ export class LiveBedestenAdapter implements PrecedentSourceAdapter {
     this.httpClient = options.httpClient ?? new HttpClient({
       baseUrl: BEDESTEN_BASE_URL,
       fetchImpl: options.fetchImpl ?? fetch,
-      wait: options.wait
+      sleep: options.wait
     });
     this.now = options.now ?? (() => new Date());
     this.courtTypes = options.courtTypes ?? ["YARGITAYKARARI", "DANISTAYKARAR", "YERELHUKUK", "ISTINAFHUKUK", "KYB"];
@@ -60,6 +60,15 @@ export class LiveBedestenAdapter implements PrecedentSourceAdapter {
         return [{
           id: `${this.sourceName}:error`,
           court: this.sourceName,
+          topicTags: [],
+          evidence: {
+            source: this.sourceName,
+            documentId: `${this.sourceName}:error`,
+            sourceUrl: searchUrl,
+            retrievedAt: this.now().toISOString(),
+            official: true,
+            fullText: false
+          },
           decisionSourceTrace: {
             ...emptyTrace,
             error: error.message

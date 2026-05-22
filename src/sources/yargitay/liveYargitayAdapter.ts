@@ -9,10 +9,11 @@ import {
   BEDESTEN_PUBLIC_HEADERS,
   buildBedestenDocumentBody,
   buildBedestenSearchBody,
+  normalizeBedestenDocumentResponse,
   normalizeBedestenSearchResponse
 } from "../bedesten/bedestenApi.js";
 import { extractLegalReasoning, extractOutcome } from "../precedentUtils.js";
-import { HttpClient, BedestenRateLimitError, BedestenHttpError } from "../../core/httpClient.js";
+import { HttpClient, BedestenRateLimitError, BedestenHttpError, BedestenParseError, BedestenNetworkError } from "../../core/httpClient.js";
 
 const SEARCH_URL = `${BEDESTEN_BASE_URL}/emsal-karar/searchDocuments`;
 const MAX_RESULTS_PER_QUERY = 5;
@@ -32,7 +33,7 @@ export class LiveYargitayAdapter implements PrecedentSourceAdapter {
     this.httpClient = options.httpClient ?? new HttpClient({
       baseUrl: BEDESTEN_BASE_URL,
       fetchImpl: options.fetchImpl ?? fetch,
-      wait: options.wait
+      sleep: options.wait
     });
     this.now = options.now ?? (() => new Date());
   }
@@ -54,15 +55,25 @@ export class LiveYargitayAdapter implements PrecedentSourceAdapter {
         headers: BEDESTEN_PUBLIC_HEADERS
       });
     } catch (error) {
+      const telemetry = (error as { telemetry?: { retryCount: number; backoffMs: number; httpStatus: number | null; contentType: string | null } }).telemetry;
+      const errTrace = { ...emptyTrace, error: error instanceof Error ? error.message : String(error), ...(telemetry ?? {}) };
       if (error instanceof BedestenRateLimitError) {
-        return unavailable("source_blocked", error.message, true, "Retry after the source cools down.", [{ ...emptyTrace, error: error.message }]);
+        return unavailable("source_blocked", error.message, true, "Retry after the source cools down.", [errTrace]);
       }
-      return unavailable("source_error", `Yargıtay (Bedesten) request failed: ${error instanceof Error ? error.message : String(error)}`, true, "Retry the request.", [{ ...emptyTrace, error: "network_error" }]);
+      if (error instanceof BedestenParseError) {
+        return unavailable("parse_failed", error.message, false, "Verify the upstream endpoint format.", [errTrace]);
+      }
+      if (error instanceof BedestenNetworkError) {
+        const cause = (error.cause instanceof Error ? error.cause.message : String(error.cause ?? error.message));
+        return unavailable("source_error", `Yargıtay (Bedesten) network error: ${cause}`, true, "Retry the request.", [{ ...emptyTrace, error: cause, ...(telemetry ?? {}) }]);
+      }
+      return unavailable("source_error", `Yargıtay (Bedesten) request failed: ${error instanceof Error ? error.message : String(error)}`, true, "Retry the request.", [errTrace]);
     }
 
     const searchResults = normalizeBedestenSearchResponse(rawData);
     const searchResultsCount = searchResults.length;
     const retrievedAt = this.now().toISOString();
+    const searchTelemetry = this.httpClient.lastTelemetry;
 
     if (searchResultsCount === 0) {
       return {
@@ -79,7 +90,11 @@ export class LiveYargitayAdapter implements PrecedentSourceAdapter {
             retrievedAt,
             eligibilityStatus: "metadata_only",
             eligibilityReasons: [],
-            exclusionReasons: ["Arama sonucu bulunamadı."]
+            exclusionReasons: ["Arama sonucu bulunamadı."],
+            retryCount: searchTelemetry.retryCount,
+            backoffMs: searchTelemetry.backoffMs,
+            httpStatus: searchTelemetry.httpStatus,
+            contentType: searchTelemetry.contentType
           }
         ]
       };
@@ -149,7 +164,11 @@ export class LiveYargitayAdapter implements PrecedentSourceAdapter {
         retrievedAt,
         eligibilityStatus: status,
         eligibilityReasons,
-        exclusionReasons
+        exclusionReasons,
+        retryCount: searchTelemetry.retryCount,
+        backoffMs: searchTelemetry.backoffMs,
+        httpStatus: searchTelemetry.httpStatus,
+        contentType: searchTelemetry.contentType
       };
 
       decisions.push({ ...decision, decisionSourceTrace: trace });

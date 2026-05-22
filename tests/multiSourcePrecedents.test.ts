@@ -107,6 +107,25 @@ describe("multi-source precedent live mode", () => {
     expect(sourceResults.map((sr) => sr.source)).not.toContain("danistay");
   });
 
+  it("does not fall back to mock AYM in live mode", async () => {
+    const service = makeService();
+    const defaults = await service.searchPrecedents(
+      { question: "riza", dimensions: [], searchTerms: ["riza"], missingInformation: [] },
+      "live"
+    );
+    const explicitAym = await service.searchPrecedents(
+      { question: "riza", dimensions: [], searchTerms: ["riza"], missingInformation: [] },
+      "live",
+      ["aym"]
+    );
+
+    expect(defaults.sourceResults.map((sr) => sr.source)).not.toContain("aym");
+    expect(explicitAym.decisions).toEqual([]);
+    expect(explicitAym.sourceResults).toEqual([
+      expect.objectContaining({ source: "aym", mode: "disabled", unavailable: true, errorCodes: ["live_not_supported"] })
+    ]);
+  });
+
   it("sourceSummaries in diagnostics reflect per-source counts", async () => {
     const service = makeService();
     const pack = await service.prepareInformationPack({ question: "aydınlatılmış rıza", sourceMode: "live" });

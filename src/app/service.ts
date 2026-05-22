@@ -110,7 +110,7 @@ export class PhysicianLegalInformationService {
     precedentSources?: PrecedentSource[]
   ): Promise<{ decisions: CourtDecision[]; sourceResults: PrecedentSourceResult[] }> {
     if (sourceMode === "live") {
-      const sources: PrecedentSource[] = precedentSources ?? ["yargitay", "danistay", "aym"];
+      const sources: PrecedentSource[] = precedentSources ?? ["yargitay", "danistay"];
       const sourceResults: PrecedentSourceResult[] = [];
 
       await Promise.all(sources.map(async (src) => {
@@ -136,8 +136,14 @@ export class PhysicianLegalInformationService {
             sourceResults.push({ source: "bedesten", mode: "live", decisions: [], searchResultsCount: null, unavailable: true, errorCodes: ["source_error"] });
           }
         } else if (src === "aym") {
-          const decisions = await new MockAymAdapter().searchHealthPrecedents(classification);
-          sourceResults.push({ source: "aym", mode: "mock", decisions, searchResultsCount: decisions.length, unavailable: false, errorCodes: [] });
+          sourceResults.push({
+            source: "aym",
+            mode: "disabled",
+            decisions: [],
+            searchResultsCount: null,
+            unavailable: true,
+            errorCodes: ["live_not_supported"]
+          });
         }
       }));
 

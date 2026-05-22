@@ -79,7 +79,7 @@ export function composeDoctorLegalInformationPack(
     sourceWarnings:
       groundedCount > 0
         ? [hasLiveLegislation
-            ? "Mevzuat maddesi canli resmi kaynaktan cikartildi; yuksek mahkeme adapterleri bu surumde mock kalir."
+            ? "Mevzuat maddesi canli resmi kaynaktan cikartildi; emsal kaynak modlari diagnostik alaninda izlenir."
             : "MVP mock kaynaklarla calisir; canli resmi kaynak entegrasyonu bu pack icin kullanilmadi."]
         : ["Kaynak yokken madde veya karar uretilmedi."],
     ...(sourceUnavailable.length > 0 ? { sourceUnavailable } : {}),

@@ -181,6 +181,10 @@ export interface DecisionSourceTrace {
   eligibilityReasons: string[];
   exclusionReasons: string[];
   error?: string;
+  retryCount?: number;
+  backoffMs?: number;
+  httpStatus?: number | null;
+  contentType?: string | null;
 }
 
 export interface PrecedentSelectionDiagnostics {

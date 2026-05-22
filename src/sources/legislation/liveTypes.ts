@@ -62,7 +62,11 @@ export interface HealthLegislationHint {
     | "emergency_intervention"
     | "referral_consultation"
     | "physician_duty_of_care"
-    | "professional_ethics";
+    | "professional_ethics"
+    | "physician_refusal_or_withdrawal"
+    | "patient_noncompliance"
+    | "physician_patient_relationship_termination"
+    | "emergency_exception";
   legislationRole: "health_primary" | "supporting_general";
   healthLawPriority: number;
   selectionReason: string;

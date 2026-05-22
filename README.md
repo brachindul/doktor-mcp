@@ -15,6 +15,20 @@ The adapter boundaries are prepared for:
 General internet articles, blogs, news, law firm marketing pages, and forums are not source
 inputs for this project.
 
+## Source Engine Port
+
+v0.15.2 ports the local-yargi source-engine hardening needed by the live adapters:
+
+- Bedesten requests use a shared `HttpClient` and `RateLimiter` path with bounded retry,
+  `Retry-After` handling, exponential fallback backoff, jitter, and request telemetry.
+- Live source failures stay structured and JSON-only. Source diagnostics can carry retry
+  count, backoff time, status, and content type without writing logs into CLI JSON output.
+- `src/sources/sourceRegistry.ts` exposes trimmed source capability, rate-limit, and cache
+  policy metadata for legislation and precedent sources.
+- Bedesten/Yargitay adapters keep metadata-only decisions out of verified precedent output;
+  official legislation still returns structured unavailable results when official search,
+  document retrieval, or article extraction cannot support a quote.
+
 ## Live Legislation Status
 
 The live official legislation adapter is wired into optional MCP tool flows:
