@@ -1,0 +1,30 @@
+{
+  "name": "physician-legal-mcp",
+  "version": "0.1.0",
+  "description": "Source-grounded MCP skeleton for physician legal information packs.",
+  "type": "module",
+  "bin": {
+    "physician-legal-mcp": "dist/mcp/server.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev:mcp": "tsx src/mcp/server.ts",
+    "mcp": "node dist/mcp/server.js",
+    "smoke": "tsx src/cli.ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.1",
+    "tsx": "^4.22.3",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.7"
+  }
+}
