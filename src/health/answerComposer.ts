@@ -3,7 +3,8 @@ import type {
   CourtDecision,
   DoctorLegalInformationPack,
   LegalClassificationSection,
-  LegislationProvision
+  LegislationProvision,
+  SourceUnavailable
 } from "../contracts/legal.js";
 
 const dimensionLabels = {
@@ -45,13 +46,14 @@ function formatPrecedent(decision: CourtDecision) {
 export function composeDoctorLegalInformationPack(
   classification: ClassifiedMedicalLegalQuestion,
   provisions: LegislationProvision[],
-  precedents: CourtDecision[]
+  precedents: CourtDecision[],
+  sourceUnavailable: SourceUnavailable[] = []
 ): DoctorLegalInformationPack {
   const groundedCount = provisions.length + precedents.length;
   const shortAnswer =
     groundedCount > 0
       ? "Soru resmi kaynak kayitlariyla eslestirildi; asagidaki paket nihai hukuki kanaat degildir."
-      : "Bu soru icin dogrulanmis mock mevzuat maddesi veya gerekceli yuksek mahkeme karari bulunamadi.";
+      : "Bu soru icin dogrulanmis mevzuat maddesi veya gerekceli yuksek mahkeme karari bulunamadi.";
   const hasLiveLegislation = provisions.some((provision) => Boolean(provision.evidence.sourceUrl));
 
   return {
@@ -75,6 +77,7 @@ export function composeDoctorLegalInformationPack(
         ? [hasLiveLegislation
             ? "Mevzuat maddesi canli resmi kaynaktan cikartildi; yuksek mahkeme adapterleri bu surumde mock kalir."
             : "MVP mock kaynaklarla calisir; canli resmi kaynak entegrasyonu bu pack icin kullanilmadi."]
-        : ["Kaynak yokken madde veya karar uretilmedi."]
+        : ["Kaynak yokken madde veya karar uretilmedi."],
+    ...(sourceUnavailable.length > 0 ? { sourceUnavailable } : {})
   };
 }

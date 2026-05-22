@@ -17,7 +17,7 @@ inputs for this project.
 
 ## Live Legislation Status
 
-v0.2 adds the first live official legislation adapter:
+v0.3 wires the live official legislation adapter into optional MCP tool flows:
 
 - adapter: `LiveOfficialLegislationAdapter`
 - official source: T.C. Cumhurbaşkanlığı Mevzuat Bilgi Sistemi at `mevzuat.gov.tr`
@@ -26,10 +26,12 @@ v0.2 adds the first live official legislation adapter:
 - current extraction proof: PDF text extraction and article splitting for mapped legislation
 
 The live smoke proof uses the official PDF form of `6698` article `6` for personal health
-data questions. Initial health-law hints also exist for informed consent, patient rights,
-medical intervention, privacy, and physician obligation topics. When an official document
-does not arrive in an extractable format or a mapped article cannot be extracted, the live
-adapter returns structured `unavailable` output instead of creating a provision.
+data questions. Patient-rights and informed-consent questions now use the official generated
+PDF path for Hasta Haklari Yonetmeligi `4847`, including mapped articles `24` and `26`.
+Initial health-law hints also cover medical intervention, privacy, and physician obligation
+topics. When an official document does not arrive in an extractable format or a mapped
+article cannot be extracted, the live adapter returns structured `unavailable` output instead
+of creating a provision.
 
 Live source failures use this contract:
 
@@ -53,6 +55,7 @@ The skeleton includes:
   precedent status, and the legal information pack
 - mock legislation and high court adapters
 - live official legislation adapter for v0.2 source verification
+- MCP `sourceMode` routing for live legislation in v0.3
 - health-law pipeline pieces:
   - question classifier
   - legislation mapper
@@ -123,6 +126,24 @@ before evidence of pressure.
 - `filter_reasoned_precedents`
 - `prepare_doctor_legal_information_pack`
 
+Legislation-facing MCP inputs accept optional `sourceMode`:
+
+```json
+{
+  "question": "kişisel sağlık verisi mahremiyet",
+  "sourceMode": "live"
+}
+```
+
+`sourceMode` is `"mock"` by default, so v0.1/v0.2 mock behavior remains the default.
+`search_health_legislation`, `get_legislation_provisions`, and
+`prepare_doctor_legal_information_pack` can use `"live"`. A live information pack keeps
+the same MVP shape and adds `sourceUnavailable` only when the official legislation source
+cannot return a verified provision.
+
+Mock mode uses local fixture provisions. Live mode uses official legislation text from
+`mevzuat.gov.tr`; Yargitay, Danistay, and AYM precedent adapters remain mock in both modes.
+
 ## Development
 
 ```powershell
@@ -131,13 +152,17 @@ npm test
 npm run build
 npm run smoke -- "Aydinlatilmis riza kaydi eksikse hangi resmi kaynaklar eslesir?"
 npm run smoke:legislation -- "kisisel saglik verisi mahremiyet"
+npm run smoke:legislation -- "aydınlatılmış rıza"
+npm run smoke:mcp -- "kişisel sağlık verisi mahremiyet" -- --sourceMode live
 npm run dev:mcp
 ```
 
 `smoke:legislation` prints JSON. On success it includes the extracted official provisions,
 the composed pack, and `quoteMatchesProvisionText: true`. On live-source failure it prints
 the structured `unavailable` result. Mock legislation remains the default MCP service path
-for the existing MVP tools; Yargitay, Danistay, and AYM adapters are still mock adapters.
+for existing callers unless `sourceMode: "live"` is supplied. `smoke:mcp` calls the same
+MCP handler flow as `prepare_doctor_legal_information_pack` and prints JSON. Yargitay,
+Danistay, and AYM adapters are still mock adapters.
 
 After `npm run build`, run the compiled stdio MCP server with:
 

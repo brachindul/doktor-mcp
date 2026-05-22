@@ -1,6 +1,6 @@
 {
   "name": "physician-legal-mcp",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Source-grounded MCP skeleton for physician legal information packs.",
   "type": "module",
   "bin": {
@@ -12,6 +12,7 @@
     "mcp": "node dist/mcp/server.js",
     "smoke": "tsx src/cli.ts",
     "smoke:legislation": "tsx src/legislationSmokeCli.ts",
+    "smoke:mcp": "tsx src/mcpSmokeCli.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },

@@ -250,7 +250,7 @@ function mapHintToSearchResult(hint: HealthLegislationHint): OfficialLegislation
     sourceId: hint.sourceId,
     title: hint.title,
     sourceUrl: `${BASE_URL}/mevzuat?MevzuatNo=${hint.legislationNumber}&MevzuatTur=${hint.legislationType}&MevzuatTertip=${hint.legislationArrangement}`,
-    documentUrl: officialPdfUrl(hint.legislationType, hint.legislationArrangement, hint.legislationNumber),
+    documentUrl: officialDocumentUrl(hint),
     legislationNumber: hint.legislationNumber,
     legislationType: hint.legislationType,
     legislationArrangement: hint.legislationArrangement
@@ -259,6 +259,17 @@ function mapHintToSearchResult(hint: HealthLegislationHint): OfficialLegislation
 
 function officialPdfUrl(type: string, arrangement: string, number: string) {
   return `${BASE_URL}/MevzuatMetin/${type}.${arrangement}.${number}.pdf`;
+}
+
+function officialGeneratedPdfUrl(type: string, arrangement: string, number: string) {
+  const typeName = type === "7" ? "KurumVeKurulusYonetmeligi" : type;
+  return `${BASE_URL}/File/GeneratePdf?mevzuatNo=${number}&mevzuatTur=${typeName}&mevzuatTertip=${arrangement}`;
+}
+
+function officialDocumentUrl(hint: HealthLegislationHint) {
+  return hint.legislationType === "7"
+    ? officialGeneratedPdfUrl(hint.legislationType, hint.legislationArrangement, hint.legislationNumber)
+    : officialPdfUrl(hint.legislationType, hint.legislationArrangement, hint.legislationNumber);
 }
 
 function officialHeaders(contentType?: string): Record<string, string> {

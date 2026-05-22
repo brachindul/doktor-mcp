@@ -4,8 +4,13 @@ import { z } from "zod";
 import { PhysicianLegalInformationService } from "../app/service.js";
 import type { CourtDecision } from "../contracts/legal.js";
 
+const sourceModeSchema = z.enum(["mock", "live"]).default("mock");
 const questionSchema = z.object({ question: z.string().min(1) });
-const provisionIdsSchema = z.object({ documentIds: z.array(z.string().min(1)).min(1) });
+const legislationQuestionSchema = questionSchema.extend({ sourceMode: sourceModeSchema.optional() });
+const provisionIdsSchema = z.object({
+  documentIds: z.array(z.string().min(1)).min(1),
+  sourceMode: sourceModeSchema.optional()
+});
 const decisionsSchema = z.object({ decisions: z.array(z.custom<CourtDecision>()) });
 
 function jsonResult(value: unknown): CallToolResult {
@@ -18,16 +23,20 @@ function jsonResult(value: unknown): CallToolResult {
 export function createMedicalLegalToolHandlers(service = new PhysicianLegalInformationService()) {
   return {
     classify_medical_legal_question: async (input: unknown) => service.classify(questionSchema.parse(input).question),
-    search_health_legislation: async (input: unknown) =>
-      service.searchLegislation(service.classify(questionSchema.parse(input).question)),
-    get_legislation_provisions: async (input: unknown) =>
-      service.getLegislationProvisions(provisionIdsSchema.parse(input).documentIds),
+    search_health_legislation: async (input: unknown) => {
+      const parsed = legislationQuestionSchema.parse(input);
+      return service.searchLegislation(service.classify(parsed.question), parsed.sourceMode);
+    },
+    get_legislation_provisions: async (input: unknown) => {
+      const parsed = provisionIdsSchema.parse(input);
+      return service.getLegislationProvisions(parsed.documentIds, parsed.sourceMode);
+    },
     search_health_precedents: async (input: unknown) =>
       service.searchPrecedents(service.classify(questionSchema.parse(input).question)),
     filter_reasoned_precedents: async (input: unknown) =>
       service.filterPrecedents(decisionsSchema.parse(input).decisions),
     prepare_doctor_legal_information_pack: async (input: unknown) =>
-      service.prepareInformationPack(questionSchema.parse(input))
+      service.prepareInformationPack(legislationQuestionSchema.parse(input))
   };
 }
 
@@ -39,7 +48,7 @@ export function registerMedicalLegalTools(
 
   server.registerTool("classify_medical_legal_question", {
     description: "Classifies a physician legal information question for source mapping.",
-    inputSchema: questionSchema.shape
+    inputSchema: legislationQuestionSchema.shape
   }, async (input) => jsonResult(await handlers.classify_medical_legal_question(input)));
 
   server.registerTool("search_health_legislation", {
@@ -54,7 +63,7 @@ export function registerMedicalLegalTools(
 
   server.registerTool("search_health_precedents", {
     description: "Searches high court precedent candidates through mock source adapters.",
-    inputSchema: questionSchema.shape
+    inputSchema: legislationQuestionSchema.shape
   }, async (input) => jsonResult(await handlers.search_health_precedents(input)));
 
   server.registerTool("filter_reasoned_precedents", {

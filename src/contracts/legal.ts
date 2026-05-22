@@ -1,4 +1,5 @@
 export type SourceKind = "legislation" | "yargitay" | "danistay" | "aym";
+export type LegislationSourceMode = "mock" | "live";
 
 export type LegalDimension =
   | "criminal"
@@ -106,8 +107,19 @@ export interface DoctorLegalInformationPack {
   missingInformation: string[];
   lawyerReviewPoints: string[];
   sourceWarnings: string[];
+  sourceUnavailable?: SourceUnavailable[];
 }
 
 export interface PrepareInformationPackInput {
   question: string;
+  sourceMode?: LegislationSourceMode;
+}
+
+export interface SourceUnavailable {
+  status: "unavailable";
+  source: string;
+  errorCode: string;
+  message: string;
+  retryable: boolean;
+  recommendedNextStep: string;
 }
