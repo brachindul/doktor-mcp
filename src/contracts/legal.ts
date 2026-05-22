@@ -121,6 +121,7 @@ export interface DoctorLegalInformationPack {
   sourceUnavailable?: SourceUnavailable[];
   sourceTrace?: LegislationSourceTrace[];
   selectionDiagnostics?: LegislationSelectionDiagnostics;
+  precedentDiagnostics?: PrecedentSelectionDiagnostics;
 }
 
 export interface PrepareInformationPackInput {
@@ -136,6 +137,47 @@ export interface SourceUnavailable {
   retryable: boolean;
   recommendedNextStep: string;
   sourceTrace?: LegislationSourceTrace[];
+}
+
+export interface DecisionSourceTrace {
+  query: string;
+  source: Exclude<SourceKind, "legislation">;
+  court: string;
+  searchRequest: { url: string | null; phrase: string; pageSize: number } | null;
+  searchResultsCount: number | null;
+  selectedResult: { documentId: string; title?: string } | null;
+  selectedResultReason: string | null;
+  documentId: string;
+  sourceId?: string;
+  fullTextAvailable: boolean;
+  fullTextRetrievalMethod: string | null;
+  retrievedAt: string | null;
+  eligibilityStatus: PrecedentStatus;
+  eligibilityReasons: string[];
+  exclusionReasons: string[];
+  error?: string;
+}
+
+export interface PrecedentSelectionDiagnostics {
+  query: string;
+  selectedPrecedentCount: number;
+  excludedDecisionCount: number;
+  selectedPrecedents: Array<{
+    court: string;
+    chamber?: string;
+    date?: string;
+    docketNo?: string;
+    decisionNo?: string;
+    status: PrecedentStatus;
+    matchedHealthTopics: string[];
+    eligibilityReasons: string[];
+  }>;
+  excludedDecisions: Array<{
+    court: string;
+    date?: string;
+    status: PrecedentStatus;
+    exclusionReasons: string[];
+  }>;
 }
 
 export interface LegislationSelectionDiagnostics {

@@ -3,6 +3,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import { PhysicianLegalInformationService } from "../app/service.js";
 import type { CourtDecision } from "../contracts/legal.js";
+import { buildPrecedentSelectionDiagnostics } from "../health/precedentFilter.js";
 
 const sourceModeSchema = z.enum(["mock", "live"]).default("mock");
 const questionSchema = z.object({ question: z.string().min(1) });
@@ -11,7 +12,10 @@ const provisionIdsSchema = z.object({
   documentIds: z.array(z.string().min(1)).min(1),
   sourceMode: sourceModeSchema.optional()
 });
-const decisionsSchema = z.object({ decisions: z.array(z.custom<CourtDecision>()) });
+const decisionsSchema = z.object({
+  decisions: z.array(z.custom<CourtDecision>()),
+  query: z.string().optional()
+});
 
 function jsonResult(value: unknown): CallToolResult {
   return {
@@ -33,8 +37,12 @@ export function createMedicalLegalToolHandlers(service = new PhysicianLegalInfor
     },
     search_health_precedents: async (input: unknown) =>
       service.searchPrecedents(service.classify(questionSchema.parse(input).question)),
-    filter_reasoned_precedents: async (input: unknown) =>
-      service.filterPrecedents(decisionsSchema.parse(input).decisions),
+    filter_reasoned_precedents: async (input: unknown) => {
+      const parsed = decisionsSchema.parse(input);
+      const filtered = service.filterPrecedents(parsed.decisions);
+      const diagnostics = buildPrecedentSelectionDiagnostics(filtered, parsed.query ?? "");
+      return { filtered, diagnostics };
+    },
     prepare_doctor_legal_information_pack: async (input: unknown) =>
       service.prepareInformationPack(legislationQuestionSchema.parse(input))
   };

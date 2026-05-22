@@ -292,6 +292,69 @@ Diagnostics are audit metadata only. They do not replace official provision quot
 create legal propositions, and keep KVKK in its supporting-general role. Yargitay,
 Danistay, and AYM adapters remain mock adapters.
 
+## Decision Source Trace (v0.8)
+
+`DecisionSourceTrace` audits the decision pipeline for each court decision candidate.
+It is the precedent-side analogue of `LegislationSourceTrace`. Each trace carries:
+
+- original `query`
+- `source` and `court` (yargitay / danistay / aym)
+- `searchRequest` (null for mock adapters)
+- `searchResultsCount` and `selectedResult`
+- `documentId` / `sourceId`
+- `fullTextAvailable` and `fullTextRetrievalMethod`
+- `retrievedAt`
+- `eligibilityStatus` — the precedent filter outcome
+- `eligibilityReasons` — positive criteria that the decision met
+- `exclusionReasons` — the specific reason(s) it was excluded, if any
+- `error` if retrieval failed
+
+Decision source traces are audit metadata only. They do not produce legal reasoning and
+never add a court decision to the pack unless the decision passes all eligibility criteria.
+
+## Reasoned-Decision Eligibility (v0.8)
+
+`assessDecisionEligibility` (in `src/health/decisionEligibility.ts`) applies the
+precedent filter rules and returns a structured `EligibilityResult` with status,
+positive eligibility reasons, and exclusion reasons.
+
+A decision is **excluded** from the verified-precedents section when any of the following
+apply:
+
+- `fullTextAvailable: false` — full decision text is not available (→ `metadata_only`)
+- `legalReasoning` is empty or missing (→ `no_reasoning`)
+- Decision text contains a bare procedural marker: `salt onama`, `salt bozma`, `usul`
+  (→ `procedural_only`)
+- Legal reasoning is only `onama` or `bozma` without substantive content
+  (→ `procedural_only`)
+- No `relevanceNote` connecting the decision to the health-law event (→ `limited_value`)
+
+Only `precedent_usable` decisions enter the `verifiedHighCourtPrecedents` section of the
+pack. `limited_value`, `procedural_only`, `no_reasoning`, and `metadata_only` decisions
+are excluded.
+
+## Precedent Diagnostics (v0.8)
+
+`PrecedentSelectionDiagnostics` is the compact audit view for decision selection,
+analogous to `LegislationSelectionDiagnostics` on the legislation side. It appears as
+`precedentDiagnostics` on every `prepare_doctor_legal_information_pack` response and in
+the `filter_reasoned_precedents` tool response.
+
+The diagnostic includes:
+
+- `query` — the original question
+- `selectedPrecedentCount` / `excludedDecisionCount`
+- `selectedPrecedents[]` — court, chamber, date, docket/decision numbers, status,
+  matched health topics, and eligibility reasons
+- `excludedDecisions[]` — court, date, status, and exclusion reasons
+
+Diagnostics summarize selection and exclusion only. They do not provide legal
+interpretation and do not add any decision to the pack.
+
+Live Yargıtay, Danıştay, and AYM adapters are not part of this version. All three court
+sources remain mock adapters. A future release (v0.9 or later) may introduce the first
+live court decision adapter once the audit contract established in v0.8 is confirmed.
+
 ## Development
 
 ```powershell

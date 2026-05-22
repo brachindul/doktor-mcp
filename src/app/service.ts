@@ -7,7 +7,11 @@ import type {
 } from "../contracts/legal.js";
 import { composeDoctorLegalInformationPack } from "../health/answerComposer.js";
 import { LegislationMapper } from "../health/legislationMapper.js";
-import { filterReasonedPrecedents, selectVerifiedPrecedents } from "../health/precedentFilter.js";
+import {
+  filterReasonedPrecedents,
+  selectVerifiedPrecedents,
+  buildPrecedentSelectionDiagnostics
+} from "../health/precedentFilter.js";
 import { classifyMedicalLegalQuestion } from "../health/questionClassifier.js";
 import { MockAymAdapter } from "../sources/aym/mockAymAdapter.js";
 import { MockDanistayAdapter } from "../sources/danistay/mockDanistayAdapter.js";
@@ -109,6 +113,7 @@ export class PhysicianLegalInformationService {
       ? legislation.status === "ok" ? legislation.provisions : []
       : legislation;
 
+    const precedentDiagnostics = buildPrecedentSelectionDiagnostics(filtered, input.question);
     const pack = composeDoctorLegalInformationPack(
       classification,
       provisions,
@@ -125,7 +130,11 @@ export class PhysicianLegalInformationService {
       })
       : undefined;
 
-    return selectionDiagnostics ? { ...pack, selectionDiagnostics } : pack;
+    return {
+      ...pack,
+      ...(selectionDiagnostics ? { selectionDiagnostics } : {}),
+      precedentDiagnostics
+    };
   }
 }
 
