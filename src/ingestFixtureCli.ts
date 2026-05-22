@@ -4,7 +4,7 @@
  */
 
 import { readFile, writeFile, mkdir } from "fs/promises";
-import { join, dirname } from "path";
+import { join } from "path";
 import { normalizeDanistaySearchResults } from "./sources/danistay/danistayNormalizer.js";
 
 async function run() {

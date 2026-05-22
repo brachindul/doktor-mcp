@@ -77,7 +77,7 @@ export function registerMedicalLegalTools(
   }, async (input) => jsonResult(await handlers.get_legislation_provisions(input)));
 
   server.registerTool("search_health_precedents", {
-    description: "Searches high court precedent candidates. Uses live Yargıtay adapter in live mode; Danıştay and AYM remain mock.",
+    description: "Searches high court precedent candidates. Live mode uses live Yargitay and Danistay sources; AYM stays disabled outside mock mode.",
     inputSchema: legislationQuestionSchema.shape
   }, async (input) => jsonResult(await handlers.search_health_precedents(input)));
 

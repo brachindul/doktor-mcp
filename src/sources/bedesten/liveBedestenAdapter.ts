@@ -5,14 +5,13 @@ import type { PrecedentSourceAdapter } from "../types.js";
 import {
   BEDESTEN_BASE_URL,
   BEDESTEN_PUBLIC_HEADERS,
-  BEDESTEN_SOURCE,
   buildBedestenDocumentBody,
   buildBedestenSearchBody,
   normalizeBedestenDocumentResponse,
   normalizeBedestenSearchResponse,
   type BedestenCourtType
 } from "./bedestenApi.js";
-import { HttpClient, BedestenRateLimitError, BedestenHttpError } from "../../core/httpClient.js";
+import { HttpClient, BedestenRateLimitError } from "../../core/httpClient.js";
 
 export interface LiveBedestenAdapterOptions {
   httpClient?: HttpClient;

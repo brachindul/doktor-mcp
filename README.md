@@ -124,7 +124,7 @@ verified precedent entry must survive the reasoned-precedent filter.
 
 The MVP does not include:
 
-- live Yargitay, Danistay, or AYM high court clients
+- a live AYM high court client
 - risk level scoring
 - immediate action instructions
 - petition or defense drafting
@@ -161,7 +161,8 @@ the same MVP shape and adds `sourceUnavailable` only when the official legislati
 cannot return a verified provision.
 
 Mock mode uses local fixture provisions. Live mode uses official legislation text from
-`mevzuat.gov.tr`; Yargitay, Danistay, and AYM precedent adapters remain mock in both modes.
+`mevzuat.gov.tr` plus live Yargitay and Danistay precedent adapters. AYM is mock-only and
+is disabled in live mode rather than used as a fallback.
 
 ## Health Legislation Priority
 
@@ -633,8 +634,8 @@ is printed alongside the other source's output. JSON parse-ability is always pre
 
 `smoke:mcp` calls the full `prepare_doctor_legal_information_pack` handler. With
 `sourceMode: "live"` it uses both live legislation and live Yargıtay + Danıştay adapters.
-The optional `precedentSources` parameter selects which adapters are used. AYM remains a
-mock adapter.
+The optional `precedentSources` parameter selects which adapters are used. AYM remains
+mock-only and is disabled in live mode.
 
 After `npm run build`, run the compiled stdio MCP server with:
 
@@ -676,3 +677,13 @@ All execution runs generate two files in the `exports/doctor-benchmark/` directo
 - `doctor-benchmark-report.json`: Fully structured and parseable JSON report capturing exact details, prioritization lists, counts, and assertions.
 - `doctor-benchmark-report.md`: A human-friendly Markdown report containing summaries, breakdown tables, passing/failing statuses, and detailed question statistics.
 
+## Release Notes
+
+v0.16.1 is an audit and cleanup release for benchmark artifact hygiene. It keeps benchmark
+exports ignored, tightens scratch/debug/probe/smoke/audit ignore patterns, removes compiler-
+reported dead locals from active adapters and CLIs, and updates live-source descriptions
+without changing the pack/tool JSON shape.
+
+v0.17 should add live benchmark metrics without turning transient live-source failures into
+hard failures. Track legislation ordering, `sourceUnavailable`, precedent safety, and
+`auditOk` as report metrics for those live runs.

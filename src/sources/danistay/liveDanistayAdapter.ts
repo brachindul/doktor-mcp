@@ -102,7 +102,6 @@ export class LiveDanistayAdapter implements PrecedentSourceAdapter {
       const esasNo = item.esasNo ?? undefined;
       const kararNo = item.kararNo ?? undefined;
       const decisionDate = item.kararTarihi ?? undefined;
-      const summary = item.arananKelime ?? undefined;
       
       const titleParts = ["Danıştay", chamber, esasNo, kararNo].filter(Boolean);
       const title = titleParts.join(" | ") || `Danıştay Kararı ${documentId}`;
@@ -277,4 +276,3 @@ function unavailable(
 function isUnavailable(value: unknown): value is LiveDanistayUnavailable {
   return typeof value === "object" && value !== null && "status" in value && (value as { status: unknown }).status === "unavailable";
 }
-

@@ -13,7 +13,7 @@ import {
   normalizeBedestenSearchResponse
 } from "../bedesten/bedestenApi.js";
 import { extractLegalReasoning, extractOutcome } from "../precedentUtils.js";
-import { HttpClient, BedestenRateLimitError, BedestenHttpError, BedestenParseError, BedestenNetworkError } from "../../core/httpClient.js";
+import { HttpClient, BedestenRateLimitError, BedestenParseError, BedestenNetworkError } from "../../core/httpClient.js";
 
 const SEARCH_URL = `${BEDESTEN_BASE_URL}/emsal-karar/searchDocuments`;
 const MAX_RESULTS_PER_QUERY = 5;
@@ -224,8 +224,4 @@ function unavailable(
   sourceTrace?: DecisionSourceTrace[]
 ): LiveYargitayUnavailable {
   return { status: "unavailable", source: YARGITAY_SOURCE, errorCode, message, retryable, recommendedNextStep, ...(sourceTrace ? { sourceTrace } : {}) };
-}
-
-function isUnavailable(value: unknown): value is LiveYargitayUnavailable {
-  return typeof value === "object" && value !== null && "status" in value && (value as { status: unknown }).status === "unavailable";
 }

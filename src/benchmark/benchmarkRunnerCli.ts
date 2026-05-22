@@ -19,7 +19,7 @@ async function main() {
   }
 
   console.log("====================================================");
-  console.log(`Starting Physician Question Benchmark Suite (v0.16.0)`);
+  console.log("Starting Physician Question Benchmark Suite");
   console.log(`- Source Mode: ${sourceMode.toUpperCase()}`);
   console.log(`- Limit: ${limit ?? "All questions"}`);
   console.log(`- Output Directory: ${outDir}`);

@@ -9,11 +9,16 @@ fixtures/raw/
 task.md
 implementation_plan.md
 walkthrough.md
+scratch.md
+debug*.json
 pack.json
 *.tmp
 *debug*.json
+probe*.json
 *probe*.json
+smoke*.json
 *smoke*.json
+audit*.json
 *audit*.json
 temp*.json
 fixtures/live-samples/*-probe-*.json

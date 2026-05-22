@@ -1,6 +1,6 @@
 import { PhysicianLegalInformationService } from "../app/service.js";
 import { auditPack } from "../packAudit.js";
-import { doctorQuestions, BenchmarkQuestion, FORBIDDEN_FIELDS_LIST } from "./doctorQuestions.js";
+import { doctorQuestions, FORBIDDEN_FIELDS_LIST } from "./doctorQuestions.js";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -233,7 +233,7 @@ export async function runBenchmark(options: {
 }
 
 function generateMarkdownReport(report: BenchmarkReport): string {
-  let md = `# Physician Question Benchmark & Evaluation Report (v0.16.0)
+  let md = `# Physician Question Benchmark & Evaluation Report
 
 - **Execution Timestamp**: \`${report.timestamp}\`
 - **Source Mode**: \`${report.sourceMode}\`
