@@ -65,7 +65,7 @@ const BARE_AFFIRMANCE_TEXT = `
 describe("LiveYargitayAdapter", () => {
   it("writes searchRequest and searchResultsCount to trace", async () => {
     const fetchImpl = makeFetch({ data: { items: [mockDecisionRow()] } }, REASONED_FULL_TEXT);
-    const adapter = new LiveYargitayAdapter({ fetchImpl, now: () => new Date(MOCK_RETRIEVED_AT), wait: async () => undefined });
+    const adapter = new LiveYargitayAdapter({ wait: async () => {},  fetchImpl, now: () => new Date(MOCK_RETRIEVED_AT), wait: async () => undefined });
 
     const result = await adapter.searchAndNormalize("aydınlatılmış rıza");
     expect(result.status).toBe("ok");
@@ -82,7 +82,7 @@ describe("LiveYargitayAdapter", () => {
 
   it("sets fullTextAvailable true when full text is retrieved", async () => {
     const fetchImpl = makeFetch({ data: { items: [mockDecisionRow()] } }, REASONED_FULL_TEXT);
-    const adapter = new LiveYargitayAdapter({ fetchImpl, now: () => new Date(MOCK_RETRIEVED_AT), wait: async () => undefined });
+    const adapter = new LiveYargitayAdapter({ wait: async () => {},  fetchImpl, now: () => new Date(MOCK_RETRIEVED_AT), wait: async () => undefined });
 
     const result = await adapter.searchAndNormalize("aydınlatılmış rıza");
     expect(result.status).toBe("ok");
@@ -94,7 +94,7 @@ describe("LiveYargitayAdapter", () => {
 
   it("excludes decision when full text is not available (metadata_only)", async () => {
     const fetchImpl = makeFetch({ data: { items: [mockDecisionRow()] } }, null, 200, 404);
-    const adapter = new LiveYargitayAdapter({ fetchImpl, now: () => new Date(MOCK_RETRIEVED_AT), wait: async () => undefined });
+    const adapter = new LiveYargitayAdapter({ wait: async () => {},  fetchImpl, now: () => new Date(MOCK_RETRIEVED_AT), wait: async () => undefined });
 
     const result = await adapter.searchAndNormalize("aydınlatılmış rıza");
     expect(result.status).toBe("ok");
@@ -108,7 +108,7 @@ describe("LiveYargitayAdapter", () => {
 
   it("excludes bare affirmance/reversal decision as procedural_only", async () => {
     const fetchImpl = makeFetch({ data: { items: [mockDecisionRow()] } }, BARE_AFFIRMANCE_TEXT);
-    const adapter = new LiveYargitayAdapter({ fetchImpl, now: () => new Date(MOCK_RETRIEVED_AT), wait: async () => undefined });
+    const adapter = new LiveYargitayAdapter({ wait: async () => {},  fetchImpl, now: () => new Date(MOCK_RETRIEVED_AT), wait: async () => undefined });
 
     const result = await adapter.searchAndNormalize("aydınlatılmış rıza");
     expect(result.status).toBe("ok");
@@ -121,7 +121,7 @@ describe("LiveYargitayAdapter", () => {
 
   it("marks reasoned health law decision as precedent_usable", async () => {
     const fetchImpl = makeFetch({ data: { items: [mockDecisionRow()] } }, REASONED_FULL_TEXT);
-    const adapter = new LiveYargitayAdapter({ fetchImpl, now: () => new Date(MOCK_RETRIEVED_AT), wait: async () => undefined });
+    const adapter = new LiveYargitayAdapter({ wait: async () => {},  fetchImpl, now: () => new Date(MOCK_RETRIEVED_AT), wait: async () => undefined });
 
     const result = await adapter.searchAndNormalize("aydınlatılmış rıza");
     expect(result.status).toBe("ok");
@@ -135,7 +135,7 @@ describe("LiveYargitayAdapter", () => {
 
   it("returns structured unavailable on HTTP 429 with retries", async () => {
     const fetchImpl = vi.fn(async () => new Response("", { status: 429 }));
-    const adapter = new LiveYargitayAdapter({ fetchImpl, wait: async () => undefined });
+    const adapter = new LiveYargitayAdapter({ wait: async () => {},  fetchImpl, wait: async () => undefined });
 
     const result = await adapter.searchAndNormalize("rıza");
     expect(result.status).toBe("unavailable");
@@ -150,7 +150,7 @@ describe("LiveYargitayAdapter", () => {
 
   it("returns structured unavailable on network error", async () => {
     const fetchImpl = vi.fn(async () => { throw new Error("ECONNREFUSED"); });
-    const adapter = new LiveYargitayAdapter({ fetchImpl, wait: async () => undefined });
+    const adapter = new LiveYargitayAdapter({ wait: async () => {},  fetchImpl, wait: async () => undefined });
 
     const result = await adapter.searchAndNormalize("rıza");
     expect(result.status).toBe("unavailable");
@@ -165,7 +165,7 @@ describe("LiveYargitayAdapter", () => {
       status: 200,
       headers: { "content-type": "application/json" }
     }));
-    const adapter = new LiveYargitayAdapter({ fetchImpl, wait: async () => undefined });
+    const adapter = new LiveYargitayAdapter({ wait: async () => {},  fetchImpl, wait: async () => undefined });
 
     const result = await adapter.searchAndNormalize("rıza");
     expect(result.status).toBe("unavailable");
@@ -176,7 +176,7 @@ describe("LiveYargitayAdapter", () => {
 
   it("returns ok with empty decisions when search returns no results", async () => {
     const fetchImpl = makeFetch({ data: { items: [] } });
-    const adapter = new LiveYargitayAdapter({ fetchImpl, wait: async () => undefined });
+    const adapter = new LiveYargitayAdapter({ wait: async () => {},  fetchImpl, wait: async () => undefined });
 
     const result = await adapter.searchAndNormalize("aydınlatılmış rıza");
     expect(result.status).toBe("ok");
@@ -188,7 +188,7 @@ describe("LiveYargitayAdapter", () => {
 
   it("handles non-standard response format with results array", async () => {
     const fetchImpl = makeFetch({ data: { emsalKararList: [mockDecisionRow()] } }, REASONED_FULL_TEXT);
-    const adapter = new LiveYargitayAdapter({ fetchImpl, now: () => new Date(MOCK_RETRIEVED_AT), wait: async () => undefined });
+    const adapter = new LiveYargitayAdapter({ wait: async () => {},  fetchImpl, now: () => new Date(MOCK_RETRIEVED_AT), wait: async () => undefined });
 
     const result = await adapter.searchAndNormalize("tıbbi müdahale");
     expect(result.status).toBe("ok");
@@ -200,7 +200,7 @@ describe("LiveYargitayAdapter", () => {
 describe("prepare_doctor_legal_information_pack live precedent integration", () => {
   it("only usable decisions enter verifiedHighCourtPrecedents in live mode", async () => {
     const mockFetch = makeFetch({ data: { items: [mockDecisionRow()] } }, REASONED_FULL_TEXT);
-    const liveYargitay = new LiveYargitayAdapter({ fetchImpl: mockFetch, now: () => new Date(MOCK_RETRIEVED_AT), wait: async () => undefined });
+    const liveYargitay = new LiveYargitayAdapter({ wait: async () => {},  fetchImpl: mockFetch, now: () => new Date(MOCK_RETRIEVED_AT), wait: async () => undefined });
 
     vi.spyOn(liveYargitay, "searchHealthPrecedents").mockResolvedValue([
       {
@@ -236,7 +236,7 @@ describe("prepare_doctor_legal_information_pack live precedent integration", () 
   });
 
   it("excluded live decisions appear in precedentDiagnostics", async () => {
-    const liveYargitay = new LiveYargitayAdapter({ wait: async () => undefined });
+    const liveYargitay = new LiveYargitayAdapter({ wait: async () => {},  wait: async () => undefined });
     vi.spyOn(liveYargitay, "searchHealthPrecedents").mockResolvedValue([
       {
         id: "yargitay:no-fulltext",
@@ -256,7 +256,7 @@ describe("prepare_doctor_legal_information_pack live precedent integration", () 
   });
 
   it("does not include risk level, immediate actions, or final legal opinion in live mode pack", async () => {
-    const liveYargitay = new LiveYargitayAdapter({ wait: async () => undefined });
+    const liveYargitay = new LiveYargitayAdapter({ wait: async () => {},  wait: async () => undefined });
     vi.spyOn(liveYargitay, "searchHealthPrecedents").mockResolvedValue([]);
 
     const service = new PhysicianLegalInformationService({ liveYargitay });

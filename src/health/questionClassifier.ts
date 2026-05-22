@@ -9,7 +9,10 @@ const termDimensions: Array<{ terms: string[]; dimensions: LegalDimension[] }> =
   { terms: ["ceza", "taksir", "yaralama"], dimensions: ["criminal"] },
   { terms: ["disiplin", "idari", "sorusturma"], dimensions: ["disciplinary_administrative"] },
   { terms: ["etik", "meslek"], dimensions: ["professional_ethics"] },
-  { terms: ["hekim", "tibbi", "tıbbi", "mudahale", "müdahale"], dimensions: ["patient_rights"] }
+  { terms: ["hekim", "tibbi", "tıbbi", "mudahale", "müdahale"], dimensions: ["patient_rights"] },
+  { terms: ["redde", "reddet", "kabul etme", "iliskisini sonlandir", "ilişkisini sonlandır", "tedaviyi birak", "tedaviyi bırak", "tedaviyi sonlandir", "kacinma", "kaçınma", "bakmama"], dimensions: ["professional_ethics", "civil_compensation"] },
+  { terms: ["uymuyor", "uyumsu", "uygulamıyor", "uygulamiyor", "talimatlara uyma", "talimatlara uyulma"], dimensions: ["patient_rights", "professional_ethics"] },
+  { terms: ["acil durum", "acil degil", "acil değil", "acil mudehale"], dimensions: ["professional_ethics", "patient_rights"] }
 ];
 
 export function classifyMedicalLegalQuestion(question: string): ClassifiedMedicalLegalQuestion {
@@ -27,6 +30,7 @@ export function classifyMedicalLegalQuestion(question: string): ClassifiedMedica
   }
 
   if (dimensions.size === 0) {
+    dimensions.add("professional_ethics");
     dimensions.add("patient_rights");
   }
 

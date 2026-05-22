@@ -157,6 +157,96 @@ export const healthLegislationHints: HealthLegislationHint[] = [
     dimensions: ["patient_rights", "disciplinary_administrative"]
   },
   {
+    ...deontology,
+    topicCluster: "physician_refusal_or_withdrawal",
+    legislationRole: "health_primary",
+    healthLawPriority: 10,
+    selectionReason: "Physician's right to refuse or withdraw from a case is regulated strictly by Medical Deontology rules (e.g. Article 18, 19).",
+    terms: ["redde", "reddet", "kabul etme", "iliskisini sonlandir", "ilişkisini sonlandır", "tedaviyi birak", "tedaviyi bırak", "tedaviyi sonlandir", "kacinma", "kaçınma", "bakmama"],
+    articleNumbers: ["18", "19"],
+    dimensions: ["professional_ethics", "civil_compensation"]
+  },
+  {
+    ...tababet,
+    topicCluster: "physician_refusal_or_withdrawal",
+    legislationRole: "health_primary",
+    healthLawPriority: 20,
+    selectionReason: "The core practice statute governs the physician's duties when practicing or withdrawing.",
+    terms: ["redde", "reddet", "kabul etme", "iliskisini sonlandir", "ilişkisini sonlandır", "tedaviyi birak", "tedaviyi bırak", "tedaviyi sonlandir", "kacinma", "kaçınma", "bakmama"],
+    articleNumbers: ["1"],
+    dimensions: ["professional_ethics", "civil_compensation"]
+  },
+  {
+    ...patientRights,
+    topicCluster: "physician_refusal_or_withdrawal",
+    legislationRole: "supporting_general",
+    healthLawPriority: 40,
+    selectionReason: "Patient rights provides a counter-balance but is not the primary law governing physician's right to refuse.",
+    terms: ["redde", "reddet", "kabul etme", "iliskisini sonlandir", "ilişkisini sonlandır", "tedaviyi birak", "tedaviyi bırak", "tedaviyi sonlandir", "kacinma", "kaçınma", "bakmama"],
+    articleNumbers: ["5"],
+    dimensions: ["patient_rights"]
+  },
+  {
+    ...deontology,
+    topicCluster: "patient_noncompliance",
+    legislationRole: "health_primary",
+    healthLawPriority: 10,
+    selectionReason: "Patient noncompliance directly triggers ethical duties and refusal rights under Deontology rules.",
+    terms: ["uymuyor", "uyumsu", "uygulamıyor", "uygulamiyor", "talimatlara uyma", "talimatlara uyulma"],
+    articleNumbers: ["19"],
+    dimensions: ["professional_ethics", "patient_rights"]
+  },
+  {
+    ...healthServices,
+    topicCluster: "patient_noncompliance",
+    legislationRole: "health_primary",
+    healthLawPriority: 30,
+    selectionReason: "Health Services basic law sets the framework for patient-physician cooperation.",
+    terms: ["uymuyor", "uyumsu", "uygulamıyor", "uygulamiyor", "talimatlara uyma", "talimatlara uyulma"],
+    articleNumbers: ["3"],
+    dimensions: ["professional_ethics"]
+  },
+  {
+    ...deontology,
+    topicCluster: "physician_patient_relationship_termination",
+    legislationRole: "health_primary",
+    healthLawPriority: 10,
+    selectionReason: "Termination of the physician-patient relationship is an ethical/duty matter primarily under Deontology rules.",
+    terms: ["iliskisini sonlandir", "ilişkisini sonlandır", "tedaviyi sonlandir", "tedaviyi bırak"],
+    articleNumbers: ["18", "19"],
+    dimensions: ["professional_ethics", "civil_compensation"]
+  },
+  {
+    ...patientRights,
+    topicCluster: "emergency_exception",
+    legislationRole: "health_primary",
+    healthLawPriority: 10,
+    selectionReason: "Emergency exceptions for intervention consent map to patient rights first.",
+    terms: ["acil durum", "acil degil", "acil değil", "acil mudehale"],
+    articleNumbers: ["24"],
+    dimensions: ["patient_rights", "professional_ethics"]
+  },
+  {
+    ...deontology,
+    topicCluster: "emergency_exception",
+    legislationRole: "health_primary",
+    healthLawPriority: 15,
+    selectionReason: "Emergency duty of care is mandated by Deontology rules.",
+    terms: ["acil durum", "acil degil", "acil değil", "acil mudehale"],
+    articleNumbers: ["3", "18"],
+    dimensions: ["professional_ethics"]
+  },
+  {
+    ...tababet,
+    topicCluster: "emergency_exception",
+    legislationRole: "health_primary",
+    healthLawPriority: 20,
+    selectionReason: "Emergency treatment obligations are enforced by core practice law.",
+    terms: ["acil durum", "acil degil", "acil değil", "acil mudehale"],
+    articleNumbers: ["3"],
+    dimensions: ["professional_ethics"]
+  },
+  {
     ...kvkk,
     topicCluster: "personal_health_data",
     legislationRole: "supporting_general",

@@ -9,29 +9,32 @@ import {
   BEDESTEN_PUBLIC_HEADERS,
   buildBedestenDocumentBody,
   buildBedestenSearchBody,
-  normalizeBedestenDocumentResponse,
   normalizeBedestenSearchResponse
 } from "../bedesten/bedestenApi.js";
 import { extractLegalReasoning, extractOutcome } from "../precedentUtils.js";
+import { HttpClient, BedestenRateLimitError, BedestenHttpError } from "../../core/httpClient.js";
 
 const SEARCH_URL = `${BEDESTEN_BASE_URL}/emsal-karar/searchDocuments`;
 const MAX_RESULTS_PER_QUERY = 5;
 
 export interface LiveYargitayAdapterOptions {
+  httpClient?: HttpClient;
   fetchImpl?: typeof fetch;
   now?: () => Date;
   wait?: (ms: number) => Promise<void>;
 }
 
 export class LiveYargitayAdapter implements PrecedentSourceAdapter {
-  private readonly fetchImpl: typeof fetch;
+  private readonly httpClient: HttpClient;
   private readonly now: () => Date;
-  private readonly wait: (ms: number) => Promise<void>;
 
   constructor(options: LiveYargitayAdapterOptions = {}) {
-    this.fetchImpl = options.fetchImpl ?? fetch;
+    this.httpClient = options.httpClient ?? new HttpClient({
+      baseUrl: BEDESTEN_BASE_URL,
+      fetchImpl: options.fetchImpl ?? fetch,
+      wait: options.wait
+    });
     this.now = options.now ?? (() => new Date());
-    this.wait = options.wait ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
   }
 
   async searchHealthPrecedents(classification: ClassifiedMedicalLegalQuestion): Promise<CourtDecision[]> {
@@ -45,22 +48,16 @@ export class LiveYargitayAdapter implements PrecedentSourceAdapter {
 
     const searchBody = buildBedestenSearchBody(query, ["YARGITAYKARARI"], MAX_RESULTS_PER_QUERY);
     
-    const response = await this.fetchWithRetry(SEARCH_URL, {
-      method: "POST",
-      headers: BEDESTEN_PUBLIC_HEADERS,
-      body: JSON.stringify(searchBody)
-    });
-
-    if (isUnavailable(response)) {
-      const err = response as LiveYargitayUnavailable;
-      return { ...err, sourceTrace: [{ ...emptyTrace, error: err.message }] };
-    }
-
     let rawData: unknown;
     try {
-      rawData = await (response as Response).json();
-    } catch {
-      return unavailable("parse_failed", "Yargıtay (Bedesten) search response could not be read.", true, "Check the endpoint format.", [{ ...emptyTrace, error: "response_read_failed" }]);
+      rawData = await this.httpClient.postJson<unknown>("/emsal-karar/searchDocuments", searchBody, {
+        headers: BEDESTEN_PUBLIC_HEADERS
+      });
+    } catch (error) {
+      if (error instanceof BedestenRateLimitError) {
+        return unavailable("source_blocked", error.message, true, "Retry after the source cools down.", [{ ...emptyTrace, error: error.message }]);
+      }
+      return unavailable("source_error", `Yargıtay (Bedesten) request failed: ${error instanceof Error ? error.message : String(error)}`, true, "Retry the request.", [{ ...emptyTrace, error: "network_error" }]);
     }
 
     const searchResults = normalizeBedestenSearchResponse(rawData);
@@ -95,24 +92,18 @@ export class LiveYargitayAdapter implements PrecedentSourceAdapter {
       let fullText: string | null = null;
       let fullTextRetrievalMethod: string | null = null;
 
-      const docResponse = await this.fetchWithRetry(`${BEDESTEN_BASE_URL}/emsal-karar/getDocumentContent`, {
-        method: "POST",
-        headers: BEDESTEN_PUBLIC_HEADERS,
-        body: JSON.stringify(buildBedestenDocumentBody(searchResult.documentId))
-      });
-
-      if (!isUnavailable(docResponse)) {
-        try {
-          const docData = await (docResponse as Response).json();
-          const doc = normalizeBedestenDocumentResponse(searchResult.documentId, docData);
-          if (doc.contentBase64) {
-            const html = Buffer.from(doc.contentBase64, "base64").toString("utf-8");
-            fullText = this.stripHtml(html);
-            fullTextRetrievalMethod = "bedesten-base64-html";
-          }
-        } catch {
-          // Ignore document errors, fallback to metadata_only
+      try {
+        const docData = await this.httpClient.postJson<unknown>("/emsal-karar/getDocumentContent", buildBedestenDocumentBody(searchResult.documentId), {
+          headers: BEDESTEN_PUBLIC_HEADERS
+        });
+        const doc = normalizeBedestenDocumentResponse(searchResult.documentId, docData);
+        if (doc.contentBase64) {
+          const html = Buffer.from(doc.contentBase64, "base64").toString("utf-8");
+          fullText = this.stripHtml(html);
+          fullTextRetrievalMethod = "bedesten-base64-html";
         }
+      } catch {
+        // Ignore document errors, fallback to metadata_only
       }
 
       const legalReasoning = fullText ? extractLegalReasoning(fullText) : undefined;
@@ -196,41 +187,6 @@ export class LiveYargitayAdapter implements PrecedentSourceAdapter {
       eligibilityReasons: [],
       exclusionReasons: []
     };
-  }
-
-  private async fetchWithRetry(url: string, init: RequestInit): Promise<Response | LiveYargitayUnavailable> {
-    const attempts = [0, 250, 750];
-
-    for (const delay of attempts) {
-      if (delay > 0) await this.wait(delay);
-
-      try {
-        const response = await this.fetchImpl(url, init);
-        if (response.ok) return response;
-        if ((response.status === 403 || response.status === 429) && delay !== attempts.at(-1)) continue;
-        if (response.status >= 500 && delay !== attempts.at(-1)) continue;
-
-        if (response.status === 403 || response.status === 429) {
-          return unavailable("source_blocked", `Yargıtay (Bedesten) source returned HTTP ${response.status}.`, true, "Retry after the source cools down.");
-        }
-        return unavailable(
-          response.status >= 500 ? "source_error" : "document_not_found",
-          `Yargıtay (Bedesten) source returned HTTP ${response.status}.`,
-          response.status >= 500,
-          "Retry the request or verify the endpoint."
-        );
-      } catch (error) {
-        if (delay !== attempts.at(-1)) continue;
-        return unavailable(
-          "source_error",
-          `Yargıtay (Bedesten) request failed: ${error instanceof Error ? error.message : String(error)}`,
-          true,
-          "Retry after checking network access."
-        );
-      }
-    }
-
-    return unavailable("source_error", "Yargıtay (Bedesten) request ended unexpectedly.", true, "Retry the request.");
   }
 
   private stripHtml(html: string): string {

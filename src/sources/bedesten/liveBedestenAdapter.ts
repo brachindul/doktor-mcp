@@ -12,8 +12,10 @@ import {
   normalizeBedestenSearchResponse,
   type BedestenCourtType
 } from "./bedestenApi.js";
+import { HttpClient, BedestenRateLimitError, BedestenHttpError } from "../../core/httpClient.js";
 
 export interface LiveBedestenAdapterOptions {
+  httpClient?: HttpClient;
   fetchImpl?: typeof fetch;
   now?: () => Date;
   wait?: (ms: number) => Promise<void>;
@@ -22,16 +24,18 @@ export interface LiveBedestenAdapterOptions {
 }
 
 export class LiveBedestenAdapter implements PrecedentSourceAdapter {
-  private readonly fetchImpl: typeof fetch;
+  private readonly httpClient: HttpClient;
   private readonly now: () => Date;
-  private readonly wait: (ms: number) => Promise<void>;
   private readonly courtTypes: BedestenCourtType[];
   private readonly sourceName: "bedesten" | "yargitay" | "danistay";
 
   constructor(options: LiveBedestenAdapterOptions = {}) {
-    this.fetchImpl = options.fetchImpl ?? fetch;
+    this.httpClient = options.httpClient ?? new HttpClient({
+      baseUrl: BEDESTEN_BASE_URL,
+      fetchImpl: options.fetchImpl ?? fetch,
+      wait: options.wait
+    });
     this.now = options.now ?? (() => new Date());
-    this.wait = options.wait ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
     this.courtTypes = options.courtTypes ?? ["YARGITAYKARARI", "DANISTAYKARAR", "YERELHUKUK", "ISTINAFHUKUK", "KYB"];
     this.sourceName = options.sourceName ?? "bedesten";
   }
@@ -46,23 +50,22 @@ export class LiveBedestenAdapter implements PrecedentSourceAdapter {
     const searchBody = buildBedestenSearchBody(query, this.courtTypes, 5);
     const emptyTrace = this.buildEmptyTrace(query, searchUrl);
 
-    const response = await this.fetchWithRetry(searchUrl, {
-      method: "POST",
-      headers: BEDESTEN_PUBLIC_HEADERS,
-      body: JSON.stringify(searchBody)
-    });
-
-    if (!response || !response.ok) {
-      // In bedesten adapter, we just return empty on network failure for simplicity,
-      // but to match traces, maybe we should return it in a specific structure?
-      // Since `searchHealthPrecedents` only returns `CourtDecision[]`, failing gracefully is returning `[]`.
-      return [];
-    }
-
     let rawData: unknown;
     try {
-      rawData = await response.json();
-    } catch {
+      rawData = await this.httpClient.postJson<unknown>("/emsal-karar/searchDocuments", searchBody, {
+        headers: BEDESTEN_PUBLIC_HEADERS
+      });
+    } catch (error) {
+      if (error instanceof BedestenRateLimitError) {
+        return [{
+          id: `${this.sourceName}:error`,
+          court: this.sourceName,
+          decisionSourceTrace: {
+            ...emptyTrace,
+            error: error.message
+          }
+        }];
+      }
       return [];
     }
 
@@ -75,28 +78,22 @@ export class LiveBedestenAdapter implements PrecedentSourceAdapter {
       let fullText: string | null = null;
       let fullTextRetrievalMethod: string | null = null;
 
-      const docResponse = await this.fetchWithRetry(`${BEDESTEN_BASE_URL}/emsal-karar/getDocumentContent`, {
-        method: "POST",
-        headers: BEDESTEN_PUBLIC_HEADERS,
-        body: JSON.stringify(buildBedestenDocumentBody(searchResult.documentId))
-      });
-
-      if (docResponse && docResponse.ok) {
-        try {
-          const docData = await docResponse.json();
-          const doc = normalizeBedestenDocumentResponse(searchResult.documentId, docData);
-          if (doc.contentBase64) {
-            try {
-              const html = Buffer.from(doc.contentBase64, "base64").toString("utf-8");
-              fullText = this.stripHtml(html);
-              fullTextRetrievalMethod = "bedesten-base64-html";
-            } catch {
-              // fallback
-            }
+      try {
+        const docData = await this.httpClient.postJson<unknown>("/emsal-karar/getDocumentContent", buildBedestenDocumentBody(searchResult.documentId), {
+          headers: BEDESTEN_PUBLIC_HEADERS
+        });
+        const doc = normalizeBedestenDocumentResponse(searchResult.documentId, docData);
+        if (doc.contentBase64) {
+          try {
+            const html = Buffer.from(doc.contentBase64, "base64").toString("utf-8");
+            fullText = this.stripHtml(html);
+            fullTextRetrievalMethod = "bedesten-base64-html";
+          } catch {
+            // fallback
           }
-        } catch {
-          // ignore doc errors
         }
+      } catch {
+        // ignore doc errors
       }
 
       const decision: CourtDecision = {
@@ -162,23 +159,6 @@ export class LiveBedestenAdapter implements PrecedentSourceAdapter {
       eligibilityReasons: [],
       exclusionReasons: []
     };
-  }
-
-  private async fetchWithRetry(url: string, init: RequestInit): Promise<Response | null> {
-    const attempts = [0, 250, 750];
-    for (const delay of attempts) {
-      if (delay > 0) await this.wait(delay);
-      try {
-        const response = await this.fetchImpl(url, init);
-        if (response.ok) return response;
-        if (response.status >= 500 && delay !== attempts.at(-1)) continue;
-        return null; // For simplicity in bedesten, we don't bubble complex UI errors yet.
-      } catch {
-        if (delay !== attempts.at(-1)) continue;
-        return null;
-      }
-    }
-    return null;
   }
 
   private stripHtml(html: string): string {

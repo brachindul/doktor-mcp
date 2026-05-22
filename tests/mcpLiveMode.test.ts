@@ -128,7 +128,12 @@ describe("MCP legislation sourceMode", () => {
       provisions: [liveProvision],
       sourceTrace: [liveProvision.sourceTrace!]
     });
-    const handlers = createMedicalLegalToolHandlers(new PhysicianLegalInformationService({ liveLegislation }));
+    const handlers = createMedicalLegalToolHandlers(new PhysicianLegalInformationService({
+      liveLegislation,
+      liveYargitay: { searchHealthPrecedents: async () => [] } as any,
+      liveDanistay: { searchHealthPrecedents: async () => [] } as any,
+      liveBedesten: { searchHealthPrecedents: async () => [] } as any
+    }));
     const pack = await handlers.prepare_doctor_legal_information_pack({
       question: "kişisel sağlık verisi",
       sourceMode: "live"
@@ -147,7 +152,12 @@ describe("MCP legislation sourceMode", () => {
   it("carries live unavailable without inventing legislation or MVP-excluded headings", async () => {
     const liveLegislation = new LiveOfficialLegislationAdapter();
     vi.spyOn(liveLegislation, "getMappedHealthProvisions").mockResolvedValue(unavailable);
-    const handlers = createMedicalLegalToolHandlers(new PhysicianLegalInformationService({ liveLegislation }));
+    const handlers = createMedicalLegalToolHandlers(new PhysicianLegalInformationService({
+      liveLegislation,
+      liveYargitay: { searchHealthPrecedents: async () => [] } as any,
+      liveDanistay: { searchHealthPrecedents: async () => [] } as any,
+      liveBedesten: { searchHealthPrecedents: async () => [] } as any
+    }));
     const pack = await handlers.prepare_doctor_legal_information_pack({
       question: "kişisel sağlık verisi",
       sourceMode: "live"
