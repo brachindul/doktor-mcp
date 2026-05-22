@@ -50,8 +50,9 @@ export function composeDoctorLegalInformationPack(
   const groundedCount = provisions.length + precedents.length;
   const shortAnswer =
     groundedCount > 0
-      ? "Soru mock resmi kaynak kayitlariyla eslestirildi; asagidaki paket nihai hukuki kanaat degildir."
+      ? "Soru resmi kaynak kayitlariyla eslestirildi; asagidaki paket nihai hukuki kanaat degildir."
       : "Bu soru icin dogrulanmis mock mevzuat maddesi veya gerekceli yuksek mahkeme karari bulunamadi.";
+  const hasLiveLegislation = provisions.some((provision) => Boolean(provision.evidence.sourceUrl));
 
   return {
     shortAnswer,
@@ -71,7 +72,9 @@ export function composeDoctorLegalInformationPack(
     ],
     sourceWarnings:
       groundedCount > 0
-        ? ["MVP mock kaynaklarla calisir; canli resmi kaynak entegrasyonu henuz yoktur."]
+        ? [hasLiveLegislation
+            ? "Mevzuat maddesi canli resmi kaynaktan cikartildi; yuksek mahkeme adapterleri bu surumde mock kalir."
+            : "MVP mock kaynaklarla calisir; canli resmi kaynak entegrasyonu bu pack icin kullanilmadi."]
         : ["Kaynak yokken madde veya karar uretilmedi."]
   };
 }

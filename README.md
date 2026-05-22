@@ -5,7 +5,7 @@ legal information packs aimed at physicians. It does not tell a physician what t
 does not provide a final legal opinion. It matches a question to official legislation text
 and reasoned high court decision text available through source adapters.
 
-The first version uses mock adapters only. The adapter boundaries are prepared for:
+The adapter boundaries are prepared for:
 
 - `legislation`
 - `yargitay`
@@ -15,6 +15,35 @@ The first version uses mock adapters only. The adapter boundaries are prepared f
 General internet articles, blogs, news, law firm marketing pages, and forums are not source
 inputs for this project.
 
+## Live Legislation Status
+
+v0.2 adds the first live official legislation adapter:
+
+- adapter: `LiveOfficialLegislationAdapter`
+- official source: T.C. Cumhurbaşkanlığı Mevzuat Bilgi Sistemi at `mevzuat.gov.tr`
+- search capability: official `MevzuatDatatable` search request parser
+- full-text capability: official `MevzuatMetin` document retrieval
+- current extraction proof: PDF text extraction and article splitting for mapped legislation
+
+The live smoke proof uses the official PDF form of `6698` article `6` for personal health
+data questions. Initial health-law hints also exist for informed consent, patient rights,
+medical intervention, privacy, and physician obligation topics. When an official document
+does not arrive in an extractable format or a mapped article cannot be extracted, the live
+adapter returns structured `unavailable` output instead of creating a provision.
+
+Live source failures use this contract:
+
+```json
+{
+  "status": "unavailable",
+  "source": "mevzuat.gov.tr",
+  "errorCode": "provision_not_found",
+  "message": "Official text was retrieved but the mapped article could not be extracted.",
+  "retryable": false,
+  "recommendedNextStep": "Inspect the official text parser before using this provision in an answer."
+}
+```
+
 ## MVP Scope
 
 The skeleton includes:
@@ -23,6 +52,7 @@ The skeleton includes:
 - type contracts for official legislation evidence, court decision evidence, classification,
   precedent status, and the legal information pack
 - mock legislation and high court adapters
+- live official legislation adapter for v0.2 source verification
 - health-law pipeline pieces:
   - question classifier
   - legislation mapper
@@ -72,7 +102,7 @@ verified precedent entry must survive the reasoned-precedent filter.
 
 The MVP does not include:
 
-- live official source clients
+- live Yargitay, Danistay, or AYM high court clients
 - risk level scoring
 - immediate action instructions
 - petition or defense drafting
@@ -100,8 +130,14 @@ npm install
 npm test
 npm run build
 npm run smoke -- "Aydinlatilmis riza kaydi eksikse hangi resmi kaynaklar eslesir?"
+npm run smoke:legislation -- "kisisel saglik verisi mahremiyet"
 npm run dev:mcp
 ```
+
+`smoke:legislation` prints JSON. On success it includes the extracted official provisions,
+the composed pack, and `quoteMatchesProvisionText: true`. On live-source failure it prints
+the structured `unavailable` result. Mock legislation remains the default MCP service path
+for the existing MVP tools; Yargitay, Danistay, and AYM adapters are still mock adapters.
 
 After `npm run build`, run the compiled stdio MCP server with:
 

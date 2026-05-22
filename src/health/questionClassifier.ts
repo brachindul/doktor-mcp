@@ -4,11 +4,12 @@ import type {
 } from "../contracts/legal.js";
 
 const termDimensions: Array<{ terms: string[]; dimensions: LegalDimension[] }> = [
-  { terms: ["riza", "onam", "aydinlat"], dimensions: ["patient_rights", "civil_compensation"] },
-  { terms: ["veri", "mahrem", "kvkk", "kayit"], dimensions: ["privacy_kvkk", "patient_rights"] },
+  { terms: ["riza", "rıza", "onam", "aydinlat", "aydınlat"], dimensions: ["patient_rights", "civil_compensation"] },
+  { terms: ["veri", "mahrem", "kvkk", "kayit", "kayıt", "saglik verisi", "sağlık verisi"], dimensions: ["privacy_kvkk", "patient_rights"] },
   { terms: ["ceza", "taksir", "yaralama"], dimensions: ["criminal"] },
   { terms: ["disiplin", "idari", "sorusturma"], dimensions: ["disciplinary_administrative"] },
-  { terms: ["etik", "meslek"], dimensions: ["professional_ethics"] }
+  { terms: ["etik", "meslek"], dimensions: ["professional_ethics"] },
+  { terms: ["hekim", "tibbi", "tıbbi", "mudahale", "müdahale"], dimensions: ["patient_rights"] }
 ];
 
 export function classifyMedicalLegalQuestion(question: string): ClassifiedMedicalLegalQuestion {

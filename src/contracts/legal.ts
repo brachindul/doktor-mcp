@@ -18,7 +18,10 @@ export type PrecedentStatus =
 export interface SourceEvidence {
   source: SourceKind;
   documentId: string;
+  sourceId?: string;
+  sourceUrl?: string;
   retrievedAt: string;
+  retrievalMetadata?: Record<string, string | number | boolean | null>;
   official: true;
   fullText: boolean;
 }
