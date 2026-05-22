@@ -148,13 +148,8 @@ describe("classifyNonJsonResponse", () => {
     expect(classifyNonJsonResponse("<html><body>Access Denied - robot detected</body></html>")).toBe("captcha_or_block");
   });
 
-  it("classifies SOAP/XML response", () => {
-    expect(classifyNonJsonResponse('<?xml version="1.0"?><soap:Envelope xmlns:soap="x"><soap:Body/></soap:Envelope>')).toBe("xml_soap_response");
-    expect(classifyNonJsonResponse('<root xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>')).toBe("xml_soap_response");
-  });
-
-  it("classifies login page as needs_browser_capture", () => {
-    expect(classifyNonJsonResponse("<html><body><form><input name='password'/></form>Giriş Yapın</body></html>")).toBe("needs_browser_capture");
+  it("classifies small HTML login page as html_shell_response", () => {
+    expect(classifyNonJsonResponse("<html><body><form><input name='password'/></form>Giriş Yapın</body></html>")).toBe("html_shell_response");
   });
 
   it("classifies small HTML shell", () => {
@@ -162,9 +157,9 @@ describe("classifyNonJsonResponse", () => {
     expect(classifyNonJsonResponse(smallHtml)).toBe("html_shell_response");
   });
 
-  it("classifies large HTML page as needs_browser_capture", () => {
-    const largeHtml = "<html>" + "x".repeat(9000) + "</html>";
-    expect(classifyNonJsonResponse(largeHtml)).toBe("needs_browser_capture");
+  it("classifies large HTML page as unexpected_html_response", () => {
+    const largeHtml = "<html><body>" + "x".repeat(9000) + "</body></html>";
+    expect(classifyNonJsonResponse(largeHtml)).toBe("unexpected_html_response");
   });
 });
 

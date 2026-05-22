@@ -11,9 +11,9 @@ implementation_plan.md
 walkthrough.md
 pack.json
 *.tmp
-debug*.json
-probe*.json
-smoke*.json
-audit*.json
-
-temp-smoke.json
+*debug*.json
+*probe*.json
+*smoke*.json
+*audit*.json
+temp*.json
+fixtures/live-samples/*-probe-*.json

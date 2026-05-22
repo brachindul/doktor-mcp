@@ -221,7 +221,7 @@ describe("probeSource — HTML shell response (Danıştay pattern)", () => {
     }
   });
 
-  it("returns needs_browser_capture on login form response", async () => {
+  it("returns unexpected_html_response on login form response", async () => {
     const mockFetch = async () => ({
       ok: true,
       status: 200,
@@ -235,14 +235,14 @@ describe("probeSource — HTML shell response (Danıştay pattern)", () => {
 
     try {
       const report = await probeSource("danistay", "https://karararama.danistay.gov.tr/", {}, {}, "query");
-      expect(["needs_browser_capture", "html_shell_response"]).toContain(report.calibrationStatus);
+      expect(["unexpected_html_response", "html_shell_response"]).toContain(report.calibrationStatus);
       expect(report.htmlAnalysis?.hasLoginForm).toBe(true);
     } finally {
       global.fetch = originalFetch;
     }
   });
 
-  it("returns needs_browser_capture on SOAP/XML response", async () => {
+  it("returns unexpected_html_response on SOAP/XML response", async () => {
     const mockFetch = async () => ({
       ok: true,
       status: 200,
@@ -256,7 +256,7 @@ describe("probeSource — HTML shell response (Danıştay pattern)", () => {
 
     try {
       const report = await probeSource("danistay", "https://karararama.danistay.gov.tr/service", {}, {}, "query");
-      expect(report.calibrationStatus).toBe("needs_browser_capture");
+      expect(report.calibrationStatus).toBe("unexpected_html_response");
       expect(report.htmlAnalysis?.looksLikeSoapOrXml).toBe(true);
     } finally {
       global.fetch = originalFetch;

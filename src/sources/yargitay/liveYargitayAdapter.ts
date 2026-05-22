@@ -12,7 +12,7 @@ import {
   normalizeBedestenDocumentResponse,
   normalizeBedestenSearchResponse
 } from "../bedesten/bedestenApi.js";
-import { extractLegalReasoning, extractOutcome } from "./yargitayNormalizer.js";
+import { extractLegalReasoning, extractOutcome } from "../precedentUtils.js";
 
 const SEARCH_URL = `${BEDESTEN_BASE_URL}/emsal-karar/searchDocuments`;
 const MAX_RESULTS_PER_QUERY = 5;
@@ -170,7 +170,10 @@ export class LiveYargitayAdapter implements PrecedentSourceAdapter {
       source: YARGITAY_SOURCE,
       query,
       searchResultsCount,
-      selectedResult: searchResults[0] ?? null,
+      selectedResult: searchResults[0] ? {
+        documentId: searchResults[0].documentId,
+        sourceUrl: `https://mevzuat.adalet.gov.tr/ictihat/${searchResults[0].documentId}`
+      } : null,
       decisions,
       sourceTraces
     };

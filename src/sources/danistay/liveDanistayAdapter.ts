@@ -4,7 +4,8 @@ import { pickHealthLawQuery } from "../../health/healthLawQueryExpansion.js";
 import type { PrecedentSourceAdapter } from "../types.js";
 import type { LiveDanistayResult, LiveDanistayUnavailable } from "./liveTypes.js";
 import { DANISTAY_SOURCE } from "./liveTypes.js";
-import { extractDanistayFullText, classifyNonJsonResponse, extractLegalReasoning, extractOutcome } from "./danistayNormalizer.js";
+import { extractDanistayFullText, classifyNonJsonResponse } from "./danistayNormalizer.js";
+import { extractLegalReasoning, extractOutcome } from "../precedentUtils.js";
 
 const BASE_URL = "https://karararama.danistay.gov.tr";
 const SEARCH_URL = `${BASE_URL}/aramalist`;

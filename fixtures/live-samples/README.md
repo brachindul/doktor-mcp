@@ -20,7 +20,7 @@ Each committed fixture must include:
   "_note": "Description of what this fixture represents",
   "source": "yargitay | danistay",
   "capturedAt": "ISO 8601 timestamp or 'synthetic'",
-  "calibrationStatus": "synthetic_only | fixture_verified | verified_live | unavailable_in_environment | needs_browser_capture",
+  "calibrationStatus": "synthetic_only | fixture_verified | verified_live | unavailable_in_environment",
   "httpStatus": null,
   "contentType": null,
   "responseShape": { ... },
@@ -37,7 +37,7 @@ Each committed fixture must include:
 | `fixture_verified` | Tested against a real response fixture (raw body saved separately) |
 | `synthetic_only` | Only tested with synthetic data; real response format not yet observed |
 | `unavailable_in_environment` | DNS/network blocked in this environment (e.g., CI sandbox) |
-| `needs_browser_capture` | Endpoint requires a browser session to capture the real XHR request |
+| `unexpected_html_response` | Endpoint returns a login page or large HTML instead of expected JSON |
 | `html_shell_response` | Endpoint returns HTML shell (SPA); real API endpoint not yet identified |
 | `fetch_error` | Network-level failure not caused by DNS |
 | `reachable_json` | Endpoint responds with JSON; normalizer field mapping may need updating |
@@ -61,6 +61,6 @@ Each committed fixture must include:
 
 | Source | Status | Notes |
 |--------|--------|-------|
-| Yargıtay | `fetch_error` | `emsal.yargitay.gov.tr/BilgiBankasiIslem` fails at network level in this sandbox (not DNS — fetch fails). Real response format unknown. Known JSON API from emsal UI. Test from unrestricted network. |
-| Danıştay | `needs_browser_capture` | `karararama.danistay.gov.tr/YargitayBilgiBankasiIstemciService` returns HTTP 200 with SOAP/XML (39KB), title: "Adalet Bakanlığı Bilgi İşlem Genel Müdürlüğü". This is a SOAP service descriptor, not the real JSON search API. Real JSON endpoint must be captured via browser DevTools. |
+| Yargitay | `verified_live` | Bedesten integration active. |
+| Danistay | `verified_live` | Aramalist integration active. |
 | AYM | `synthetic_only` | No live endpoint. Mock adapter only. |

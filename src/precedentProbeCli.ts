@@ -171,16 +171,16 @@ function deriveCalibrationStatus(
     return { calibrationStatus: "reachable_json", recommendedNextStep: "Endpoint responds with JSON. Update normalizer to match the actual field names." };
   }
   if (html?.looksLikeSoapOrXml) {
-    return { calibrationStatus: "needs_browser_capture", recommendedNextStep: "Endpoint returns SOAP/XML. Use browser DevTools to capture the actual REST/JSON endpoint used by the search UI." };
+    return { calibrationStatus: "unexpected_html_response", recommendedNextStep: "Endpoint returns SOAP/XML. Use browser DevTools to capture the actual REST/JSON endpoint used by the search UI." };
   }
   if (html?.hasLoginForm || (html?.sessionOrAuthHints && html.sessionOrAuthHints.length > 0)) {
-    return { calibrationStatus: "needs_browser_capture", recommendedNextStep: "Endpoint requires login/session. Use browser DevTools with an authenticated session to capture the real search request." };
+    return { calibrationStatus: "unexpected_html_response", recommendedNextStep: "Endpoint requires login/session. Use browser DevTools with an authenticated session to capture the real search request." };
   }
   if (html?.looksLikeShell) {
     return { calibrationStatus: "html_shell_response", recommendedNextStep: "Endpoint returns an HTML shell (likely SPA). Use browser DevTools Network tab to capture the actual XHR/fetch search endpoint and request body." };
   }
   if (html) {
-    return { calibrationStatus: "needs_browser_capture", recommendedNextStep: "Endpoint returns non-JSON HTML. Use browser DevTools Network tab to find the real search API endpoint." };
+    return { calibrationStatus: "unexpected_html_response", recommendedNextStep: "Endpoint returns non-JSON HTML. Use browser DevTools Network tab to find the real search API endpoint." };
   }
   return { calibrationStatus: "reachable_non_json", recommendedNextStep: "Endpoint responds but not with JSON. Investigate content type and response format." };
 }
@@ -269,26 +269,27 @@ export async function probeSource(
   }
 }
 
-const YARGITAY_SEARCH_URL = "https://emsal.yargitay.gov.tr/BilgiBankasiIslem";
-const DANISTAY_SEARCH_URL = "https://karararama.danistay.gov.tr/YargitayBilgiBankasiIstemciService";
+const BEDESTEN_SEARCH_URL = "https://bedesten.adalet.gov.tr/emsal-karar/searchDocuments";
+const DANISTAY_SEARCH_URL = "https://karararama.danistay.gov.tr/aramalist";
 
-function buildYargitayProbeBody(query: string) {
+function buildBedestenProbeBody(query: string) {
   return {
-    data: {
-      arananKelime: query, birimYrgKurulDaire: 0, birimYrgHGK: 0, birimYrgBGK: 0,
-      basTarih: "", bitTarih: "", esasYil: "", esasSira: "", kararYil: "", kararSira: "",
-      ilkDerece: 0, kayitSayisi: 3, baslangicKayit: 0
-    }
+    applicationName: "UyapMevzuat",
+    itemTypeList: ["YARGITAYKARARI"],
+    searchList: [{ searchType: 0, operatorType: 0, isKeyWord: true, value: query }],
+    pageNumber: 1,
+    pageSize: 3,
+    sortField: "",
+    sortOrder: ""
   };
 }
 
 function buildDanistayProbeBody(query: string) {
   return {
     data: {
-      arananKelime: query, birimDanistayDaire: 0, birimDanistayHGK: 0,
-      birimDanistayBGK: 0, birimDanistayIDDK: 0,
-      basTarih: "", bitTarih: "", esasYil: "", esasSira: "", kararYil: "", kararSira: "",
-      kayitSayisi: 3, baslangicKayit: 0
+      andKelimeler: query ? [`"${query.replace(/^"|"$/g, "")}"`] : [],
+      orKelimeler: [], notAndKelimeler: [], notOrKelimeler: [],
+      pageSize: 3, pageNumber: 1
     }
   };
 }
@@ -300,8 +301,8 @@ const optionParts = separator === -1 ? args.filter((a) => a.startsWith("--")) : 
 
 const query = queryParts.join(" ") || "aydınlatılmış rıza";
 const sourceIndex = optionParts.indexOf("--source");
-const sourceArg = sourceIndex !== -1 ? optionParts[sourceIndex + 1] : "yargitay,danistay";
-const sources = sourceArg.split(",").map((s) => s.trim()) as Array<"yargitay" | "danistay">;
+const sourceArg = sourceIndex !== -1 ? optionParts[sourceIndex + 1] : "bedesten,danistay";
+const sources = sourceArg.split(",").map((s) => s.trim()) as Array<"bedesten" | "danistay">;
 const saveFixture = optionParts.includes("--save-fixture");
 const saveRawFixture = optionParts.includes("--save-raw-fixture");
 
@@ -310,19 +311,21 @@ const reports: ProbeSourceReport[] = [];
 for (const source of sources) {
   let report: ProbeSourceReport;
 
-  if (source === "yargitay") {
-    report = await probeSource("yargitay", YARGITAY_SEARCH_URL, buildYargitayProbeBody(query), {
-      "Content-Type": "application/json; charset=utf-8",
-      Accept: "application/json, text/html;q=0.9",
-      Referer: "https://emsal.yargitay.gov.tr/",
-      "User-Agent": "physician-legal-mcp/0.12 probe-cli"
+  if (source === "bedesten") {
+    report = await probeSource("bedesten", BEDESTEN_SEARCH_URL, buildBedestenProbeBody(query), {
+      "Content-Type": "application/json",
+      Accept: "application/json, text/plain, */*",
+      Origin: "https://mevzuat.adalet.gov.tr",
+      Referer: "https://mevzuat.adalet.gov.tr/",
+      "User-Agent": "physician-legal-mcp/0.14 probe-cli"
     }, query);
   } else if (source === "danistay") {
     report = await probeSource("danistay", DANISTAY_SEARCH_URL, buildDanistayProbeBody(query), {
-      "Content-Type": "application/json; charset=utf-8",
-      Accept: "application/json, text/html;q=0.9",
+      "Content-Type": "application/json; charset=UTF-8",
+      Accept: "application/json, text/plain, */*",
+      "X-Requested-With": "XMLHttpRequest",
       Referer: "https://karararama.danistay.gov.tr/",
-      "User-Agent": "physician-legal-mcp/0.12 probe-cli"
+      "User-Agent": "physician-legal-mcp/0.14 probe-cli"
     }, query);
   } else {
     report = {

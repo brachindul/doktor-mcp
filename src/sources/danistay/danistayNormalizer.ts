@@ -1,13 +1,13 @@
 import type { CourtDecision, DecisionSourceTrace } from "../../contracts/legal.js";
 import type { LiveDanistaySearchResult } from "./liveTypes.js";
+import { extractLegalReasoning, extractOutcome } from "../precedentUtils.js";
 
 const BASE_URL = "https://karararama.danistay.gov.tr";
 
 export type NonJsonResponseKind =
   | "html_shell_response"
   | "captcha_or_block"
-  | "needs_browser_capture"
-  | "xml_soap_response"
+  | "unexpected_html_response"
   | "empty_response"
   | "unknown_non_json";
 
@@ -15,10 +15,8 @@ export function classifyNonJsonResponse(text: string): NonJsonResponseKind {
   if (!text || text.trim().length === 0) return "empty_response";
   const lower = text.toLowerCase();
   if (lower.includes("captcha") || lower.includes("robot") || lower.includes("access denied")) return "captcha_or_block";
-  if (text.trimStart().startsWith("<?xml") || lower.includes("soap:envelope") || lower.includes("xmlns:")) return "xml_soap_response";
-  if (lower.includes("login") || lower.includes("giriş") || lower.includes("oturum") || lower.includes("unauthorized")) return "needs_browser_capture";
   if (lower.includes("<html") && Buffer.byteLength(text, "utf-8") < 8000) return "html_shell_response";
-  if (lower.includes("<html")) return "needs_browser_capture";
+  if (lower.includes("<html")) return "unexpected_html_response";
   return "unknown_non_json";
 }
 
@@ -125,25 +123,7 @@ export function buildDanistayEmptyTrace(
   };
 }
 
-export function extractLegalReasoning(fullText: string): string | undefined {
-  const markers = ["gerekçe", "değerlendirme", "hukuki değerlendirme", "inceleme", "gerekce", "degerlendirme"];
-  const lower = fullText.toLocaleLowerCase("tr-TR");
-  for (const marker of markers) {
-    const idx = lower.indexOf(marker);
-    if (idx !== -1) return fullText.slice(idx, idx + 3000).trim();
-  }
-  return fullText.length > 200 ? fullText.slice(0, 3000).trim() : undefined;
-}
 
-export function extractOutcome(fullText: string): string | undefined {
-  const markers = ["sonuç", "hüküm", "karar", "sonuc"];
-  const lower = fullText.toLocaleLowerCase("tr-TR");
-  for (const marker of markers) {
-    const idx = lower.lastIndexOf(marker);
-    if (idx !== -1 && idx > fullText.length / 2) return fullText.slice(idx, idx + 500).trim();
-  }
-  return undefined;
-}
 
 function normalizeDate(raw: string): string | undefined {
   if (!raw) return undefined;

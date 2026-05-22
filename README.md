@@ -356,7 +356,7 @@ interpretation and do not add any decision to the pack.
 v0.9 adds the first live court decision adapter: `LiveYargitayAdapter`
 (`src/sources/yargitay/liveYargitayAdapter.ts`). Danıştay and AYM remain mock adapters.
 
-**Source and endpoint:** Targets `https://emsal.yargitay.gov.tr/BilgiBankasiIslem` with a
+**Source and endpoint:** Targets `https://bedesten.adalet.gov.tr/emsal-karar/searchDocuments` with a filtering by `YARGITAYKARARI`.
 JSON POST body containing the health law search term. Retries up to three times with
 adaptive back-off for 429 and 5xx errors.
 
@@ -378,7 +378,7 @@ adaptive back-off for 429 and 5xx errors.
   "source": "yargitay",
   "court": "yargitay",
   "searchRequest": {
-    "url": "https://emsal.yargitay.gov.tr/BilgiBankasiIslem",
+    "url": "https://bedesten.adalet.gov.tr/emsal-karar/searchDocuments",
     "phrase": "aydınlatılmış rıza",
     "pageSize": 5
   },
@@ -399,7 +399,7 @@ adaptive back-off for 429 and 5xx errors.
 }
 ```
 
-**Live source failure behavior:** If `emsal.yargitay.gov.tr` is unreachable or returns a
+**Live source failure behavior:** If `bedesten.adalet.gov.tr` is unreachable or returns a
 non-parseable response, the adapter returns a structured unavailable result:
 
 ```json
@@ -409,7 +409,7 @@ non-parseable response, the adapter returns a structured unavailable result:
   "errorCode": "source_error",
   "message": "Yargıtay request failed: fetch failed",
   "retryable": true,
-  "recommendedNextStep": "Retry after checking network access to emsal.yargitay.gov.tr.",
+  "recommendedNextStep": "Retry after checking network access to bedesten.adalet.gov.tr.",
   "sourceTrace": [{ "query": "aydınlatılmış rıza", "searchRequest": { ... } }]
 }
 ```
@@ -427,7 +427,7 @@ per-source diagnostics (`sourceSummaries`), and a file-based result cache.
 ### Live Danıştay Adapter
 
 `LiveDanistayAdapter` (`src/sources/danistay/liveDanistayAdapter.ts`) targets
-`https://karararama.danistay.gov.tr/YargitayBilgiBankasiIstemciService`. It follows the
+`https://karararama.danistay.gov.tr/aramalist`. It follows the
 same retry, HTML full-text extraction, and eligibility assessment pattern as the Yargıtay
 adapter. `court` is set to `"danistay"` and document IDs are prefixed `danistay:`.
 
@@ -542,8 +542,9 @@ for the full calibration workflow.
 
 | Source | Status | Endpoint |
 |--------|--------|----------|
-| **Yargıtay** | `fetch_error` | `emsal.yargitay.gov.tr/BilgiBankasiIslem` — network-blocked in this sandbox. Known JSON API. Test from unrestricted network. |
-| **Danıştay** | `needs_browser_capture` | `karararama.danistay.gov.tr/YargitayBilgiBankasiIstemciService` — returns HTTP 200 with 39KB SOAP/XML (service listing from "Adalet Bakanlığı Bilgi İşlem Genel Müdürlüğü"). **Not** the real JSON search endpoint. Real endpoint must be captured via browser DevTools. |
+| **Yargitay** | `reachable_json` | `bedesten.adalet.gov.tr/emsal-karar/searchDocuments` - active integration via Bedesten proxy. |
+| **Danistay** | `reachable_json` | `karararama.danistay.gov.tr/aramalist` - active integration. |
+| **Bedesten** | `reachable_json` | `bedesten.adalet.gov.tr/emsal-karar/searchDocuments` - active unified integration. |
 | **AYM** | `synthetic_only` | No live endpoint. Mock adapter only. |
 
 ### Probe CLI
@@ -564,7 +565,7 @@ When a live adapter receives a non-JSON response, `DecisionSourceTrace.error` co
 | Code | Meaning |
 |------|---------|
 | `non_json_response:html_shell_response` | HTTP 200 + small HTML SPA shell |
-| `non_json_response:needs_browser_capture` | Login/SOAP/large HTML |
+| `non_json_response:unexpected_html_response` | Login/large HTML |
 | `non_json_response:xml_soap_response` | SOAP/XML service response |
 | `non_json_response:captcha_or_block` | CAPTCHA detected |
 | `non_json_response:empty_response` | Empty body |

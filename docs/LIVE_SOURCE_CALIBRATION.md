@@ -21,8 +21,8 @@ advance a source from `synthetic_only` to `verified_live`.
 
 | Source | Calibration Status | Endpoint | Notes |
 |--------|--------------------|----------|-------|
-| **Yargıtay** | `fetch_error` | `emsal.yargitay.gov.tr/BilgiBankasiIslem` | Network-level fetch failure in this sandbox (not DNS). Endpoint is the known Yargıtay emsal JSON search API. Assumed JSON response with `data[]` array. Field names: `ID`, `BIRIMI`, `ESAS_YILI`, `ESAS_SIRASI`, `KARAR_YILI`, `KARAR_SIRASI`, `KARAR_TARIHI`, `OZET`. Test from unrestricted network. |
-| **Danıştay** | `needs_browser_capture` | `karararama.danistay.gov.tr/YargitayBilgiBankasiIstemciService` | Returns HTTP 200 with 39KB SOAP/XML (WSDL service listing from "Adalet Bakanlığı Bilgi İşlem Genel Müdürlüğü"). This is a SOAP service descriptor — not the real JSON search API. Real endpoint must be captured via browser DevTools. |
+| **Yargıtay** | `reachable_json` | `bedesten.adalet.gov.tr/emsal-karar/searchDocuments` | Active unified Bedesten API. |
+| **Danıştay** | `reachable_json` | `karararama.danistay.gov.tr/aramalist` | Active Aramalist API. |
 | **AYM** | `synthetic_only` | N/A | Mock adapter only. No live endpoint. |
 
 ## How to Advance Calibration
@@ -73,7 +73,7 @@ When a live adapter fails to parse a response, `DecisionSourceTrace.error` conta
 | Code | Meaning |
 |------|---------|
 | `non_json_response:html_shell_response` | HTTP 200 + HTML SPA shell |
-| `non_json_response:needs_browser_capture` | Login/SOAP/large HTML requiring browser |
+| `non_json_response:unexpected_html_response` | Login/large HTML requiring browser |
 | `non_json_response:captcha_or_block` | CAPTCHA detected |
 | `non_json_response:xml_soap_response` | SOAP/XML response |
 | `non_json_response:empty_response` | Empty body |
