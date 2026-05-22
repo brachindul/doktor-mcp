@@ -208,3 +208,91 @@ describe("auditPack — invalid input", () => {
     expect(result.ok).toBe(false);
   });
 });
+
+describe("auditPack — unavailable sources in sourceSummaries", () => {
+  it("warns when a source is unavailable", () => {
+    const pack = makePack({
+      precedentDiagnostics: {
+        query: "test",
+        selectedPrecedentCount: 0,
+        excludedDecisionCount: 0,
+        sourceSummaries: [
+          { source: "yargitay", mode: "live", searched: false, searchResultsCount: null, candidateCount: 0, selectedCount: 0, excludedCount: 0, unavailableCount: 1, errorCodes: ["source_error"] }
+        ],
+        selectedPrecedents: [],
+        excludedDecisions: []
+      }
+    });
+    const result = auditPack(pack);
+    expect(result.ok).toBe(true);
+    expect(result.warnings.some((w) => w.includes("yargitay") && w.includes("unavailable"))).toBe(true);
+    expect(result.checkedCounts.unavailableSources).toBe(1);
+  });
+
+  it("does not warn when all sources are available", () => {
+    const pack = makePack();
+    const result = auditPack(pack);
+    const unavailableWarnings = result.warnings.filter((w) => w.includes("unavailable"));
+    expect(unavailableWarnings).toHaveLength(0);
+    expect(result.checkedCounts.unavailableSources).toBe(0);
+  });
+});
+
+describe("auditPack — decisionSourceTrace checks on verifiedHighCourtPrecedents", () => {
+  it("errors when a verified precedent has decisionSourceTrace.fullTextAvailable === false", () => {
+    const pack = makePack({
+      verifiedHighCourtPrecedents: [
+        {
+          sourceDocumentId: "yargitay:99001",
+          courtAndChamber: "Yargıtay 13. Hukuk Dairesi",
+          date: "2024-03-15",
+          meritsAndDecisionNumber: "2023/1000 E. - 2024/2000 K.",
+          factSummary: "test",
+          legalAssessment: "test",
+          outcome: "test",
+          similarityDifference: "test",
+          decisionSourceTrace: {
+            fullTextAvailable: false,
+            eligibilityStatus: "precedent_usable"
+          }
+        }
+      ]
+    });
+    const result = auditPack(pack);
+    expect(result.ok).toBe(false);
+    expect(result.errors.some((e) => e.includes("fullTextAvailable") && e.includes("false"))).toBe(true);
+  });
+
+  it("errors when a verified precedent has eligibilityStatus !== precedent_usable", () => {
+    const pack = makePack({
+      verifiedHighCourtPrecedents: [
+        {
+          sourceDocumentId: "yargitay:99002",
+          decisionSourceTrace: {
+            fullTextAvailable: true,
+            eligibilityStatus: "metadata_only"
+          }
+        }
+      ]
+    });
+    const result = auditPack(pack);
+    expect(result.ok).toBe(false);
+    expect(result.errors.some((e) => e.includes("eligibilityStatus") && e.includes("metadata_only"))).toBe(true);
+  });
+
+  it("does not error when decisionSourceTrace is absent (backward compat)", () => {
+    const pack = makePack({
+      verifiedHighCourtPrecedents: [
+        {
+          sourceDocumentId: "yargitay:99003",
+          courtAndChamber: "Yargıtay",
+          factSummary: "test"
+          // no decisionSourceTrace
+        }
+      ]
+    });
+    const result = auditPack(pack);
+    // No error about trace when it's absent
+    expect(result.errors.filter((e) => e.includes("fullTextAvailable"))).toHaveLength(0);
+  });
+});

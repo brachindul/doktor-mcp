@@ -1,6 +1,17 @@
 {
-  "_note": "Synthetic fixture mimicking Yargıtay emsal search response format. Not from a real network call.",
-  "_source": "synthetic",
+  "_note": "Synthetic fixture — top-level 'data' is normalizable by yargitayNormalizer. Probe findings document real endpoint behavior.",
+  "_fixtureType": "synthetic",
+  "_calibrationStatus": "synthetic_only",
+  "_httpStatusWhenCaptured": null,
+  "_probeFindings": {
+    "capturedAt": "2026-05-22",
+    "calibrationStatus": "fetch_error",
+    "httpStatus": null,
+    "fetchError": true,
+    "errorMessage": "fetch failed",
+    "notes": "emsal.yargitay.gov.tr/BilgiBankasiIslem is network-blocked in this sandbox environment (fetch-level failure, not DNS). The endpoint is a known Yargıtay emsal (precedent) JSON search API. Field names are assumed from the Yargıtay emsal UI patterns: ID, BIRIMI, ESAS_YILI, ESAS_SIRASI, KARAR_YILI, KARAR_SIRASI, KARAR_TARIHI, OZET.",
+    "recommendedNextStep": "Test from a machine with unrestricted network access. Run: npm run probe:precedents -- 'aydınlatılmış rıza' -- --source yargitay --save-fixture. If JSON is returned, update _calibrationStatus to fixture_verified and update syntheticPayload with real field names."
+  },
   "data": [
     {
       "ID": "12345",
@@ -9,18 +20,18 @@
       "ESAS_SIRASI": "1234",
       "KARAR_YILI": "2023",
       "KARAR_SIRASI": "5678",
-      "KARAR_TARIHI": "2023-03-15",
-      "OZET": "Aydınlatılmış rıza alınmadan yapılan tıbbi müdahalenin hukuki sonuçları. Doktor bilgilendirme yükümlülüğünü yerine getirmemiştir."
+      "KARAR_TARIHI": "2023-03-15T00:00:00",
+      "OZET": "Aydınlatılmış rıza belgesi eksikliği nedeniyle tazminat davası."
     },
     {
       "ID": "12346",
       "BIRIMI": "13. Hukuk Dairesi",
-      "ESAS_YILI": "2021",
-      "ESAS_SIRASI": "4321",
-      "KARAR_YILI": "2022",
-      "KARAR_SIRASI": "8765",
-      "KARAR_TARIHI": "2022-11-20",
-      "OZET": "Hizmet kusuru nedeniyle tazminat davası. Hastanın ölümünde sağlık personelinin ihmali tespit edilmiştir."
+      "ESAS_YILI": "2023",
+      "ESAS_SIRASI": "2000",
+      "KARAR_YILI": "2024",
+      "KARAR_SIRASI": "3000",
+      "KARAR_TARIHI": "2024-01-20T00:00:00",
+      "OZET": "Tıbbi müdahale öncesi bilgilendirme yükümlülüğü ihlali."
     }
   ]
 }

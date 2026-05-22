@@ -5,7 +5,8 @@ import { fileURLToPath } from "url";
 import {
   normalizeDanistaySearchResults,
   extractDanistayFullText,
-  buildDanistayDecision
+  buildDanistayDecision,
+  classifyNonJsonResponse
 } from "../src/sources/danistay/danistayNormalizer.js";
 import { assessDecisionEligibility } from "../src/health/decisionEligibility.js";
 
@@ -108,6 +109,37 @@ describe("buildDanistayDecision", () => {
     expect(decision.fullText).toBeUndefined();
     expect(decision.legalReasoning).toBeUndefined();
     expect(decision.evidence.fullText).toBe(false);
+  });
+});
+
+describe("classifyNonJsonResponse", () => {
+  it("classifies empty string as empty_response", () => {
+    expect(classifyNonJsonResponse("")).toBe("empty_response");
+    expect(classifyNonJsonResponse("   ")).toBe("empty_response");
+  });
+
+  it("classifies captcha page", () => {
+    expect(classifyNonJsonResponse("<html><body>Please solve the captcha</body></html>")).toBe("captcha_or_block");
+    expect(classifyNonJsonResponse("<html><body>Access Denied - robot detected</body></html>")).toBe("captcha_or_block");
+  });
+
+  it("classifies SOAP/XML response", () => {
+    expect(classifyNonJsonResponse('<?xml version="1.0"?><soap:Envelope xmlns:soap="x"><soap:Body/></soap:Envelope>')).toBe("xml_soap_response");
+    expect(classifyNonJsonResponse('<root xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>')).toBe("xml_soap_response");
+  });
+
+  it("classifies login page as needs_browser_capture", () => {
+    expect(classifyNonJsonResponse("<html><body><form><input name='password'/></form>Giriş Yapın</body></html>")).toBe("needs_browser_capture");
+  });
+
+  it("classifies small HTML shell", () => {
+    const smallHtml = "<html><head><title>App</title></head><body><div id='root'></div></body></html>";
+    expect(classifyNonJsonResponse(smallHtml)).toBe("html_shell_response");
+  });
+
+  it("classifies large HTML page as needs_browser_capture", () => {
+    const largeHtml = "<html>" + "x".repeat(9000) + "</html>";
+    expect(classifyNonJsonResponse(largeHtml)).toBe("needs_browser_capture");
   });
 });
 

@@ -533,6 +533,58 @@ npm run smoke:precedents -- "aydınlatılmış rıza" --refresh
 
 `.cache/` is in `.gitignore` and is never committed.
 
+## Precedent Source Calibration (v0.12)
+
+v0.12 introduces deep probe analysis and normalizer hardening. See `docs/LIVE_SOURCE_CALIBRATION.md`
+for the full calibration workflow.
+
+### Confirmed endpoint behavior (2026-05-22)
+
+| Source | Status | Endpoint |
+|--------|--------|----------|
+| **Yargıtay** | `fetch_error` | `emsal.yargitay.gov.tr/BilgiBankasiIslem` — network-blocked in this sandbox. Known JSON API. Test from unrestricted network. |
+| **Danıştay** | `needs_browser_capture` | `karararama.danistay.gov.tr/YargitayBilgiBankasiIstemciService` — returns HTTP 200 with 39KB SOAP/XML (service listing from "Adalet Bakanlığı Bilgi İşlem Genel Müdürlüğü"). **Not** the real JSON search endpoint. Real endpoint must be captured via browser DevTools. |
+| **AYM** | `synthetic_only` | No live endpoint. Mock adapter only. |
+
+### Probe CLI
+
+```powershell
+# Deep probe with HTML/SOAP analysis and fixture save
+npm run probe:precedents -- "aydınlatılmış rıza" -- --source yargitay --save-fixture
+npm run probe:precedents -- "hizmet kusuru tıbbi müdahale" -- --source danistay --save-fixture
+```
+
+Probe output includes: HTTP status, content-type, HTML/SOAP analysis (title, form actions,
+endpoint hints, body length, captcha/login detection), `calibrationStatus`, and `recommendedNextStep`.
+
+### Non-JSON response classification
+
+When a live adapter receives a non-JSON response, `DecisionSourceTrace.error` contains:
+
+| Code | Meaning |
+|------|---------|
+| `non_json_response:html_shell_response` | HTTP 200 + small HTML SPA shell |
+| `non_json_response:needs_browser_capture` | Login/SOAP/large HTML |
+| `non_json_response:xml_soap_response` | SOAP/XML service response |
+| `non_json_response:captcha_or_block` | CAPTCHA detected |
+| `non_json_response:empty_response` | Empty body |
+
+### Raw fixture policy
+
+- `fixtures/raw/` is gitignored — never commit raw response bodies.
+- `fixtures/live-samples/` holds sanitized/synthetic fixtures — safe to commit.
+- See `fixtures/live-samples/README.md` for the sanitized fixture format.
+
+### Pack audit extended checks (v0.12)
+
+`audit:pack` now also checks:
+
+- Unavailable sources in `sourceSummaries` → warning with error codes
+- `decisionSourceTrace.fullTextAvailable === false` on a verified precedent → error
+- `decisionSourceTrace.eligibilityStatus !== "precedent_usable"` on a verified precedent → error
+
+See `docs/PACK_AUDIT.md` for the full check reference.
+
 ## Development
 
 ```powershell

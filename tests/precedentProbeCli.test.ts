@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildResponseShapeSummary, probeSource } from "../src/precedentProbeCli.js";
+import { buildResponseShapeSummary, probeSource, analyzeHtmlResponse } from "../src/precedentProbeCli.js";
 
 describe("buildResponseShapeSummary", () => {
   it("handles null body", () => {
@@ -145,6 +145,139 @@ describe("probeSource — successful JSON response", () => {
     } finally {
       global.fetch = originalFetch;
     }
+  });
+});
+
+describe("analyzeHtmlResponse", () => {
+  it("detects HTML shell (SPA) response", () => {
+    const html = "<html><head><title>Danıştay Arama</title></head><body><div id='app'></div></body></html>";
+    const analysis = analyzeHtmlResponse(html);
+    expect(analysis.title).toContain("Danıştay");
+    expect(analysis.looksLikeShell).toBe(true);
+    expect(analysis.looksLikeSoapOrXml).toBe(false);
+  });
+
+  it("detects captcha hints", () => {
+    const html = "<html><body><p>Please solve the captcha to continue. We detected a robot.</p></body></html>";
+    const analysis = analyzeHtmlResponse(html);
+    expect(analysis.captchaHints).toContain("captcha");
+    expect(analysis.captchaHints).toContain("robot");
+  });
+
+  it("detects login/session hints", () => {
+    const html = "<html><body><form><input type='text' name='username'/><input type='password' name='sifre'/></form></body></html>";
+    const analysis = analyzeHtmlResponse(html);
+    expect(analysis.hasLoginForm).toBe(true);
+    expect(analysis.sessionOrAuthHints).toContain("login-form");
+  });
+
+  it("detects SOAP/XML response", () => {
+    const xml = `<?xml version="1.0" encoding="UTF-8"?><soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body><Response/></soap:Body></soap:Envelope>`;
+    const analysis = analyzeHtmlResponse(xml);
+    expect(analysis.looksLikeSoapOrXml).toBe(true);
+  });
+
+  it("extracts form actions", () => {
+    const html = `<html><body><form action="/SearchService"><input type="hidden" name="viewstate" value="abc"/></form></body></html>`;
+    const analysis = analyzeHtmlResponse(html);
+    expect(analysis.formActions).toContain("/SearchService");
+    expect(analysis.hiddenInputNames).toContain("viewstate");
+  });
+
+  it("extracts script endpoint hints", () => {
+    const html = `<html><body><script>var url = '/api/BilgiService/Search';</script></body></html>`;
+    const analysis = analyzeHtmlResponse(html);
+    expect(analysis.scriptEndpointHints.some((h) => h.includes("BilgiService") || h.includes("Service"))).toBe(true);
+  });
+
+  it("returns bodyLengthBytes > 0 for non-empty content", () => {
+    const html = "<html><body>content</body></html>";
+    const analysis = analyzeHtmlResponse(html);
+    expect(analysis.bodyLengthBytes).toBeGreaterThan(0);
+  });
+});
+
+describe("probeSource — HTML shell response (Danıştay pattern)", () => {
+  it("returns html_shell_response when HTTP 200 but HTML < 8KB", async () => {
+    const mockFetch = async () => ({
+      ok: true,
+      status: 200,
+      redirected: false,
+      headers: { get: (name: string) => name === "content-type" ? "text/html; charset=utf-8" : null },
+      text: async () => "<html><head><title>Danıştay Karar Arama</title></head><body><div id='app'></div></body></html>"
+    });
+
+    const originalFetch = global.fetch;
+    global.fetch = mockFetch as unknown as typeof fetch;
+
+    try {
+      const report = await probeSource("danistay", "https://karararama.danistay.gov.tr/search", {}, {}, "query");
+      expect(report.calibrationStatus).toBe("html_shell_response");
+      expect(report.htmlAnalysis?.title).toContain("Danıştay");
+      expect(report.htmlAnalysis?.looksLikeShell).toBe(true);
+      expect(report.recommendedNextStep).toContain("browser");
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
+  it("returns needs_browser_capture on login form response", async () => {
+    const mockFetch = async () => ({
+      ok: true,
+      status: 200,
+      redirected: false,
+      headers: { get: () => "text/html" },
+      text: async () => `<html><body><h1>Giriş Yapın</h1><form action="/login"><input type="password" name="sifre"/></form></body></html>`
+    });
+
+    const originalFetch = global.fetch;
+    global.fetch = mockFetch as unknown as typeof fetch;
+
+    try {
+      const report = await probeSource("danistay", "https://karararama.danistay.gov.tr/", {}, {}, "query");
+      expect(["needs_browser_capture", "html_shell_response"]).toContain(report.calibrationStatus);
+      expect(report.htmlAnalysis?.hasLoginForm).toBe(true);
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
+  it("returns needs_browser_capture on SOAP/XML response", async () => {
+    const mockFetch = async () => ({
+      ok: true,
+      status: 200,
+      redirected: false,
+      headers: { get: () => "text/xml" },
+      text: async () => `<?xml version="1.0"?><soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body/></soap:Envelope>`
+    });
+
+    const originalFetch = global.fetch;
+    global.fetch = mockFetch as unknown as typeof fetch;
+
+    try {
+      const report = await probeSource("danistay", "https://karararama.danistay.gov.tr/service", {}, {}, "query");
+      expect(report.calibrationStatus).toBe("needs_browser_capture");
+      expect(report.htmlAnalysis?.looksLikeSoapOrXml).toBe(true);
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+});
+
+describe("probeSource — recommendedNextStep", () => {
+  it("provides DNS error next step", async () => {
+    global.fetch = async () => { throw new Error("getaddrinfo ENOTFOUND test.invalid"); };
+    const report = await probeSource("yargitay", "https://test.invalid/", {}, {}, "q");
+    expect(report.recommendedNextStep).toContain("DNS");
+    global.fetch = fetch;
+  });
+
+  it("provides source blocked next step on 403", async () => {
+    global.fetch = async () => ({ ok: false, status: 403, redirected: false, headers: { get: () => null }, text: async () => "" }) as unknown as Response;
+    const report = await probeSource("yargitay", "https://test.invalid/", {}, {}, "q");
+    expect(report.calibrationStatus).toBe("source_blocked");
+    expect(report.recommendedNextStep).toBeTruthy();
+    global.fetch = fetch;
   });
 });
 

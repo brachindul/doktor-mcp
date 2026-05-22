@@ -1,0 +1,12 @@
+{
+  "_note": "Probe shape fixture — no raw body content. Sanitized for git commit.",
+  "source": "yargitay",
+  "capturedAt": "2026-05-22T20:18:24.571Z",
+  "calibrationStatus": "fetch_error",
+  "httpStatus": null,
+  "contentType": null,
+  "responseShape": null,
+  "htmlAnalysis": null,
+  "recommendedNextStep": "Network-level fetch failure. Check network connectivity and firewall rules.",
+  "notes": "Captured by probe CLI. Raw body not saved. Update calibrationStatus and normalizedResultPreview once real fixture is captured."
+}

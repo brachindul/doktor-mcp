@@ -8,7 +8,8 @@ import {
   normalizeYargitaySearchResults,
   extractYargitayFullText,
   buildYargitayDecision,
-  buildYargitayEmptyTrace
+  buildYargitayEmptyTrace,
+  classifyNonJsonResponse
 } from "./yargitayNormalizer.js";
 
 const BASE_URL = "https://emsal.yargitay.gov.tr";
@@ -55,14 +56,31 @@ export class LiveYargitayAdapter implements PrecedentSourceAdapter {
 
     let rawData: unknown;
     try {
-      rawData = await (response as Response).json();
+      const rawText = await (response as Response).text();
+      try {
+        rawData = JSON.parse(rawText);
+      } catch {
+        const kind = classifyNonJsonResponse(rawText);
+        const nextStep = kind === "html_shell_response" || kind === "needs_browser_capture"
+          ? "Use browser DevTools Network tab to capture the actual search XHR endpoint."
+          : kind === "captcha_or_block"
+            ? "Endpoint returned a CAPTCHA/block page. Retry from a different network."
+            : "Check the search endpoint format and retry.";
+        return unavailable(
+          "parse_failed",
+          `Yargıtay emsal search response is not parseable JSON (${kind}).`,
+          kind !== "captcha_or_block",
+          nextStep,
+          [{ ...emptyTrace, error: `non_json_response:${kind}` }]
+        );
+      }
     } catch {
       return unavailable(
         "parse_failed",
-        "Yargıtay emsal search response is not parseable JSON.",
+        "Yargıtay emsal search response could not be read.",
         true,
         "Check the search endpoint format and retry.",
-        [{ ...emptyTrace, error: "JSON parse failed" }]
+        [{ ...emptyTrace, error: "response_read_failed" }]
       );
     }
 

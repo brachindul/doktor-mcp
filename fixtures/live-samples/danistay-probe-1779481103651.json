@@ -1,0 +1,23 @@
+{
+  "_note": "Probe shape fixture — no raw body content. Sanitized for git commit.",
+  "source": "danistay",
+  "capturedAt": "2026-05-22T20:18:23.460Z",
+  "calibrationStatus": "needs_browser_capture",
+  "httpStatus": 200,
+  "contentType": null,
+  "responseShape": null,
+  "htmlAnalysis": {
+    "title": "Adalet Bakanlığı Bilgi İşlem Genel Müdürlüğü",
+    "hasLoginForm": false,
+    "hasSearchForm": false,
+    "formActions": [],
+    "scriptEndpointHints": [],
+    "bodyLengthBytes": 39015,
+    "looksLikeShell": false,
+    "looksLikeSoapOrXml": true,
+    "captchaHints": [],
+    "sessionOrAuthHints": []
+  },
+  "recommendedNextStep": "Endpoint returns SOAP/XML. Use browser DevTools to capture the actual REST/JSON endpoint used by the search UI.",
+  "notes": "Captured by probe CLI. Raw body not saved. Update calibrationStatus and normalizedResultPreview once real fixture is captured."
+}

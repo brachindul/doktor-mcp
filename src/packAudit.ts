@@ -12,6 +12,7 @@ export interface AuditResult {
     precedents: number;
     excludedDecisions: number;
     sourceSummaries: number;
+    unavailableSources: number;
   };
   recommendedNextStep: string;
 }
@@ -46,7 +47,8 @@ export function auditPack(pack: unknown): AuditResult {
         legislationWithSourceTrace: 0,
         precedents: 0,
         excludedDecisions: 0,
-        sourceSummaries: 0
+        sourceSummaries: 0,
+        unavailableSources: 0
       },
       recommendedNextStep: "Provide a valid DoctorLegalInformationPack JSON object."
     };
@@ -76,6 +78,12 @@ export function auditPack(pack: unknown): AuditResult {
   }
 
   // Check selectionDiagnostics
+  // Check calibrationStatus presence (warn if no source has calibration info)
+  if (!p.calibrationStatus && !p.precedentDiagnostics) {
+    warnings.push("No calibrationStatus found. Run probe:precedents to assess live source status.");
+  }
+
+  // Check selectionDiagnostics
   if (!p.selectionDiagnostics) {
     warnings.push("selectionDiagnostics is missing. Run in live sourceMode to populate it.");
   }
@@ -88,17 +96,39 @@ export function auditPack(pack: unknown): AuditResult {
 
   // Check sourceSummaries inside precedentDiagnostics
   let sourceSummaries = 0;
+  let unavailableSources = 0;
   if (precedentDiagnostics) {
     if (!Array.isArray(precedentDiagnostics.sourceSummaries)) {
       warnings.push("precedentDiagnostics.sourceSummaries is missing or not an array.");
     } else {
-      sourceSummaries = (precedentDiagnostics.sourceSummaries as unknown[]).length;
+      const summaries = precedentDiagnostics.sourceSummaries as Array<Record<string, unknown>>;
+      sourceSummaries = summaries.length;
+      for (const s of summaries) {
+        if (s.unavailableCount && Number(s.unavailableCount) > 0) {
+          unavailableSources++;
+          warnings.push(`Source "${s.source}" is unavailable in precedentDiagnostics.sourceSummaries (errorCodes: ${JSON.stringify(s.errorCodes ?? [])}).`);
+        }
+      }
     }
   }
 
-  // Check verifiedHighCourtPrecedents for excluded statuses
+  // Check verifiedHighCourtPrecedents for excluded statuses and trace quality
   const verifiedPrecedents = Array.isArray(p.verifiedHighCourtPrecedents) ? p.verifiedHighCourtPrecedents : [];
   const precedentCount = verifiedPrecedents.length;
+
+  // Cross-check via decisionSourceTrace on decisions if available
+  for (let i = 0; i < verifiedPrecedents.length; i++) {
+    const prec = verifiedPrecedents[i] as Record<string, unknown>;
+    const trace = prec.decisionSourceTrace as Record<string, unknown> | undefined;
+    if (trace) {
+      if (trace.fullTextAvailable === false) {
+        errors.push(`verifiedHighCourtPrecedents[${i}] (documentId: "${prec.sourceDocumentId ?? "unknown"}") has decisionSourceTrace.fullTextAvailable === false. Full text required for verified precedents.`);
+      }
+      if (trace.eligibilityStatus && trace.eligibilityStatus !== "precedent_usable") {
+        errors.push(`verifiedHighCourtPrecedents[${i}] (documentId: "${prec.sourceDocumentId ?? "unknown"}") has eligibilityStatus "${trace.eligibilityStatus}" — only precedent_usable allowed.`);
+      }
+    }
+  }
 
   // Build a map of documentId -> eligibilityStatus from precedentDiagnostics if available
   const excludedDecisions = Array.isArray(precedentDiagnostics?.excludedDecisions)
@@ -149,7 +179,8 @@ export function auditPack(pack: unknown): AuditResult {
       legislationWithSourceTrace,
       precedents: precedentCount,
       excludedDecisions: excludedDecisions.length,
-      sourceSummaries
+      sourceSummaries,
+      unavailableSources
     },
     recommendedNextStep
   };

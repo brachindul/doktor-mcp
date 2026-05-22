@@ -1,61 +1,93 @@
 # Pack Audit
 
-The pack audit tool validates a `DoctorLegalInformationPack` JSON for compliance with MVP safety constraints.
+The pack audit tool validates a `DoctorLegalInformationPack` JSON for compliance with
+MVP safety constraints before it is sent to lawyer review.
 
 ## Usage
 
-```bash
-npm run audit:pack -- path/to/pack.json
+```powershell
+# Generate a pack (mock mode)
+npx tsx -e "
+import { PhysicianLegalInformationService } from './src/app/service.js';
+import { writeFile } from 'node:fs/promises';
+const svc = new PhysicianLegalInformationService();
+const pack = await svc.prepareInformationPack({ question: 'aydınlatılmış rıza' });
+await writeFile('fixtures/sample-pack.json', JSON.stringify(pack, null, 2));
+"
+
+# Audit the pack
+npm run audit:pack -- fixtures/sample-pack.json
 ```
 
-Exit code 0 = pack is clean. Exit code 1 = errors found.
-
-## What Is Checked
+## Checks
 
 ### Errors (block lawyer review)
 
-1. Every `relevantLegislation` item must have a non-empty `sourceDocumentId`
-2. No MVP-out-of-scope fields may be present:
-   - `riskLevel`, `immediateActions`, `finalLegalOpinion`
-   - `riskSeviyesi`, `derhalYapilacaklar`, `kesinHukukiKanaat`, `dilekseTaslagi`
-3. No `selectedPrecedents` entry may have an excluded eligibility status:
-   - `metadata_only`, `procedural_only`, `no_reasoning`
+| Check | Description |
+|-------|-------------|
+| MVP-out-of-scope fields | `riskLevel`, `immediateActions`, `finalLegalOpinion`, `riskSeviyesi`, `derhalYapilacaklar`, `kesinHukukiKanaat`, `dilekseTaslagi` must not appear |
+| Missing `sourceDocumentId` | Every `relevantLegislation` item must have a `sourceDocumentId` |
+| Excluded status in selectedPrecedents | No entry in `precedentDiagnostics.selectedPrecedents` may have status `metadata_only`, `procedural_only`, or `no_reasoning` |
+| `fullTextAvailable: false` on verified precedent | If a verified precedent has a `decisionSourceTrace`, it must have `fullTextAvailable: true` |
+| Wrong `eligibilityStatus` on verified precedent | If a verified precedent has a `decisionSourceTrace`, its `eligibilityStatus` must be `precedent_usable` |
 
-### Warnings (advisories, not blocking)
+### Warnings (should be addressed before review)
 
-1. `selectionDiagnostics` missing — run in live sourceMode to populate
-2. `precedentDiagnostics` missing — call `buildPrecedentSelectionDiagnostics` before packing
-3. `precedentDiagnostics.sourceSummaries` missing or not an array
-4. `sourceWarnings` present — review and address if possible
+| Warning | Description |
+|---------|-------------|
+| Missing `selectionDiagnostics` | Present only in live legislation mode |
+| Missing `precedentDiagnostics` | Should always be present |
+| Missing `sourceSummaries` | Should be inside `precedentDiagnostics` |
+| Unavailable source in `sourceSummaries` | One or more court adapters failed; 0 live precedents from that source |
+| `sourceWarnings` present | Pack-level source warnings exist |
 
 ## Output Format
 
 ```json
 {
   "tool": "audit_pack",
-  "file": "path/to/pack.json",
+  "file": "fixtures/sample-pack.json",
   "result": {
     "ok": true,
     "errors": [],
-    "warnings": [],
+    "warnings": [
+      "selectionDiagnostics is missing. Run in live sourceMode to populate it.",
+      "Source \"yargitay\" is unavailable in precedentDiagnostics.sourceSummaries (errorCodes: [\"source_error\"])."
+    ],
     "checkedCounts": {
-      "legislationItems": 3,
-      "legislationWithSourceTrace": 3,
-      "precedents": 1,
+      "legislationItems": 2,
+      "legislationWithSourceTrace": 2,
+      "precedents": 0,
       "excludedDecisions": 0,
-      "sourceSummaries": 3
+      "sourceSummaries": 3,
+      "unavailableSources": 2
     },
-    "recommendedNextStep": "Pack is clean. Ready for lawyer review."
+    "recommendedNextStep": "Pack has 2 warning(s) but no errors. Address warnings before lawyer review."
   }
 }
 ```
 
-## Safety Constraints Reminder
+- `ok: true` with warnings = ready for review (address warnings if possible)
+- `ok: false` = must fix errors before sending to lawyer
 
-- Model must not invent court decisions from its own knowledge
-- No full text → no precedent
-- No legal reasoning → no precedent
-- Bare affirmance/reversal → excluded
-- Metadata-only → excluded
-- No health law connection → excluded
-- No risk level, no immediate actions, no final legal opinion, no petition drafts
+## Safety Constraints
+
+The audit enforces the permanent project constraints:
+
+- No risk level scoring
+- No immediate action instructions
+- No final legal conclusions
+- No petition or defense drafts
+- No model-invented court decisions
+- Only `precedent_usable` decisions in `verifiedHighCourtPrecedents`
+- Full text required for all verified precedents
+
+## CI Integration
+
+The audit exits with code 0 when `ok: true`, and with code 1 when `ok: false`.
+It is designed to be deterministic — same input always produces same output.
+
+```powershell
+npm run audit:pack -- fixtures/sample-pack.json
+# Exit code 0 = ok, Exit code 1 = errors found
+```

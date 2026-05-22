@@ -3,6 +3,25 @@ import type { LiveDanistaySearchResult } from "./liveTypes.js";
 
 const BASE_URL = "https://karararama.danistay.gov.tr";
 
+export type NonJsonResponseKind =
+  | "html_shell_response"
+  | "captcha_or_block"
+  | "needs_browser_capture"
+  | "xml_soap_response"
+  | "empty_response"
+  | "unknown_non_json";
+
+export function classifyNonJsonResponse(text: string): NonJsonResponseKind {
+  if (!text || text.trim().length === 0) return "empty_response";
+  const lower = text.toLowerCase();
+  if (lower.includes("captcha") || lower.includes("robot") || lower.includes("access denied")) return "captcha_or_block";
+  if (text.trimStart().startsWith("<?xml") || lower.includes("soap:envelope") || lower.includes("xmlns:")) return "xml_soap_response";
+  if (lower.includes("login") || lower.includes("giriş") || lower.includes("oturum") || lower.includes("unauthorized")) return "needs_browser_capture";
+  if (lower.includes("<html") && Buffer.byteLength(text, "utf-8") < 8000) return "html_shell_response";
+  if (lower.includes("<html")) return "needs_browser_capture";
+  return "unknown_non_json";
+}
+
 export function normalizeDanistaySearchResults(raw: unknown): LiveDanistaySearchResult[] {
   if (!raw || typeof raw !== "object") return [];
 

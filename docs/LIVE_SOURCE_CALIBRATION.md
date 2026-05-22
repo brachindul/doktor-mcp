@@ -1,58 +1,83 @@
 # Live Source Calibration
 
-This document describes the calibration status of each court decision source and how to update it.
+This document describes the calibration status of each court decision source and how to
+advance a source from `synthetic_only` to `verified_live`.
 
 ## Calibration Status Values
 
 | Status | Meaning |
 |--------|---------|
-| `verified_live` | Confirmed working with real endpoint in this environment |
-| `fixture_verified` | Tested against a saved real fixture |
+| `verified_live` | Confirmed working with real endpoint in a network-capable environment |
+| `fixture_verified` | Tested against a saved real fixture (raw body in `fixtures/raw/`) |
 | `synthetic_only` | Only tested with synthetic (hand-crafted) data |
-| `unavailable_in_environment` | DNS / network blocked in this environment |
-| `needs_browser_capture` | Endpoint requires browser session to work |
+| `unavailable_in_environment` | DNS resolution fails in this environment |
+| `fetch_error` | Network-level failure (not DNS); endpoint may be blocked by firewall |
+| `html_shell_response` | HTTP 200 but non-JSON HTML shell (SPA); real API endpoint unknown |
+| `needs_browser_capture` | Endpoint returns SOAP/XML or requires browser session; real JSON API must be discovered |
+| `captcha_or_block` | CAPTCHA or bot-detection response |
+| `reachable_json` | Endpoint returns JSON; field mapping may still need calibration |
 
-## Current Status
+## Current Status (v0.12, confirmed 2026-05-22)
 
-| Source | Status | Notes |
-|--------|--------|-------|
-| yargitay | `synthetic_only` | `emsal.yargitay.gov.tr` — run probe to verify |
-| danistay | `synthetic_only` | `karararama.danistay.gov.tr` — run probe to verify |
-| aym | `synthetic_only` | Mock-only; no live endpoint integration yet |
+| Source | Calibration Status | Endpoint | Notes |
+|--------|--------------------|----------|-------|
+| **Yargıtay** | `fetch_error` | `emsal.yargitay.gov.tr/BilgiBankasiIslem` | Network-level fetch failure in this sandbox (not DNS). Endpoint is the known Yargıtay emsal JSON search API. Assumed JSON response with `data[]` array. Field names: `ID`, `BIRIMI`, `ESAS_YILI`, `ESAS_SIRASI`, `KARAR_YILI`, `KARAR_SIRASI`, `KARAR_TARIHI`, `OZET`. Test from unrestricted network. |
+| **Danıştay** | `needs_browser_capture` | `karararama.danistay.gov.tr/YargitayBilgiBankasiIstemciService` | Returns HTTP 200 with 39KB SOAP/XML (WSDL service listing from "Adalet Bakanlığı Bilgi İşlem Genel Müdürlüğü"). This is a SOAP service descriptor — not the real JSON search API. Real endpoint must be captured via browser DevTools. |
+| **AYM** | `synthetic_only` | N/A | Mock adapter only. No live endpoint. |
 
-## How to Probe
+## How to Advance Calibration
 
-```bash
-# Probe Yargıtay
-npm run probe:precedents -- "aydınlatılmış rıza" -- --source yargitay
-
-# Probe Danıştay
-npm run probe:precedents -- "hizmet kusuru tıbbi müdahale" -- --source danistay
-
-# Probe both
-npm run probe:precedents -- "aydınlatılmış rıza" -- --source yargitay,danistay
-
-# Save a shape fixture (no raw content)
+### Step 1: Probe
+```powershell
 npm run probe:precedents -- "aydınlatılmış rıza" -- --source yargitay --save-fixture
+npm run probe:precedents -- "hizmet kusuru tıbbi müdahale" -- --source danistay --save-fixture
 ```
 
-## Probe Output Fields
+This saves a sanitized shape fixture (no raw body) to `fixtures/live-samples/`.
 
-The probe CLI outputs a JSON report per source with these fields:
+### Step 2: Browser DevTools capture (for SOAP/HTML endpoints)
 
-- `httpStatus` — HTTP status code or null if DNS/network error
-- `contentType` — response Content-Type header
-- `redirected` — whether the request was redirected
-- `blocked` — true if 401/403/429
-- `captchaLike` — detected CAPTCHA or bot-blocking response
-- `dnsError` — DNS resolution failure
-- `fetchError` — any fetch-level error
-- `responseShape` — structural summary (no raw content):
-  - `isJson` / `isArray`
-  - `hasDataField`, `hasResultsField`, `hasKararlarField`, `hasItemsField`
-  - `topLevelKeys`, `itemCount`, `sampleItemKeys`
-- `calibrationStatus` — one of: `reachable_json`, `reachable_non_json`, `source_blocked`, `http_error_NNN`, `captcha_detected`, `unavailable_in_environment`, `timeout`, `fetch_error`
+For Danıştay:
+1. Open `https://karararama.danistay.gov.tr` in a browser.
+2. Open DevTools → Network tab.
+3. Type a search query and click Search.
+4. Find the XHR/fetch request that returns JSON decisions.
+   - The path will likely be something other than `YargitayBilgiBankasiIstemciService`.
+   - Look for requests returning `application/json` with a `data` or `kararlar` array.
+5. Copy: URL, method, request headers, request body (JSON), and response body.
+6. Save raw response body to `fixtures/raw/danistay-raw-<date>.json` (gitignored).
+7. Update `danistayNormalizer.ts` field names to match real response.
 
-## Raw Fixtures
+### Step 3: Update fixture
+After capturing:
+1. Update `fixtures/live-samples/danistay-synthetic.json`:
+   - Set `_calibrationStatus` to `fixture_verified`
+   - Update `_probeFindings` with real endpoint URL and field names
+   - Update `data[]` with sanitized (IDs redacted) sample rows
 
-Raw response bodies can be saved to `fixtures/raw/` with `--save-raw-fixture`. This directory is gitignored. Only shape fixtures in `fixtures/live-samples/` are committed.
+### Step 4: Update calibrationStatus constant
+In `src/sources/calibrationStatus.ts`, update:
+```typescript
+danistay: "fixture_verified"
+```
+
+## Raw Fixture Policy
+
+- **Never commit `fixtures/raw/`** — it may contain real court decision data.
+- `fixtures/raw/` is in `.gitignore`.
+- Sanitize before committing: replace real IDs, redact personal references, keep only field names and shape.
+- Sanitized fixtures in `fixtures/live-samples/` are safe to commit.
+
+## Error Code Reference
+
+When a live adapter fails to parse a response, `DecisionSourceTrace.error` contains:
+
+| Code | Meaning |
+|------|---------|
+| `non_json_response:html_shell_response` | HTTP 200 + HTML SPA shell |
+| `non_json_response:needs_browser_capture` | Login/SOAP/large HTML requiring browser |
+| `non_json_response:captcha_or_block` | CAPTCHA detected |
+| `non_json_response:xml_soap_response` | SOAP/XML response |
+| `non_json_response:empty_response` | Empty body |
+| `response_read_failed` | Could not read response body at all |
+| `fetch failed` | Network-level fetch failure |
