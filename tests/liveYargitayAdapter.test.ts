@@ -6,14 +6,13 @@ const MOCK_RETRIEVED_AT = "2026-05-22T00:00:00.000Z";
 
 function mockDecisionRow(overrides: Record<string, unknown> = {}) {
   return {
-    ID: "99001",
-    BIRIMI: "13. Hukuk Dairesi",
-    ESAS_YILI: "2023",
-    ESAS_SIRASI: "1000",
-    KARAR_YILI: "2024",
-    KARAR_SIRASI: "2000",
-    KARAR_TARIHI: "2024-03-15T00:00:00",
-    OZET: "Aydınlatılmış rıza belgesi eksikliği nedeniyle tazminat davası.",
+    documentId: "99001",
+    itemType: { name: "YARGITAYKARARI" },
+    birimAdi: "13. Hukuk Dairesi",
+    esasNo: "2023/1000",
+    kararNo: "2024/2000",
+    kararTarihi: "2024-03-15T00:00:00",
+    ozet: "Aydınlatılmış rıza belgesi eksikliği nedeniyle tazminat davası.",
     ...overrides
   };
 }
@@ -27,7 +26,7 @@ function makeFetch(
   let callCount = 0;
   return vi.fn(async (url: string) => {
     callCount++;
-    if (String(url).includes("BilgiBankasiIslem")) {
+    if (String(url).includes("searchDocuments")) {
       return new Response(JSON.stringify(searchResponseData), {
         status: searchStatus,
         headers: { "content-type": "application/json" }
@@ -36,9 +35,14 @@ function makeFetch(
     if (fullTextBody === null) {
       return new Response("", { status: fullTextStatus });
     }
-    return new Response(fullTextBody, {
+    return new Response(JSON.stringify({
+      data: {
+        content: Buffer.from(fullTextBody).toString("base64"),
+        mimeType: "text/html"
+      }
+    }), {
       status: fullTextStatus,
-      headers: { "content-type": "text/html; charset=utf-8" }
+      headers: { "content-type": "application/json" }
     });
   });
 }
@@ -60,7 +64,7 @@ const BARE_AFFIRMANCE_TEXT = `
 
 describe("LiveYargitayAdapter", () => {
   it("writes searchRequest and searchResultsCount to trace", async () => {
-    const fetchImpl = makeFetch({ data: [mockDecisionRow()] }, REASONED_FULL_TEXT);
+    const fetchImpl = makeFetch({ data: { items: [mockDecisionRow()] } }, REASONED_FULL_TEXT);
     const adapter = new LiveYargitayAdapter({ fetchImpl, now: () => new Date(MOCK_RETRIEVED_AT), wait: async () => undefined });
 
     const result = await adapter.searchAndNormalize("aydınlatılmış rıza");
@@ -69,7 +73,7 @@ describe("LiveYargitayAdapter", () => {
 
     const trace = result.sourceTraces[0]!;
     expect(trace.searchRequest).toEqual(expect.objectContaining({
-      url: expect.stringContaining("BilgiBankasiIslem"),
+      url: expect.stringContaining("searchDocuments"),
       phrase: "aydınlatılmış rıza"
     }));
     expect(trace.searchResultsCount).toBe(1);
@@ -77,7 +81,7 @@ describe("LiveYargitayAdapter", () => {
   });
 
   it("sets fullTextAvailable true when full text is retrieved", async () => {
-    const fetchImpl = makeFetch({ data: [mockDecisionRow()] }, REASONED_FULL_TEXT);
+    const fetchImpl = makeFetch({ data: { items: [mockDecisionRow()] } }, REASONED_FULL_TEXT);
     const adapter = new LiveYargitayAdapter({ fetchImpl, now: () => new Date(MOCK_RETRIEVED_AT), wait: async () => undefined });
 
     const result = await adapter.searchAndNormalize("aydınlatılmış rıza");
@@ -85,11 +89,11 @@ describe("LiveYargitayAdapter", () => {
     if (result.status !== "ok") return;
 
     expect(result.sourceTraces[0]!.fullTextAvailable).toBe(true);
-    expect(result.sourceTraces[0]!.fullTextRetrievalMethod).toBe("html-text");
+    expect(result.sourceTraces[0]!.fullTextRetrievalMethod).toBe("bedesten-base64-html");
   });
 
   it("excludes decision when full text is not available (metadata_only)", async () => {
-    const fetchImpl = makeFetch({ data: [mockDecisionRow()] }, null, 200, 404);
+    const fetchImpl = makeFetch({ data: { items: [mockDecisionRow()] } }, null, 200, 404);
     const adapter = new LiveYargitayAdapter({ fetchImpl, now: () => new Date(MOCK_RETRIEVED_AT), wait: async () => undefined });
 
     const result = await adapter.searchAndNormalize("aydınlatılmış rıza");
@@ -103,7 +107,7 @@ describe("LiveYargitayAdapter", () => {
   });
 
   it("excludes bare affirmance/reversal decision as procedural_only", async () => {
-    const fetchImpl = makeFetch({ data: [mockDecisionRow()] }, BARE_AFFIRMANCE_TEXT);
+    const fetchImpl = makeFetch({ data: { items: [mockDecisionRow()] } }, BARE_AFFIRMANCE_TEXT);
     const adapter = new LiveYargitayAdapter({ fetchImpl, now: () => new Date(MOCK_RETRIEVED_AT), wait: async () => undefined });
 
     const result = await adapter.searchAndNormalize("aydınlatılmış rıza");
@@ -116,7 +120,7 @@ describe("LiveYargitayAdapter", () => {
   });
 
   it("marks reasoned health law decision as precedent_usable", async () => {
-    const fetchImpl = makeFetch({ data: [mockDecisionRow()] }, REASONED_FULL_TEXT);
+    const fetchImpl = makeFetch({ data: { items: [mockDecisionRow()] } }, REASONED_FULL_TEXT);
     const adapter = new LiveYargitayAdapter({ fetchImpl, now: () => new Date(MOCK_RETRIEVED_AT), wait: async () => undefined });
 
     const result = await adapter.searchAndNormalize("aydınlatılmış rıza");
@@ -171,7 +175,7 @@ describe("LiveYargitayAdapter", () => {
   });
 
   it("returns ok with empty decisions when search returns no results", async () => {
-    const fetchImpl = makeFetch({ data: [] });
+    const fetchImpl = makeFetch({ data: { items: [] } });
     const adapter = new LiveYargitayAdapter({ fetchImpl, wait: async () => undefined });
 
     const result = await adapter.searchAndNormalize("aydınlatılmış rıza");
@@ -183,7 +187,7 @@ describe("LiveYargitayAdapter", () => {
   });
 
   it("handles non-standard response format with results array", async () => {
-    const fetchImpl = makeFetch([mockDecisionRow()], REASONED_FULL_TEXT);
+    const fetchImpl = makeFetch({ data: { emsalKararList: [mockDecisionRow()] } }, REASONED_FULL_TEXT);
     const adapter = new LiveYargitayAdapter({ fetchImpl, now: () => new Date(MOCK_RETRIEVED_AT), wait: async () => undefined });
 
     const result = await adapter.searchAndNormalize("tıbbi müdahale");
@@ -195,7 +199,7 @@ describe("LiveYargitayAdapter", () => {
 
 describe("prepare_doctor_legal_information_pack live precedent integration", () => {
   it("only usable decisions enter verifiedHighCourtPrecedents in live mode", async () => {
-    const mockFetch = makeFetch({ data: [mockDecisionRow()] }, REASONED_FULL_TEXT);
+    const mockFetch = makeFetch({ data: { items: [mockDecisionRow()] } }, REASONED_FULL_TEXT);
     const liveYargitay = new LiveYargitayAdapter({ fetchImpl: mockFetch, now: () => new Date(MOCK_RETRIEVED_AT), wait: async () => undefined });
 
     vi.spyOn(liveYargitay, "searchHealthPrecedents").mockResolvedValue([

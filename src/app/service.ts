@@ -25,12 +25,14 @@ import type { PrecedentSourceAdapter } from "../sources/types.js";
 import { MockYargitayAdapter } from "../sources/yargitay/mockYargitayAdapter.js";
 import { LiveYargitayAdapter } from "../sources/yargitay/liveYargitayAdapter.js";
 import { LiveDanistayAdapter } from "../sources/danistay/liveDanistayAdapter.js";
+import { LiveBedestenAdapter } from "../sources/bedesten/liveBedestenAdapter.js";
 
 export interface PhysicianLegalInformationServiceOptions {
   mockLegislation?: MockLegislationAdapter;
   liveLegislation?: LiveOfficialLegislationAdapter;
   liveYargitay?: LiveYargitayAdapter;
   liveDanistay?: LiveDanistayAdapter;
+  liveBedesten?: LiveBedestenAdapter;
 }
 
 export class PhysicianLegalInformationService {
@@ -38,6 +40,7 @@ export class PhysicianLegalInformationService {
   private readonly liveLegislation: LiveOfficialLegislationAdapter;
   private readonly liveYargitay: LiveYargitayAdapter;
   private readonly liveDanistay: LiveDanistayAdapter;
+  private readonly liveBedesten: LiveBedestenAdapter;
   private readonly legislationMapper: LegislationMapper;
   private readonly mockPrecedentAdapters: PrecedentSourceAdapter[] = [
     new MockYargitayAdapter(),
@@ -50,6 +53,7 @@ export class PhysicianLegalInformationService {
     this.liveLegislation = options.liveLegislation ?? new LiveOfficialLegislationAdapter();
     this.liveYargitay = options.liveYargitay ?? new LiveYargitayAdapter();
     this.liveDanistay = options.liveDanistay ?? new LiveDanistayAdapter();
+    this.liveBedesten = options.liveBedesten ?? new LiveBedestenAdapter();
     this.legislationMapper = new LegislationMapper(this.mockLegislation);
   }
 
@@ -123,6 +127,13 @@ export class PhysicianLegalInformationService {
             sourceResults.push({ source: "danistay", mode: "live", decisions, searchResultsCount: decisions.length, unavailable: false, errorCodes: [] });
           } catch {
             sourceResults.push({ source: "danistay", mode: "live", decisions: [], searchResultsCount: null, unavailable: true, errorCodes: ["source_error"] });
+          }
+        } else if (src === "bedesten") {
+          try {
+            const decisions = await this.liveBedesten.searchHealthPrecedents(classification);
+            sourceResults.push({ source: "bedesten", mode: "live", decisions, searchResultsCount: decisions.length, unavailable: false, errorCodes: [] });
+          } catch {
+            sourceResults.push({ source: "bedesten", mode: "live", decisions: [], searchResultsCount: null, unavailable: true, errorCodes: ["source_error"] });
           }
         } else if (src === "aym") {
           const decisions = await new MockAymAdapter().searchHealthPrecedents(classification);

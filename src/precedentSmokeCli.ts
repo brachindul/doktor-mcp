@@ -18,7 +18,7 @@ const precedentSourcesIndex = optionParts.indexOf("--precedentSources");
 const precedentSources: PrecedentSource[] =
   precedentSourcesIndex !== -1 && optionParts[precedentSourcesIndex + 1]
     ? (optionParts[precedentSourcesIndex + 1].split(",") as PrecedentSource[])
-    : ["yargitay", "danistay"];
+    : ["yargitay", "danistay", "bedesten" as PrecedentSource];
 
 const query = questionParts.join(" ") || "aydınlatılmış rıza";
 const cache = noCache ? PrecedentCache.disabled() : new PrecedentCache();
@@ -46,6 +46,17 @@ for (const source of precedentSources) {
       const result = await adapter.searchAndNormalize(query);
       if (!noCache && !refresh) await cache.set("danistay", query, PAGE_SIZE, result);
       results.danistay = result;
+    }
+  } else if (source === "bedesten") {
+    const cacheKey = refresh ? null : await cache.get("bedesten", query, PAGE_SIZE);
+    if (cacheKey) {
+      results.bedesten = { fromCache: true, result: cacheKey };
+    } else {
+      const { LiveBedestenAdapter } = await import("./sources/bedesten/liveBedestenAdapter.js");
+      const adapter = new LiveBedestenAdapter();
+      const result = await adapter.searchAndNormalize(query);
+      if (!noCache && !refresh) await cache.set("bedesten", query, PAGE_SIZE, result);
+      results.bedesten = result;
     }
   }
 }

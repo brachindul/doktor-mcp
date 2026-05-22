@@ -2,18 +2,19 @@ import type { ClassifiedMedicalLegalQuestion, CourtDecision, DecisionSourceTrace
 import { assessDecisionEligibility } from "../../health/decisionEligibility.js";
 import { pickHealthLawQuery } from "../../health/healthLawQueryExpansion.js";
 import type { PrecedentSourceAdapter } from "../types.js";
-import type { LiveYargitayResult, LiveYargitaySearchResult, LiveYargitayUnavailable } from "./liveTypes.js";
+import type { LiveYargitayResult, LiveYargitayUnavailable } from "./liveTypes.js";
 import { YARGITAY_SOURCE } from "./liveTypes.js";
 import {
-  normalizeYargitaySearchResults,
-  extractYargitayFullText,
-  buildYargitayDecision,
-  buildYargitayEmptyTrace,
-  classifyNonJsonResponse
-} from "./yargitayNormalizer.js";
+  BEDESTEN_BASE_URL,
+  BEDESTEN_PUBLIC_HEADERS,
+  buildBedestenDocumentBody,
+  buildBedestenSearchBody,
+  normalizeBedestenDocumentResponse,
+  normalizeBedestenSearchResponse
+} from "../bedesten/bedestenApi.js";
+import { extractLegalReasoning, extractOutcome } from "./yargitayNormalizer.js";
 
-const BASE_URL = "https://emsal.yargitay.gov.tr";
-const SEARCH_URL = `${BASE_URL}/BilgiBankasiIslem`;
+const SEARCH_URL = `${BEDESTEN_BASE_URL}/emsal-karar/searchDocuments`;
 const MAX_RESULTS_PER_QUERY = 5;
 
 export interface LiveYargitayAdapterOptions {
@@ -40,13 +41,14 @@ export class LiveYargitayAdapter implements PrecedentSourceAdapter {
   }
 
   async searchAndNormalize(query: string): Promise<LiveYargitayResult> {
-    const searchRequest = { url: SEARCH_URL, phrase: query, pageSize: MAX_RESULTS_PER_QUERY };
-    const emptyTrace = buildYargitayEmptyTrace(query, searchRequest);
+    const emptyTrace = this.buildEmptyTrace(query);
 
+    const searchBody = buildBedestenSearchBody(query, ["YARGITAYKARARI"], MAX_RESULTS_PER_QUERY);
+    
     const response = await this.fetchWithRetry(SEARCH_URL, {
       method: "POST",
-      headers: yargitayHeaders("application/json; charset=utf-8"),
-      body: JSON.stringify(buildSearchBody(query))
+      headers: BEDESTEN_PUBLIC_HEADERS,
+      body: JSON.stringify(searchBody)
     });
 
     if (isUnavailable(response)) {
@@ -56,35 +58,12 @@ export class LiveYargitayAdapter implements PrecedentSourceAdapter {
 
     let rawData: unknown;
     try {
-      const rawText = await (response as Response).text();
-      try {
-        rawData = JSON.parse(rawText);
-      } catch {
-        const kind = classifyNonJsonResponse(rawText);
-        const nextStep = kind === "html_shell_response" || kind === "needs_browser_capture"
-          ? "Use browser DevTools Network tab to capture the actual search XHR endpoint."
-          : kind === "captcha_or_block"
-            ? "Endpoint returned a CAPTCHA/block page. Retry from a different network."
-            : "Check the search endpoint format and retry.";
-        return unavailable(
-          "parse_failed",
-          `Yargıtay emsal search response is not parseable JSON (${kind}).`,
-          kind !== "captcha_or_block",
-          nextStep,
-          [{ ...emptyTrace, error: `non_json_response:${kind}` }]
-        );
-      }
+      rawData = await (response as Response).json();
     } catch {
-      return unavailable(
-        "parse_failed",
-        "Yargıtay emsal search response could not be read.",
-        true,
-        "Check the search endpoint format and retry.",
-        [{ ...emptyTrace, error: "response_read_failed" }]
-      );
+      return unavailable("parse_failed", "Yargıtay (Bedesten) search response could not be read.", true, "Check the endpoint format.", [{ ...emptyTrace, error: "response_read_failed" }]);
     }
 
-    const searchResults = normalizeYargitaySearchResults(rawData);
+    const searchResults = normalizeBedestenSearchResponse(rawData);
     const searchResultsCount = searchResults.length;
     const retrievedAt = this.now().toISOString();
 
@@ -116,24 +95,64 @@ export class LiveYargitayAdapter implements PrecedentSourceAdapter {
       let fullText: string | null = null;
       let fullTextRetrievalMethod: string | null = null;
 
-      if (searchResult.documentUrl) {
-        const text = await this.fetchFullText(searchResult.documentUrl);
-        if (text !== null) {
-          fullText = text;
-          fullTextRetrievalMethod = "html-text";
+      const docResponse = await this.fetchWithRetry(`${BEDESTEN_BASE_URL}/emsal-karar/getDocumentContent`, {
+        method: "POST",
+        headers: BEDESTEN_PUBLIC_HEADERS,
+        body: JSON.stringify(buildBedestenDocumentBody(searchResult.documentId))
+      });
+
+      if (!isUnavailable(docResponse)) {
+        try {
+          const docData = await (docResponse as Response).json();
+          const doc = normalizeBedestenDocumentResponse(searchResult.documentId, docData);
+          if (doc.contentBase64) {
+            const html = Buffer.from(doc.contentBase64, "base64").toString("utf-8");
+            fullText = this.stripHtml(html);
+            fullTextRetrievalMethod = "bedesten-base64-html";
+          }
+        } catch {
+          // Ignore document errors, fallback to metadata_only
         }
       }
 
-      const decision = buildYargitayDecision(searchResult, fullText, query, retrievedAt);
+      const legalReasoning = fullText ? extractLegalReasoning(fullText) : undefined;
+      const outcome = fullText ? extractOutcome(fullText) : undefined;
+      const relevanceNote = fullText && legalReasoning
+        ? `'${query}' sağlık hukuku aramasıyla eşleşti; tam metin ve gerekçe mevcut.`
+        : undefined;
+
+      const decision: CourtDecision = {
+        id: `yargitay:${searchResult.documentId}`,
+        court: "yargitay",
+        chamber: searchResult.chamber || undefined,
+        decisionDate: searchResult.decisionDate || undefined,
+        meritsNumber: searchResult.esasNo || undefined,
+        decisionNumber: searchResult.kararNo || undefined,
+        factSummary: searchResult.title || undefined,
+        legalReasoning,
+        outcome,
+        relevanceNote,
+        topicTags: [],
+        fullText: fullText || undefined,
+        evidence: {
+          source: "yargitay",
+          documentId: searchResult.documentId,
+          sourceUrl: `https://mevzuat.adalet.gov.tr/ictihat/${searchResult.documentId}`,
+          retrievedAt,
+          official: true,
+          fullText: fullText !== null
+        }
+      };
+
       const { status, eligibilityReasons, exclusionReasons } = assessDecisionEligibility(decision);
 
       const trace: DecisionSourceTrace = {
         ...emptyTrace,
         searchResultsCount,
         selectedResult: { documentId: searchResult.documentId },
-        selectedResultReason: `Health law term '${query}' matched Yargıtay emsal search.`,
+        selectedResultReason: `Health law term '${query}' matched Yargıtay (Bedesten) search.`,
         documentId: searchResult.documentId,
-        sourceId: searchResult.sourceId,
+        sourceId: decision.id,
         fullTextAvailable: fullText !== null,
         fullTextRetrievalMethod,
         retrievedAt,
@@ -157,20 +176,23 @@ export class LiveYargitayAdapter implements PrecedentSourceAdapter {
     };
   }
 
-  private async fetchFullText(url: string): Promise<string | null> {
-    try {
-      const response = await this.fetchWithRetry(url, { headers: yargitayHeaders() });
-      if (isUnavailable(response)) return null;
-      const resp = response as Response;
-      const contentType = resp.headers.get("content-type") ?? "";
-      const body = await resp.text();
-      if (contentType.includes("html") || body.trimStart().startsWith("<")) {
-        return extractYargitayFullText(body) || null;
-      }
-      return body.trim() || null;
-    } catch {
-      return null;
-    }
+  private buildEmptyTrace(query: string): DecisionSourceTrace {
+    return {
+      query,
+      source: "yargitay",
+      court: "yargitay",
+      searchRequest: { url: SEARCH_URL, phrase: query, pageSize: MAX_RESULTS_PER_QUERY },
+      searchResultsCount: null,
+      selectedResult: null,
+      selectedResultReason: null,
+      documentId: "",
+      fullTextAvailable: false,
+      fullTextRetrievalMethod: null,
+      retrievedAt: null,
+      eligibilityStatus: "metadata_only",
+      eligibilityReasons: [],
+      exclusionReasons: []
+    };
   }
 
   private async fetchWithRetry(url: string, init: RequestInit): Promise<Response | LiveYargitayUnavailable> {
@@ -186,11 +208,11 @@ export class LiveYargitayAdapter implements PrecedentSourceAdapter {
         if (response.status >= 500 && delay !== attempts.at(-1)) continue;
 
         if (response.status === 403 || response.status === 429) {
-          return unavailable("source_blocked", `Yargıtay source returned HTTP ${response.status}.`, true, "Retry after the source cools down.");
+          return unavailable("source_blocked", `Yargıtay (Bedesten) source returned HTTP ${response.status}.`, true, "Retry after the source cools down.");
         }
         return unavailable(
           response.status >= 500 ? "source_error" : "document_not_found",
-          `Yargıtay source returned HTTP ${response.status}.`,
+          `Yargıtay (Bedesten) source returned HTTP ${response.status}.`,
           response.status >= 500,
           "Retry the request or verify the endpoint."
         );
@@ -198,35 +220,22 @@ export class LiveYargitayAdapter implements PrecedentSourceAdapter {
         if (delay !== attempts.at(-1)) continue;
         return unavailable(
           "source_error",
-          `Yargıtay request failed: ${error instanceof Error ? error.message : String(error)}`,
+          `Yargıtay (Bedesten) request failed: ${error instanceof Error ? error.message : String(error)}`,
           true,
-          "Retry after checking network access to emsal.yargitay.gov.tr."
+          "Retry after checking network access."
         );
       }
     }
 
-    return unavailable("source_error", "Yargıtay request ended unexpectedly.", true, "Retry the request.");
+    return unavailable("source_error", "Yargıtay (Bedesten) request ended unexpectedly.", true, "Retry the request.");
   }
-}
 
-function buildSearchBody(query: string) {
-  return {
-    data: {
-      arananKelime: query,
-      birimYrgKurulDaire: 0,
-      birimYrgHGK: 0,
-      birimYrgBGK: 0,
-      basTarih: "",
-      bitTarih: "",
-      esasYil: "",
-      esasSira: "",
-      kararYil: "",
-      kararSira: "",
-      ilkDerece: 0,
-      kayitSayisi: MAX_RESULTS_PER_QUERY,
-      baslangicKayit: 0
-    }
-  };
+  private stripHtml(html: string): string {
+    return html.replace(/<style[^>]*>.*?<\/style>/gis, "")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
 }
 
 function unavailable(
@@ -242,13 +251,3 @@ function unavailable(
 function isUnavailable(value: unknown): value is LiveYargitayUnavailable {
   return typeof value === "object" && value !== null && "status" in value && (value as { status: unknown }).status === "unavailable";
 }
-
-function yargitayHeaders(contentType?: string): Record<string, string> {
-  return {
-    Accept: "application/json, text/html;q=0.9",
-    ...(contentType ? { "Content-Type": contentType } : {}),
-    Referer: `${BASE_URL}/`,
-    "User-Agent": "physician-legal-mcp/0.9 yargitay-emsal-check"
-  };
-}
-

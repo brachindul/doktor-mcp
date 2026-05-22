@@ -125,7 +125,7 @@ export function buildYargitayEmptyTrace(
   };
 }
 
-function extractLegalReasoning(fullText: string): string | undefined {
+export function extractLegalReasoning(fullText: string): string | undefined {
   const markers = ["gerekçe", "değerlendirme", "hukuki değerlendirme", "inceleme", "gerekce", "degerlendirme"];
   const lower = fullText.toLocaleLowerCase("tr-TR");
 
@@ -139,7 +139,7 @@ function extractLegalReasoning(fullText: string): string | undefined {
   return fullText.length > 200 ? fullText.slice(0, 3000).trim() : undefined;
 }
 
-function extractOutcome(fullText: string): string | undefined {
+export function extractOutcome(fullText: string): string | undefined {
   const markers = ["sonuç", "hüküm", "karar", "sonuc", "huküm"];
   const lower = fullText.toLocaleLowerCase("tr-TR");
 

@@ -5,14 +5,12 @@ const MOCK_RETRIEVED_AT = "2026-05-22T00:00:00.000Z";
 
 function mockDecisionRow(overrides: Record<string, unknown> = {}) {
   return {
-    ID: "88001",
-    DAIRESI: "10. Daire",
-    ESAS_YILI: "2022",
-    ESAS_SIRASI: "500",
-    KARAR_YILI: "2023",
-    KARAR_SIRASI: "800",
-    KARAR_TARIHI: "2023-06-10T00:00:00",
-    OZET: "Sağlık hizmet kusuru nedeniyle tazminat davası.",
+    id: "88001",
+    daireKurul: "10. Daire",
+    esasNo: "2022/500",
+    kararNo: "2023/800",
+    kararTarihi: "2023-06-10T00:00:00",
+    arananKelime: "Sağlık hizmet kusuru nedeniyle tazminat davası.",
     ...overrides
   };
 }
@@ -24,7 +22,7 @@ function makeFetch(
   fullTextStatus = 200
 ) {
   return vi.fn(async (url: string) => {
-    if (String(url).includes("YargitayBilgiBankasiIstemciService")) {
+    if (String(url).includes("aramalist")) {
       return new Response(JSON.stringify(searchResponseData), {
         status: searchStatus,
         headers: { "content-type": "application/json" }
@@ -57,7 +55,7 @@ const BARE_AFFIRMANCE_TEXT = `
 
 describe("LiveDanistayAdapter", () => {
   it("writes searchRequest and searchResultsCount to trace", async () => {
-    const fetchImpl = makeFetch({ data: [mockDecisionRow()] }, REASONED_FULL_TEXT);
+    const fetchImpl = makeFetch({ data: { data: [mockDecisionRow()] } }, REASONED_FULL_TEXT);
     const adapter = new LiveDanistayAdapter({ fetchImpl, now: () => new Date(MOCK_RETRIEVED_AT), wait: async () => undefined });
 
     const result = await adapter.searchAndNormalize("hizmet kusuru tıbbi müdahale");
@@ -66,7 +64,7 @@ describe("LiveDanistayAdapter", () => {
 
     const trace = result.sourceTraces[0]!;
     expect(trace.searchRequest).toEqual(expect.objectContaining({
-      url: expect.stringContaining("YargitayBilgiBankasiIstemciService"),
+      url: expect.stringContaining("aramalist"),
       phrase: "hizmet kusuru tıbbi müdahale"
     }));
     expect(trace.searchResultsCount).toBe(1);
@@ -74,7 +72,7 @@ describe("LiveDanistayAdapter", () => {
   });
 
   it("sets fullTextAvailable true when full text is retrieved", async () => {
-    const fetchImpl = makeFetch({ data: [mockDecisionRow()] }, REASONED_FULL_TEXT);
+    const fetchImpl = makeFetch({ data: { data: [mockDecisionRow()] } }, REASONED_FULL_TEXT);
     const adapter = new LiveDanistayAdapter({ fetchImpl, now: () => new Date(MOCK_RETRIEVED_AT), wait: async () => undefined });
 
     const result = await adapter.searchAndNormalize("hasta hakları");
@@ -86,7 +84,7 @@ describe("LiveDanistayAdapter", () => {
   });
 
   it("excludes decision when full text is not available (metadata_only)", async () => {
-    const fetchImpl = makeFetch({ data: [mockDecisionRow()] }, null, 200, 404);
+    const fetchImpl = makeFetch({ data: { data: [mockDecisionRow()] } }, null, 200, 404);
     const adapter = new LiveDanistayAdapter({ fetchImpl, now: () => new Date(MOCK_RETRIEVED_AT), wait: async () => undefined });
 
     const result = await adapter.searchAndNormalize("hasta hakları");
@@ -100,7 +98,7 @@ describe("LiveDanistayAdapter", () => {
   });
 
   it("excludes bare affirmance/reversal decision as procedural_only", async () => {
-    const fetchImpl = makeFetch({ data: [mockDecisionRow()] }, BARE_AFFIRMANCE_TEXT);
+    const fetchImpl = makeFetch({ data: { data: [mockDecisionRow()] } }, BARE_AFFIRMANCE_TEXT);
     const adapter = new LiveDanistayAdapter({ fetchImpl, now: () => new Date(MOCK_RETRIEVED_AT), wait: async () => undefined });
 
     const result = await adapter.searchAndNormalize("hizmet kusuru");
@@ -113,7 +111,7 @@ describe("LiveDanistayAdapter", () => {
   });
 
   it("marks reasoned health law decision as precedent_usable", async () => {
-    const fetchImpl = makeFetch({ data: [mockDecisionRow()] }, REASONED_FULL_TEXT);
+    const fetchImpl = makeFetch({ data: { data: [mockDecisionRow()] } }, REASONED_FULL_TEXT);
     const adapter = new LiveDanistayAdapter({ fetchImpl, now: () => new Date(MOCK_RETRIEVED_AT), wait: async () => undefined });
 
     const result = await adapter.searchAndNormalize("hizmet kusuru tıbbi müdahale");
@@ -168,7 +166,7 @@ describe("LiveDanistayAdapter", () => {
   });
 
   it("returns ok with empty decisions when search returns no results", async () => {
-    const fetchImpl = makeFetch({ data: [] });
+    const fetchImpl = makeFetch({ data: { data: [] } });
     const adapter = new LiveDanistayAdapter({ fetchImpl, wait: async () => undefined });
 
     const result = await adapter.searchAndNormalize("hasta hakları");
@@ -180,7 +178,7 @@ describe("LiveDanistayAdapter", () => {
   });
 
   it("normalizes chamber from DAIRESI field", async () => {
-    const fetchImpl = makeFetch({ data: [mockDecisionRow({ DAIRESI: "5. Daire" })] }, REASONED_FULL_TEXT);
+    const fetchImpl = makeFetch({ data: { data: [mockDecisionRow({ daireKurul: "5. Daire" })] } }, REASONED_FULL_TEXT);
     const adapter = new LiveDanistayAdapter({ fetchImpl, now: () => new Date(MOCK_RETRIEVED_AT), wait: async () => undefined });
 
     const result = await adapter.searchAndNormalize("hizmet kusuru");
@@ -191,7 +189,7 @@ describe("LiveDanistayAdapter", () => {
   });
 
   it("sets court to danistay in decisions", async () => {
-    const fetchImpl = makeFetch({ data: [mockDecisionRow()] }, REASONED_FULL_TEXT);
+    const fetchImpl = makeFetch({ data: { data: [mockDecisionRow()] } }, REASONED_FULL_TEXT);
     const adapter = new LiveDanistayAdapter({ fetchImpl, now: () => new Date(MOCK_RETRIEVED_AT), wait: async () => undefined });
 
     const result = await adapter.searchAndNormalize("hizmet kusuru");

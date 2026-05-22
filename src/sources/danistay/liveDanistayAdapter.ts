@@ -2,18 +2,12 @@ import type { ClassifiedMedicalLegalQuestion, CourtDecision, DecisionSourceTrace
 import { assessDecisionEligibility } from "../../health/decisionEligibility.js";
 import { pickHealthLawQuery } from "../../health/healthLawQueryExpansion.js";
 import type { PrecedentSourceAdapter } from "../types.js";
-import type { LiveDanistayResult, LiveDanistaySearchResult, LiveDanistayUnavailable } from "./liveTypes.js";
+import type { LiveDanistayResult, LiveDanistayUnavailable } from "./liveTypes.js";
 import { DANISTAY_SOURCE } from "./liveTypes.js";
-import {
-  normalizeDanistaySearchResults,
-  extractDanistayFullText,
-  buildDanistayDecision,
-  classifyNonJsonResponse,
-  buildDanistayEmptyTrace
-} from "./danistayNormalizer.js";
+import { extractDanistayFullText, classifyNonJsonResponse, extractLegalReasoning, extractOutcome } from "./danistayNormalizer.js";
 
 const BASE_URL = "https://karararama.danistay.gov.tr";
-const SEARCH_URL = `${BASE_URL}/YargitayBilgiBankasiIstemciService`;
+const SEARCH_URL = `${BASE_URL}/aramalist`;
 const MAX_RESULTS_PER_QUERY = 5;
 
 export interface LiveDanistayAdapterOptions {
@@ -41,11 +35,17 @@ export class LiveDanistayAdapter implements PrecedentSourceAdapter {
 
   async searchAndNormalize(query: string): Promise<LiveDanistayResult> {
     const searchRequest = { url: SEARCH_URL, phrase: query, pageSize: MAX_RESULTS_PER_QUERY };
-    const emptyTrace = buildDanistayEmptyTrace(query, searchRequest);
+    const emptyTrace = this.buildEmptyTrace(query, searchRequest);
 
     const response = await this.fetchWithRetry(SEARCH_URL, {
       method: "POST",
-      headers: danistayHeaders("application/json; charset=utf-8"),
+      headers: {
+        Accept: "application/json, text/plain, */*",
+        "Content-Type": "application/json; charset=UTF-8",
+        "X-Requested-With": "XMLHttpRequest",
+        Referer: `${BASE_URL}/`,
+        "User-Agent": "physician-legal-mcp/0.14 danistay-emsal-check"
+      },
       body: JSON.stringify(buildSearchBody(query))
     });
 
@@ -54,45 +54,24 @@ export class LiveDanistayAdapter implements PrecedentSourceAdapter {
       return { ...err, sourceTrace: [{ ...emptyTrace, error: err.message }] };
     }
 
-    let rawData: unknown;
+    let rawData: any;
     try {
       const rawText = await (response as Response).text();
       try {
         rawData = JSON.parse(rawText);
       } catch {
         const kind = classifyNonJsonResponse(rawText);
-        const nextStep = kind === "html_shell_response" || kind === "needs_browser_capture"
-          ? "Use browser DevTools Network tab to capture the actual search XHR endpoint and request body."
-          : kind === "xml_soap_response"
-            ? "Endpoint returns SOAP/XML. Locate the REST/JSON endpoint from browser DevTools."
-            : kind === "captcha_or_block"
-              ? "Endpoint returned a CAPTCHA/block page. Retry from a different network or use browser session."
-              : "Check the search endpoint format and retry.";
-        const errorCode = kind === "needs_browser_capture" || kind === "html_shell_response" || kind === "xml_soap_response"
-          ? "needs_browser_capture" : "parse_failed";
-        return unavailable(
-          errorCode,
-          `Danıştay emsal search response is not parseable JSON (${kind}).`,
-          kind !== "captcha_or_block",
-          nextStep,
-          [{ ...emptyTrace, error: `non_json_response:${kind}` }]
-        );
+        return unavailable("parse_failed", `Danıştay emsal search response is not parseable JSON (${kind}).`, false, "Check endpoint", [{ ...emptyTrace, error: `non_json_response:${kind}` }]);
       }
     } catch {
-      return unavailable(
-        "parse_failed",
-        "Danıştay emsal search response could not be read.",
-        true,
-        "Check the search endpoint format and retry.",
-        [{ ...emptyTrace, error: "response_read_failed" }]
-      );
+      return unavailable("parse_failed", "Danıştay search response could not be read.", true, "Check endpoint", [{ ...emptyTrace, error: "response_read_failed" }]);
     }
 
-    const searchResults = normalizeDanistaySearchResults(rawData);
-    const searchResultsCount = searchResults.length;
+    const items: any[] = rawData?.data?.data ?? [];
+    const searchResultsCount = rawData?.data?.recordsFiltered ?? rawData?.data?.recordsTotal ?? items.length;
     const retrievedAt = this.now().toISOString();
 
-    if (searchResultsCount === 0) {
+    if (searchResultsCount === 0 || items.length === 0) {
       return {
         status: "ok",
         source: DANISTAY_SOURCE,
@@ -114,28 +93,67 @@ export class LiveDanistayAdapter implements PrecedentSourceAdapter {
     const decisions: CourtDecision[] = [];
     const sourceTraces: DecisionSourceTrace[] = [];
 
-    for (const searchResult of searchResults.slice(0, MAX_RESULTS_PER_QUERY)) {
+    for (const item of items.slice(0, MAX_RESULTS_PER_QUERY)) {
+      const documentId = item.id ? String(item.id).trim() : "";
+      if (!documentId) continue;
+
+      const chamber = item.daireKurul ?? item.daire ?? undefined;
+      const esasNo = item.esasNo ?? undefined;
+      const kararNo = item.kararNo ?? undefined;
+      const decisionDate = item.kararTarihi ?? undefined;
+      const summary = item.arananKelime ?? undefined;
+      
+      const titleParts = ["Danıştay", chamber, esasNo, kararNo].filter(Boolean);
+      const title = titleParts.join(" | ") || `Danıştay Kararı ${documentId}`;
+
       let fullText: string | null = null;
       let fullTextRetrievalMethod: string | null = null;
 
-      if (searchResult.documentUrl) {
-        const text = await this.fetchFullText(searchResult.documentUrl);
-        if (text !== null) {
-          fullText = text;
-          fullTextRetrievalMethod = "html-text";
-        }
+      const docUrl = `${BASE_URL}/getDokuman?id=${encodeURIComponent(documentId)}&arananKelime=`;
+      const text = await this.fetchFullText(docUrl);
+      if (text !== null) {
+        fullText = text;
+        fullTextRetrievalMethod = "html-text";
       }
 
-      const decision = buildDanistayDecision(searchResult, fullText, query, retrievedAt);
+      const legalReasoning = fullText ? extractLegalReasoning(fullText) : undefined;
+      const outcome = fullText ? extractOutcome(fullText) : undefined;
+      const relevanceNote = fullText && legalReasoning
+        ? `'${query}' sağlık hukuku aramasıyla eşleşti; tam metin ve gerekçe mevcut.`
+        : undefined;
+
+      const decision: CourtDecision = {
+        id: `danistay:${documentId}`,
+        court: "danistay",
+        chamber,
+        decisionDate,
+        meritsNumber: esasNo,
+        decisionNumber: kararNo,
+        factSummary: title,
+        legalReasoning,
+        outcome,
+        relevanceNote,
+        topicTags: [],
+        fullText: fullText || undefined,
+        evidence: {
+          source: "danistay",
+          documentId,
+          sourceUrl: docUrl,
+          retrievedAt,
+          official: true,
+          fullText: fullText !== null
+        }
+      };
+
       const { status, eligibilityReasons, exclusionReasons } = assessDecisionEligibility(decision);
 
       const trace: DecisionSourceTrace = {
         ...emptyTrace,
         searchResultsCount,
-        selectedResult: { documentId: searchResult.documentId },
+        selectedResult: { documentId, title },
         selectedResultReason: `Health law term '${query}' matched Danıştay emsal search.`,
-        documentId: searchResult.documentId,
-        sourceId: searchResult.sourceId,
+        documentId,
+        sourceId: decision.id,
         fullTextAvailable: fullText !== null,
         fullTextRetrievalMethod,
         retrievedAt,
@@ -153,7 +171,7 @@ export class LiveDanistayAdapter implements PrecedentSourceAdapter {
       source: DANISTAY_SOURCE,
       query,
       searchResultsCount,
-      selectedResult: searchResults[0] ?? null,
+      selectedResult: items[0] ?? null,
       decisions,
       sourceTraces
     };
@@ -161,15 +179,16 @@ export class LiveDanistayAdapter implements PrecedentSourceAdapter {
 
   private async fetchFullText(url: string): Promise<string | null> {
     try {
-      const response = await this.fetchWithRetry(url, { headers: danistayHeaders() });
+      const response = await this.fetchWithRetry(url, {
+        headers: {
+          Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          Referer: `${BASE_URL}/`,
+          "User-Agent": "physician-legal-mcp/0.14 danistay-emsal-check"
+        }
+      });
       if (isUnavailable(response)) return null;
-      const resp = response as Response;
-      const contentType = resp.headers.get("content-type") ?? "";
-      const body = await resp.text();
-      if (contentType.includes("html") || body.trimStart().startsWith("<")) {
-        return extractDanistayFullText(body) || null;
-      }
-      return body.trim() || null;
+      const body = await (response as Response).text();
+      return extractDanistayFullText(body) || body.trim() || null;
     } catch {
       return null;
     }
@@ -202,31 +221,44 @@ export class LiveDanistayAdapter implements PrecedentSourceAdapter {
           "source_error",
           `Danıştay request failed: ${error instanceof Error ? error.message : String(error)}`,
           true,
-          "Retry after checking network access to karararama.danistay.gov.tr."
+          "Retry after checking network access."
         );
       }
     }
 
     return unavailable("source_error", "Danıştay request ended unexpectedly.", true, "Retry the request.");
   }
+
+  private buildEmptyTrace(query: string, searchRequest: { url: string; phrase: string; pageSize: number }): DecisionSourceTrace {
+    return {
+      query,
+      source: "danistay",
+      court: "danistay",
+      searchRequest,
+      searchResultsCount: null,
+      selectedResult: null,
+      selectedResultReason: null,
+      documentId: "",
+      fullTextAvailable: false,
+      fullTextRetrievalMethod: null,
+      retrievedAt: null,
+      eligibilityStatus: "metadata_only",
+      eligibilityReasons: [],
+      exclusionReasons: []
+    };
+  }
 }
 
 function buildSearchBody(query: string) {
+  const trimmedQuery = query.trim();
   return {
     data: {
-      arananKelime: query,
-      birimDanistayDaire: 0,
-      birimDanistayHGK: 0,
-      birimDanistayBGK: 0,
-      birimDanistayIDDK: 0,
-      basTarih: "",
-      bitTarih: "",
-      esasYil: "",
-      esasSira: "",
-      kararYil: "",
-      kararSira: "",
-      kayitSayisi: MAX_RESULTS_PER_QUERY,
-      baslangicKayit: 0
+      andKelimeler: trimmedQuery ? [`"${trimmedQuery.replace(/^"|"$/g, "")}"`] : [],
+      orKelimeler: [],
+      notAndKelimeler: [],
+      notOrKelimeler: [],
+      pageSize: MAX_RESULTS_PER_QUERY,
+      pageNumber: 1
     }
   };
 }
@@ -243,14 +275,5 @@ function unavailable(
 
 function isUnavailable(value: unknown): value is LiveDanistayUnavailable {
   return typeof value === "object" && value !== null && "status" in value && (value as { status: unknown }).status === "unavailable";
-}
-
-function danistayHeaders(contentType?: string): Record<string, string> {
-  return {
-    Accept: "application/json, text/html;q=0.9",
-    ...(contentType ? { "Content-Type": contentType } : {}),
-    Referer: `${BASE_URL}/`,
-    "User-Agent": "physician-legal-mcp/0.10 danistay-emsal-check"
-  };
 }
 

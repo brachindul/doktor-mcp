@@ -15,3 +15,5 @@ debug*.json
 probe*.json
 smoke*.json
 audit*.json
+
+temp-smoke.json

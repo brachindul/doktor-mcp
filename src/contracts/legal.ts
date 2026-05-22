@@ -1,6 +1,6 @@
-export type SourceKind = "legislation" | "yargitay" | "danistay" | "aym";
+export type SourceKind = "legislation" | "yargitay" | "danistay" | "aym" | "bedesten";
 export type LegislationSourceMode = "mock" | "live";
-export type PrecedentSource = "yargitay" | "danistay" | "aym";
+export type PrecedentSource = "yargitay" | "danistay" | "aym" | "bedesten";
 export type PrecedentSourceMode = "live" | "mock" | "disabled";
 
 export type LegalDimension =
