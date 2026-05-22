@@ -1,0 +1,26 @@
+{
+  "_note": "Synthetic fixture mimicking Danıştay search response format. Not from a real network call.",
+  "_source": "synthetic",
+  "data": [
+    {
+      "ID": "98765",
+      "DAIRESI": "2. Daire",
+      "ESAS_YILI": "2021",
+      "ESAS_SIRASI": "9999",
+      "KARAR_YILI": "2022",
+      "KARAR_SIRASI": "1111",
+      "KARAR_TARIHI": "2022-06-10",
+      "OZET": "Sağlık personelinin disiplin cezasına itiraz. İdare mahkemesinde görülen davada hizmet kusuru değerlendirmesi yapılmıştır."
+    },
+    {
+      "ID": "98766",
+      "DAIRESI": "5. Daire",
+      "ESAS_YILI": "2020",
+      "ESAS_SIRASI": "3333",
+      "KARAR_YILI": "2021",
+      "KARAR_SIRASI": "4444",
+      "KARAR_TARIHI": "2021-09-22",
+      "OZET": "Hasta hakları ihlali nedeniyle idari para cezası. Rıza formu eksikliği tespit edilmiştir."
+    }
+  ]
+}

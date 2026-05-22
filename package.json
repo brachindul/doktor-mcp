@@ -1,6 +1,6 @@
 {
   "name": "physician-legal-mcp",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "description": "Source-grounded MCP skeleton for physician legal information packs.",
   "type": "module",
   "bin": {
@@ -14,6 +14,8 @@
     "smoke:legislation": "tsx src/legislationSmokeCli.ts",
     "smoke:mcp": "tsx src/mcpSmokeCli.ts",
     "smoke:precedents": "tsx src/precedentSmokeCli.ts",
+    "probe:precedents": "tsx src/precedentProbeCli.ts",
+    "audit:pack": "tsx src/packAuditCli.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },

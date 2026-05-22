@@ -1,0 +1,73 @@
+{
+  "shortAnswer": "Aydınlatılmış rıza alınmadan yapılan tıbbi müdahale Türk Borçlar Kanunu ve Hasta Hakları Yönetmeliği kapsamında hekimin tazminat sorumluluğunu doğurabilir.",
+  "legalClassification": {
+    "criminal": [],
+    "civilCompensation": ["Aydınlatılmış rıza ihlali nedeniyle tazminat"],
+    "disciplinaryAdministrative": ["Hasta hakları ihlali — disiplin soruşturması"],
+    "patientRights": ["Aydınlatma yükümlülüğü"],
+    "privacyKvkk": [],
+    "professionalEthics": ["Bilgilendirme yükümlülüğü"]
+  },
+  "relevantLegislation": [
+    {
+      "legislationName": "Türk Borçlar Kanunu",
+      "articleNumber": "49",
+      "verbatimQuote": "Kusurlu ve hukuka aykırı bir fiille başkasına zarar veren, bu zararı gidermekle yükümlüdür.",
+      "connection": "Hekimin tazminat sorumluluğu",
+      "sourceDocumentId": "tbk:49"
+    },
+    {
+      "legislationName": "Hasta Hakları Yönetmeliği",
+      "articleNumber": "15",
+      "verbatimQuote": "Hastanın, sağlık durumu ve teklif edilen tedavi hakkında bilgi alma hakkı vardır.",
+      "connection": "Aydınlatma yükümlülüğü",
+      "sourceDocumentId": "hhy:15"
+    }
+  ],
+  "verifiedHighCourtPrecedents": [],
+  "missingInformation": ["Müdahalenin türü ve aciliyet derecesi belirtilmemiştir."],
+  "lawyerReviewPoints": ["Rıza formunun varlığı ve içeriği incelenmeli."],
+  "sourceWarnings": [],
+  "precedentDiagnostics": {
+    "query": "aydınlatılmış rıza",
+    "selectedPrecedentCount": 0,
+    "excludedDecisionCount": 0,
+    "sourceSummaries": [
+      {
+        "source": "yargitay",
+        "mode": "live",
+        "searched": false,
+        "searchResultsCount": null,
+        "candidateCount": 0,
+        "selectedCount": 0,
+        "excludedCount": 0,
+        "unavailableCount": 1,
+        "errorCodes": ["source_error"]
+      },
+      {
+        "source": "danistay",
+        "mode": "live",
+        "searched": false,
+        "searchResultsCount": null,
+        "candidateCount": 0,
+        "selectedCount": 0,
+        "excludedCount": 0,
+        "unavailableCount": 1,
+        "errorCodes": ["parse_failed"]
+      },
+      {
+        "source": "aym",
+        "mode": "mock",
+        "searched": true,
+        "searchResultsCount": 0,
+        "candidateCount": 0,
+        "selectedCount": 0,
+        "excludedCount": 0,
+        "unavailableCount": 0,
+        "errorCodes": []
+      }
+    ],
+    "selectedPrecedents": [],
+    "excludedDecisions": []
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "_note": "Synthetic fixture mimicking Yargıtay emsal search response format. Not from a real network call.",
+  "_source": "synthetic",
+  "data": [
+    {
+      "ID": "12345",
+      "BIRIMI": "4. Hukuk Dairesi",
+      "ESAS_YILI": "2022",
+      "ESAS_SIRASI": "1234",
+      "KARAR_YILI": "2023",
+      "KARAR_SIRASI": "5678",
+      "KARAR_TARIHI": "2023-03-15",
+      "OZET": "Aydınlatılmış rıza alınmadan yapılan tıbbi müdahalenin hukuki sonuçları. Doktor bilgilendirme yükümlülüğünü yerine getirmemiştir."
+    },
+    {
+      "ID": "12346",
+      "BIRIMI": "13. Hukuk Dairesi",
+      "ESAS_YILI": "2021",
+      "ESAS_SIRASI": "4321",
+      "KARAR_YILI": "2022",
+      "KARAR_SIRASI": "8765",
+      "KARAR_TARIHI": "2022-11-20",
+      "OZET": "Hizmet kusuru nedeniyle tazminat davası. Hastanın ölümünde sağlık personelinin ihmali tespit edilmiştir."
+    }
+  ]
+}
