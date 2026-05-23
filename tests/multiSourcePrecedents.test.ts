@@ -22,23 +22,46 @@ function makeUsableDecision(id: string, court: "yargitay" | "danistay") {
   };
 }
 
+function makeOkResult(decisions: object[], source: "yargitay" | "danistay") {
+  return {
+    status: "ok" as const,
+    source: source === "yargitay" ? "yargitay.gov.tr" : "danistay.gov.tr",
+    query: "test",
+    searchResultsCount: decisions.length,
+    selectedResult: null,
+    decisions,
+    sourceTraces: []
+  };
+}
+
+function makeUnavailableResult(source: "yargitay" | "danistay") {
+  return {
+    status: "unavailable" as const,
+    source: source === "yargitay" ? "yargitay.gov.tr" : "danistay.gov.tr",
+    errorCode: "source_error" as const,
+    message: "network error",
+    retryable: true,
+    recommendedNextStep: "Retry."
+  };
+}
+
 function makeService(overrides: { yargitayDecisions?: object[]; danistayDecisions?: object[]; yargitayFails?: boolean; danistayFails?: boolean } = {}) {
   const liveYargitay = new LiveYargitayAdapter({ wait: async () => undefined });
   const liveDanistay = new LiveDanistayAdapter({ wait: async () => undefined });
 
   if (overrides.yargitayFails) {
-    vi.spyOn(liveYargitay, "searchHealthPrecedents").mockRejectedValue(new Error("network error"));
+    vi.spyOn(liveYargitay, "searchAndNormalize").mockResolvedValue(makeUnavailableResult("yargitay") as never);
   } else {
-    vi.spyOn(liveYargitay, "searchHealthPrecedents").mockResolvedValue(
-      (overrides.yargitayDecisions ?? [makeUsableDecision("y1", "yargitay")]) as never
+    vi.spyOn(liveYargitay, "searchAndNormalize").mockResolvedValue(
+      makeOkResult(overrides.yargitayDecisions ?? [makeUsableDecision("y1", "yargitay")], "yargitay") as never
     );
   }
 
   if (overrides.danistayFails) {
-    vi.spyOn(liveDanistay, "searchHealthPrecedents").mockRejectedValue(new Error("network error"));
+    vi.spyOn(liveDanistay, "searchAndNormalize").mockResolvedValue(makeUnavailableResult("danistay") as never);
   } else {
-    vi.spyOn(liveDanistay, "searchHealthPrecedents").mockResolvedValue(
-      (overrides.danistayDecisions ?? [makeUsableDecision("d1", "danistay")]) as never
+    vi.spyOn(liveDanistay, "searchAndNormalize").mockResolvedValue(
+      makeOkResult(overrides.danistayDecisions ?? [makeUsableDecision("d1", "danistay")], "danistay") as never
     );
   }
 
@@ -48,8 +71,8 @@ function makeService(overrides: { yargitayDecisions?: object[]; danistayDecision
 describe("multi-source precedent live mode", () => {
   it("calls both yargitay and danistay adapters in live mode by default", async () => {
     const service = makeService();
-    const yargitaySpy = vi.spyOn((service as unknown as { liveYargitay: LiveYargitayAdapter }).liveYargitay, "searchHealthPrecedents");
-    const danistаySpy = vi.spyOn((service as unknown as { liveDanistay: LiveDanistayAdapter }).liveDanistay, "searchHealthPrecedents");
+    const yargitaySpy = vi.spyOn((service as unknown as { liveYargitay: LiveYargitayAdapter }).liveYargitay, "searchAndNormalize");
+    const danistаySpy = vi.spyOn((service as unknown as { liveDanistay: LiveDanistayAdapter }).liveDanistay, "searchAndNormalize");
 
     const { decisions } = await service.searchPrecedents(
       { question: "rıza", dimensions: [], searchTerms: ["riza"], missingInformation: [] },
@@ -61,6 +84,9 @@ describe("multi-source precedent live mode", () => {
     const courts = decisions.map((d) => d.court);
     expect(courts).toContain("yargitay");
     expect(courts).toContain("danistay");
+    // Confirm both adapters were called
+    expect(yargitaySpy).toHaveBeenCalled();
+    expect(danistаySpy).toHaveBeenCalled();
   });
 
   it("when yargitay is unavailable, danistay decisions are still returned", async () => {

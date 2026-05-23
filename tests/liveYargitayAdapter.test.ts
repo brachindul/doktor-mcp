@@ -199,33 +199,38 @@ describe("LiveYargitayAdapter", () => {
 
 describe("prepare_doctor_legal_information_pack live precedent integration", () => {
   it("only usable decisions enter verifiedHighCourtPrecedents in live mode", async () => {
-    const mockFetch = makeFetch({ data: { items: [mockDecisionRow()] } }, REASONED_FULL_TEXT);
-    const liveYargitay = new LiveYargitayAdapter({ wait: async () => {},  fetchImpl: mockFetch, now: () => new Date(MOCK_RETRIEVED_AT), wait: async () => undefined });
-
-    vi.spyOn(liveYargitay, "searchHealthPrecedents").mockResolvedValue([
-      {
-        id: "yargitay:usable-live",
-        court: "yargitay",
-        decisionDate: "2024-03-15",
-        meritsNumber: "2023/1000",
-        decisionNumber: "2024/2000",
-        factSummary: "Aydınlatılmış rıza belgesi eksikliği.",
-        legalReasoning: "Hastanenin aydınlatma yükümlülüğünü yerine getirmediği anlaşıldığından tazminata hükmedildi.",
-        outcome: "Tazminata hükmedildi.",
-        relevanceNote: "'aydınlatılmış rıza' sağlık hukuku aramasıyla eşleşti; tam metin ve gerekçe mevcut.",
-        topicTags: [],
-        fullText: "tam metin aydınlatılmış rıza gerekçe mevcut.",
-        evidence: { source: "yargitay", documentId: "yargitay:usable-live", retrievedAt: MOCK_RETRIEVED_AT, official: true, fullText: true },
-        chamber: "13. Hukuk Dairesi"
-      },
-      {
-        id: "yargitay:excluded-live",
-        court: "yargitay",
-        decisionDate: "2024-01-01",
-        topicTags: [],
-        evidence: { source: "yargitay", documentId: "yargitay:excluded-live", retrievedAt: MOCK_RETRIEVED_AT, official: true, fullText: false }
-      }
-    ]);
+    const liveYargitay = new LiveYargitayAdapter({ wait: async () => undefined });
+    const usableDecision = {
+      id: "yargitay:usable-live",
+      court: "yargitay",
+      decisionDate: "2024-03-15",
+      meritsNumber: "2023/1000",
+      decisionNumber: "2024/2000",
+      factSummary: "Aydınlatılmış rıza belgesi eksikliği.",
+      legalReasoning: "Hastanenin aydınlatma yükümlülüğünü yerine getirmediği anlaşıldığından tazminata hükmedildi.",
+      outcome: "Tazminata hükmedildi.",
+      relevanceNote: "'aydınlatılmış rıza' sağlık hukuku aramasıyla eşleşti; tam metin ve gerekçe mevcut.",
+      topicTags: [],
+      fullText: "tam metin aydınlatılmış rıza gerekçe mevcut.",
+      evidence: { source: "yargitay", documentId: "yargitay:usable-live", retrievedAt: MOCK_RETRIEVED_AT, official: true, fullText: true },
+      chamber: "13. Hukuk Dairesi"
+    };
+    const excludedDecision = {
+      id: "yargitay:excluded-live",
+      court: "yargitay",
+      decisionDate: "2024-01-01",
+      topicTags: [],
+      evidence: { source: "yargitay", documentId: "yargitay:excluded-live", retrievedAt: MOCK_RETRIEVED_AT, official: true, fullText: false }
+    };
+    vi.spyOn(liveYargitay, "searchAndNormalize").mockResolvedValue({
+      status: "ok",
+      source: "yargitay.gov.tr",
+      query: "aydınlatılmış rıza",
+      searchResultsCount: 2,
+      selectedResult: null,
+      decisions: [usableDecision, excludedDecision] as never,
+      sourceTraces: []
+    } as never);
 
     const service = new PhysicianLegalInformationService({ liveYargitay });
     const pack = await service.prepareInformationPack({ question: "aydınlatılmış rıza", sourceMode: "live" });
@@ -236,15 +241,21 @@ describe("prepare_doctor_legal_information_pack live precedent integration", () 
   });
 
   it("excluded live decisions appear in precedentDiagnostics", async () => {
-    const liveYargitay = new LiveYargitayAdapter({ wait: async () => {},  wait: async () => undefined });
-    vi.spyOn(liveYargitay, "searchHealthPrecedents").mockResolvedValue([
-      {
+    const liveYargitay = new LiveYargitayAdapter({ wait: async () => undefined });
+    vi.spyOn(liveYargitay, "searchAndNormalize").mockResolvedValue({
+      status: "ok",
+      source: "yargitay.gov.tr",
+      query: "rıza",
+      searchResultsCount: 1,
+      selectedResult: null,
+      decisions: [{
         id: "yargitay:no-fulltext",
         court: "yargitay",
         topicTags: [],
         evidence: { source: "yargitay", documentId: "yargitay:no-fulltext", retrievedAt: MOCK_RETRIEVED_AT, official: true, fullText: false }
-      }
-    ]);
+      }] as never,
+      sourceTraces: []
+    } as never);
 
     const service = new PhysicianLegalInformationService({ liveYargitay });
     const pack = await service.prepareInformationPack({ question: "rıza belgesi", sourceMode: "live" });
@@ -256,8 +267,11 @@ describe("prepare_doctor_legal_information_pack live precedent integration", () 
   });
 
   it("does not include risk level, immediate actions, or final legal opinion in live mode pack", async () => {
-    const liveYargitay = new LiveYargitayAdapter({ wait: async () => {},  wait: async () => undefined });
-    vi.spyOn(liveYargitay, "searchHealthPrecedents").mockResolvedValue([]);
+    const liveYargitay = new LiveYargitayAdapter({ wait: async () => undefined });
+    vi.spyOn(liveYargitay, "searchAndNormalize").mockResolvedValue({
+      status: "ok", source: "yargitay.gov.tr", query: "rıza", searchResultsCount: 0,
+      selectedResult: null, decisions: [], sourceTraces: []
+    } as never);
 
     const service = new PhysicianLegalInformationService({ liveYargitay });
     const pack = await service.prepareInformationPack({ question: "rıza eksikliği", sourceMode: "live" });

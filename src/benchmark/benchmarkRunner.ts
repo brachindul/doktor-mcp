@@ -1,7 +1,16 @@
 import { PhysicianLegalInformationService } from "../app/service.js";
 import type { DoctorLegalInformationPack, PrecedentStatus } from "../contracts/legal.js";
+import type { QueryAttemptTelemetry, SourceReliabilityMetrics, IssueProfileReliabilityMetrics } from "../contracts/queryTelemetry.js";
+import { buildSessionSummary } from "../contracts/queryTelemetry.js";
+import type { RerankResult } from "../health/precedentRerank.js";
+import { inferIssueProfileFromQuestion } from "../health/precedentRelevance.js";
 import { auditPack } from "../packAudit.js";
 import { doctorQuestions, FORBIDDEN_FIELDS_LIST, type BenchmarkQuestion } from "./doctorQuestions.js";
+import {
+  buildSourceReliabilityMetrics,
+  buildIssueProfileReliabilityMetrics,
+  buildGlobalQueryMetrics
+} from "./reliabilityMetrics.js";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -81,6 +90,18 @@ export interface BenchmarkItemResult {
   informationalWarnings: string[];
   tuningWarnings: string[];
   safetyWarnings: string[];
+  // Query telemetry (live mode only)
+  queryTelemetry: QueryAttemptTelemetry[];
+  issueProfile: string;
+  fallbackUsed: boolean;
+  fallbackAttemptCount: number;
+  firstSuccessfulQueryText: string | null;
+  wastedQueryCount: number;
+  noResultQueryCount: number;
+  // Rerank metrics
+  preRerankTopDecisionId: string | null;
+  postRerankTopDecisionId: string | null;
+  rerankChangedSelection: boolean;
   notes: string;
 }
 
@@ -177,6 +198,19 @@ export interface BenchmarkReport {
     weakRelevanceCount: number;
     missingTraceCount: number;
   };
+  // Query telemetry aggregate (live mode only)
+  totalQueryAttempts: number;
+  successfulQueryAttempts: number;
+  failedQueryAttempts: number;
+  sourceUnavailableAttempts: number;
+  averageQueryDurationMs: number | null;
+  p50QueryDurationMs: number | null;
+  p95QueryDurationMs: number | null;
+  p99QueryDurationMs: number | null;
+  fallbackUsedCount: number;
+  rerankChangedSelectionCount: number;
+  sourceReliability: SourceReliabilityMetrics[];
+  issueProfileReliability: IssueProfileReliabilityMetrics[];
   results: BenchmarkItemResult[];
 }
 
@@ -197,15 +231,17 @@ export async function runBenchmark(options: {
   for (const question of questionsToRun) {
     const itemStartedAt = Date.now();
     try {
-      const pack = await service.prepareInformationPack({
+      const enrichedPack = await service.prepareInformationPack({
         question: question.question,
         sourceMode
       });
       results.push(evaluateBenchmarkItem({
         question,
-        pack,
+        pack: enrichedPack as unknown as DoctorLegalInformationPack & Record<string, unknown>,
         sourceMode,
-        durationMs: Date.now() - itemStartedAt
+        durationMs: Date.now() - itemStartedAt,
+        queryTelemetry: enrichedPack.queryTelemetry,
+        rerankResult: enrichedPack.rerankResult
       }));
     } catch (error) {
       results.push(evaluateThrownBenchmarkItem({
@@ -239,8 +275,13 @@ export function evaluateBenchmarkItem(input: {
   pack: DoctorLegalInformationPack & Record<string, unknown>;
   sourceMode: "live" | "mock";
   durationMs: number;
+  queryTelemetry?: QueryAttemptTelemetry[];
+  rerankResult?: RerankResult;
 }): BenchmarkItemResult {
   const { question, pack, sourceMode, durationMs } = input;
+  const queryTelemetry = input.queryTelemetry ?? [];
+  const rerankResult = input.rerankResult ?? { preRerankTopId: null, postRerankTopId: null, rerankChangedSelection: false, usableCount: 0 };
+  const issueProfile = inferIssueProfileFromQuestion(question.question);
   const auditRes = auditPack(pack);
   const legislationItems = Array.isArray(pack.relevantLegislation) ? pack.relevantLegislation : [];
   const legislationOrder = legislationItems.map((item) => item.legislationName);
@@ -263,6 +304,17 @@ export function evaluateBenchmarkItem(input: {
   const forbiddenFieldMatches = findForbiddenFields(pack);
   const usedMockSourceInLiveMode = detectMockFallback(pack, sourceMode, verifiedPrecedentAudit);
   const safety = buildSafety(pack, sourceMode, selectedStatuses, forbiddenFieldMatches, verifiedPrecedentAudit, usedMockSourceInLiveMode);
+  // Compute query session summary for this item (all sources combined)
+  const sourcesQueried = [...new Set(queryTelemetry.map((t) => t.source))];
+  const sessionSummaries = sourcesQueried.map((src) =>
+    buildSessionSummary(src, issueProfile, queryTelemetry.filter((t) => t.source === src))
+  );
+  const fallbackUsed = sessionSummaries.some((s) => s.fallbackUsed);
+  const fallbackAttemptCount = sessionSummaries.reduce((sum, s) => sum + s.fallbackAttemptCount, 0);
+  const firstSuccessfulQueryText = sessionSummaries.find((s) => s.firstSuccessfulQueryText)?.firstSuccessfulQueryText ?? null;
+  const wastedQueryCount = sessionSummaries.reduce((sum, s) => sum + s.wastedQueryCount, 0);
+  const noResultQueryCount = sessionSummaries.reduce((sum, s) => sum + s.noResultQueryCount, 0);
+
   const categorized = buildCategorizedWarnings({
     sourceMode,
     question,
@@ -271,7 +323,9 @@ export function evaluateBenchmarkItem(input: {
     precedentUnavailable,
     selectedPrecedentCount,
     packAuditWarnings: auditRes.warnings,
-    verifiedAuditWarnings
+    verifiedAuditWarnings,
+    fallbackUsed,
+    hasVerifiedPrecedents: selectedPrecedentCount > 0
   });
   const warnings = [...categorized.informational, ...categorized.tuning, ...categorized.safety];
   const regressionFailures = buildRegressionFailures({
@@ -350,6 +404,16 @@ export function evaluateBenchmarkItem(input: {
     informationalWarnings: categorized.informational,
     tuningWarnings: categorized.tuning,
     safetyWarnings: categorized.safety,
+    queryTelemetry,
+    issueProfile,
+    fallbackUsed,
+    fallbackAttemptCount,
+    firstSuccessfulQueryText,
+    wastedQueryCount,
+    noResultQueryCount,
+    preRerankTopDecisionId: rerankResult.preRerankTopId,
+    postRerankTopDecisionId: rerankResult.postRerankTopId,
+    rerankChangedSelection: rerankResult.rerankChangedSelection,
     notes: question.notes
   };
 }
@@ -501,6 +565,16 @@ function evaluateThrownBenchmarkItem(input: {
     informationalWarnings: [],
     tuningWarnings: [],
     safetyWarnings: [],
+    queryTelemetry: [],
+    issueProfile: inferIssueProfileFromQuestion(input.question.question),
+    fallbackUsed: false,
+    fallbackAttemptCount: 0,
+    firstSuccessfulQueryText: null,
+    wastedQueryCount: 0,
+    noResultQueryCount: 0,
+    preRerankTopDecisionId: null,
+    postRerankTopDecisionId: null,
+    rerankChangedSelection: false,
     notes: input.question.notes
   };
 }
@@ -596,6 +670,7 @@ function buildBenchmarkReport(input: {
       weakRelevanceCount: verifiedAuditEntries.filter((entry) => (entry.healthLawRelevanceScore ?? 0) < 1).length,
       missingTraceCount: verifiedAuditEntries.filter((entry) => !entry.decisionSourceTracePresent).length
     },
+    ...buildQueryAggregateMetrics(input.results, verifiedAuditEntries),
     results: input.results
   };
 }
@@ -672,6 +747,8 @@ function buildCategorizedWarnings(input: {
   selectedPrecedentCount: number;
   packAuditWarnings: string[];
   verifiedAuditWarnings: string[];
+  fallbackUsed?: boolean;
+  hasVerifiedPrecedents?: boolean;
 }): { informational: string[]; tuning: string[]; safety: string[] } {
   const informational: string[] = [];
   const tuning: string[] = [];
@@ -696,10 +773,16 @@ function buildCategorizedWarnings(input: {
   if (input.sourceMode === "live") {
     informational.push("Live source quality is informational; transient source gaps are metrics, not automatic failures.");
   }
+  if (input.fallbackUsed && input.hasVerifiedPrecedents) {
+    informational.push("Fallback query was used; verified precedent quality is adequate.");
+  }
 
   if (input.legislationOrder.length === 0) tuning.push("No legislation selected.");
   if (!isPriorityMatch(input.question, input.legislationOrder)) tuning.push("Expected primary legislation is not in the leading positions.");
   if (input.selectedPrecedentCount === 0) tuning.push("No verified high court precedent selected.");
+  if (input.fallbackUsed && !input.hasVerifiedPrecedents) {
+    tuning.push("Fallback query used but no verified precedent produced.");
+  }
 
   return {
     informational: [...new Set(informational)],
@@ -922,6 +1005,59 @@ function normalizeName(value: string): string {
     .trim();
 }
 
+function buildQueryAggregateMetrics(
+  results: BenchmarkItemResult[],
+  verifiedAuditEntries: VerifiedPrecedentAuditEntry[]
+) {
+  const allTelemetry = results.flatMap((r) => r.queryTelemetry);
+  const globalMetrics = buildGlobalQueryMetrics(allTelemetry);
+
+  const verifiedWithSource = results.flatMap((r) =>
+    r.precedents.verifiedPrecedentAudit.map((entry) => ({
+      source: entry.court,
+      entry
+    }))
+  );
+
+  const sourceReliability = buildSourceReliabilityMetrics(allTelemetry, verifiedWithSource);
+
+  const profileItems = results.map((r) => ({
+    issueProfile: r.issueProfile,
+    fallbackUsed: r.fallbackUsed,
+    verifiedCount: r.precedents.verifiedHighCourtPrecedentsCount,
+    queryTelemetry: r.queryTelemetry,
+    weakRelevanceCount: r.precedents.verifiedPrecedentAudit.filter((e) => (e.healthLawRelevanceScore ?? 0) < 1).length
+  }));
+
+  const issueProfileReliability = buildIssueProfileReliabilityMetrics(allTelemetry, profileItems);
+
+  // Populate averageRelevance per profile from verified audit entries
+  const enrichedIssueProfileReliability = issueProfileReliability.map((m) => {
+    const profileResults = results.filter((r) => r.issueProfile === m.issueProfile);
+    const relevanceScores = profileResults.flatMap((r) =>
+      r.precedents.verifiedPrecedentAudit
+        .map((e) => e.healthLawRelevanceScore)
+        .filter((s): s is number => typeof s === "number")
+    );
+    return {
+      ...m,
+      averageRelevance: relevanceScores.length > 0
+        ? Math.round((relevanceScores.reduce((s, v) => s + v, 0) / relevanceScores.length) * 100) / 100
+        : null
+    };
+  });
+
+  void verifiedAuditEntries; // used by caller for other metrics
+
+  return {
+    ...globalMetrics,
+    fallbackUsedCount: results.filter((r) => r.fallbackUsed).length,
+    rerankChangedSelectionCount: results.filter((r) => r.rerankChangedSelection).length,
+    sourceReliability,
+    issueProfileReliability: enrichedIssueProfileReliability
+  };
+}
+
 function generateMarkdownReport(report: BenchmarkReport): string {
   let md = `# Physician Question ${report.sourceMode === "live" ? "Live " : ""}Benchmark Report
 
@@ -966,6 +1102,31 @@ function generateMarkdownReport(report: BenchmarkReport): string {
 
 ${report.mockFallbackDetected ? "- Live mode mock fallback was detected and treated as a hard regression.\n" : "- No mock fallback detected in live-mode benchmark evidence.\n"}
 
+## Query Effectiveness
+
+- **Total Query Attempts**: ${report.totalQueryAttempts}
+- **Successful Attempts**: ${report.successfulQueryAttempts}
+- **Failed Attempts**: ${report.failedQueryAttempts}
+- **Source Unavailable**: ${report.sourceUnavailableAttempts}
+- **Fallback Used**: ${report.fallbackUsedCount} questions
+- **Rerank Changed Selection**: ${report.rerankChangedSelectionCount} questions
+- **Average Query Duration**: ${report.averageQueryDurationMs ?? "n/a"} ms
+- **p50 Query Duration**: ${report.p50QueryDurationMs ?? "n/a"} ms
+- **p95 Query Duration**: ${report.p95QueryDurationMs ?? "n/a"} ms
+- **p99 Query Duration**: ${report.p99QueryDurationMs ?? "n/a"} ms
+
+## Source Reliability
+
+| Source | Attempts | Successes | Failures | Unavailable | Avg ms | p95 ms | Verified Precedents | Avg Relevance |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+${report.sourceReliability.map((s) => `| ${s.source} | ${s.attempts} | ${s.successes} | ${s.failures} | ${s.unavailableCount} | ${s.avgDurationMs ?? "n/a"} | ${s.p95DurationMs ?? "n/a"} | ${s.verifiedPrecedentsProduced} | ${s.averageRelevance ?? "n/a"} |`).join("\n") || "- No telemetry collected (mock mode or no live queries)."}
+
+## Issue Profile Reliability
+
+| Profile | Attempts | Verified | Fallback Used | Avg ms | p95 ms | Avg Relevance | Weak Relevance |
+|---|---:|---:|---:|---:|---:|---:|---:|
+${report.issueProfileReliability.map((p) => `| ${p.issueProfile} | ${p.attempts} | ${p.verifiedPrecedentsProduced} | ${p.fallbackUsedCount} | ${p.avgDurationMs ?? "n/a"} | ${p.p95DurationMs ?? "n/a"} | ${p.averageRelevance ?? "n/a"} | ${p.weakRelevanceCount} |`).join("\n") || "- No telemetry collected (mock mode or no live queries)."}
+
 ## Warning Taxonomy
 
 | Category | Count | Questions Affected |
@@ -981,9 +1142,9 @@ ${report.mockFallbackDetected ? "- Live mode mock fallback was detected and trea
 
 ## Per-Question Warning Summary
 
-| ID | Band | Informational | Tuning | Safety | Precedents | Relevance | Audit |
-|---|---|---:|---:|---:|---:|---:|---|
-${report.results.map((r) => `| \`${r.id}\` | \`${r.scores.qualityBand}\` | ${r.informationalWarnings.length} | ${r.tuningWarnings.length} | ${r.safetyWarnings.length} | ${r.precedents.verifiedHighCourtPrecedentsCount} | ${r.precedents.verifiedPrecedentAudit[0]?.healthLawRelevanceScore ?? "n/a"} | ${r.audit.errors.length > 0 ? "error" : r.audit.warnings.length > 0 ? "warn" : "ok"} |`).join("\n")}
+| ID | Profile | Band | Info | Tuning | Safety | Precedents | Relevance | Fallback | Rerank | Audit |
+|---|---|---|---:|---:|---:|---:|---:|---|---|---|
+${report.results.map((r) => `| \`${r.id}\` | ${r.issueProfile} | \`${r.scores.qualityBand}\` | ${r.informationalWarnings.length} | ${r.tuningWarnings.length} | ${r.safetyWarnings.length} | ${r.precedents.verifiedHighCourtPrecedentsCount} | ${r.precedents.verifiedPrecedentAudit[0]?.healthLawRelevanceScore ?? "n/a"} | ${r.fallbackUsed ? "yes" : "no"} | ${r.rerankChangedSelection ? "changed" : "same"} | ${r.audit.errors.length > 0 ? "error" : r.audit.warnings.length > 0 ? "warn" : "ok"} |`).join("\n")}
 
 ## Verified Precedent Audit Summary
 
@@ -1075,14 +1236,16 @@ ${result.legislationOrder.length > 0 ? result.legislationOrder.map((name, index)
 `;
   }
 
-  md += `## v0.18.1 Tuning Suggestions
+  md += `## v0.19.0 Tuning Suggestions
 
-- **Informational warnings** (live source gaps, missing metadata) are expected in live mode and do not indicate quality defects.
-- **Tuning warnings** (weak relevance, missing legislation, priority order) identify areas for deterministic health-law mapping improvement.
-- Use questions with \`needs_tuning\` bands to adjust health-law search query expansion.
+- **Informational warnings** (live source gaps, fallback-but-quality-ok, missing metadata) are expected in live mode.
+- **Tuning warnings** (weak relevance, missing legislation, priority order, fallback-with-no-result) indicate actionable improvements.
+- Use **Source Reliability** table to identify which sources have high p95 latency or low verified precedent yield.
+- Use **Issue Profile Reliability** to identify profiles where fallback queries are frequently needed.
+- **Rerank changed selection** indicates the pre-selection order differed from relevance order — review those questions first.
 - Treat source-unavailable metrics as live reliability signals, not automatic legal-quality failures.
 - Keep audit errors and unsafe precedent usage as hard regression failures.
-- v0.19 target: source-specific query ranking and per-source latency/reliability metrics.
+- v0.20 target: per-profile live reliability baselines, court-result reranking before selection, query cache hit rate.
 `;
 
   return md;
