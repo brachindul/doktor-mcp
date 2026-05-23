@@ -90,12 +90,12 @@ describe("Benchmark Dataset & Runner Tests", () => {
       return {
         shortAnswer: "Kaynak metrik paketi.",
         legalClassification: {
-          criminal: [],
-          civilCompensation: [],
-          disciplinaryAdministrative: [],
-          patientRights: [],
-          privacyKvkk: [],
-          professionalEthics: ["Meslek etigi boyutu soru ile eslestirildi."]
+          criminal: "",
+          civilCompensation: "",
+          disciplinaryAdministrative: "",
+          patientRights: "",
+          privacyKvkk: "",
+          professionalEthics: "Meslek etigi boyutu soru ile eslestirildi."
         },
         relevantLegislation: [
           {
@@ -132,8 +132,8 @@ describe("Benchmark Dataset & Runner Tests", () => {
           }
         ],
         verifiedHighCourtPrecedents: [],
-        missingInformation: [],
-        lawyerReviewPoints: [],
+        missingInformation: ["Eksik bilgi bulunmaktadır."],
+        lawyerReviewPoints: ["Avukatın incelemesi gereklidir."],
         sourceWarnings: [],
         precedentDiagnostics: {
           query: question.question,

@@ -5,12 +5,12 @@ function makePack(overrides: Record<string, unknown> = {}) {
   return {
     shortAnswer: "Test kısa yanıt.",
     legalClassification: {
-      criminal: [],
-      civilCompensation: ["Aydınlatılmış rıza ihlali"],
-      disciplinaryAdministrative: [],
-      patientRights: [],
-      privacyKvkk: [],
-      professionalEthics: []
+      criminal: "",
+      civilCompensation: "Aydınlatılmış rıza ihlali tazminat doğurabilir.",
+      disciplinaryAdministrative: "",
+      patientRights: "",
+      privacyKvkk: "",
+      professionalEthics: ""
     },
     relevantLegislation: [
       {
@@ -22,8 +22,8 @@ function makePack(overrides: Record<string, unknown> = {}) {
       }
     ],
     verifiedHighCourtPrecedents: [],
-    missingInformation: [],
-    lawyerReviewPoints: [],
+    missingInformation: ["Eksik bilgi bulunmaktadır."],
+    lawyerReviewPoints: ["Avukatın incelemesi gereklidir."],
     sourceWarnings: [],
     precedentDiagnostics: {
       query: "aydınlatılmış rıza",

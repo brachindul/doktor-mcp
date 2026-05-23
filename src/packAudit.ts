@@ -2,6 +2,17 @@
  * Pack audit — validates a DoctorLegalInformationPack for compliance with MVP constraints.
  */
 
+export interface ContractCheckResult {
+  passed: boolean;
+  missingSections: string[];
+  missingLegislationFields: Array<{ index: number; fields: string[] }>;
+  missingPrecedentFields: Array<{ index: number; fields: string[] }>;
+  unofficialSourceDetected: boolean;
+  unofficialSourceDetails: string[];
+  unsafeAdviceDetected: boolean;
+  unsafeAdvicePhrases: string[];
+}
+
 export interface AuditResult {
   ok: boolean;
   errors: string[];
@@ -14,6 +25,7 @@ export interface AuditResult {
     sourceSummaries: number;
     unavailableSources: number;
   };
+  contractCheck: ContractCheckResult;
   recommendedNextStep: string;
 }
 
@@ -33,6 +45,201 @@ const EXCLUDED_ELIGIBILITY_STATUSES = new Set([
   "no_reasoning"
 ]);
 
+// Fallback placeholder strings from answerComposer — presence means field was missing from source
+const PRECEDENT_FALLBACK_STRINGS: Record<string, string> = {
+  date: "Kaynakta tarih yok",
+  factSummary: "Kaynakta olay ozeti yok",
+  legalAssessment: "Kaynakta hukuki degerlendirme yok",
+  outcome: "Kaynakta sonuc yok",
+  similarityDifference: "Benzerlik teyit edilmedi"
+};
+
+// MVP forbidden phrases — must not appear in any free-text field of the pack
+const MVP_FORBIDDEN_PHRASES = [
+  "kesin hukuki kanaat",
+  "dilekçe taslağı",
+  "savunma taslağı",
+  "risk seviyesi",
+  "derhal yapılacak",
+  // also catch common ASCII/unaccented variants
+  "kesin hukuki opinion",
+  "petition draft",
+  "defense draft"
+];
+
+function isNonEmpty(val: unknown): boolean {
+  return typeof val === "string" && val.trim().length > 0;
+}
+
+function containsFallback(val: unknown, fallback: string): boolean {
+  return typeof val === "string" && val.includes(fallback);
+}
+
+function collectPackText(p: Record<string, unknown>): string {
+  const parts: string[] = [];
+  if (typeof p.shortAnswer === "string") parts.push(p.shortAnswer);
+  const lc = p.legalClassification as Record<string, unknown> | null | undefined;
+  if (lc && typeof lc === "object") {
+    for (const v of Object.values(lc)) {
+      if (typeof v === "string") parts.push(v);
+      else if (Array.isArray(v)) {
+        for (const item of v as unknown[]) {
+          if (typeof item === "string") parts.push(item);
+        }
+      }
+    }
+  }
+  if (typeof p.missingInformation === "string") parts.push(p.missingInformation);
+  else if (Array.isArray(p.missingInformation)) {
+    for (const v of p.missingInformation as unknown[]) {
+      if (typeof v === "string") parts.push(v);
+    }
+  }
+  const lrp = p.lawyerReviewPoints;
+  if (Array.isArray(lrp)) {
+    for (const pt of lrp) {
+      if (typeof pt === "string") parts.push(pt);
+    }
+  }
+  const legislation = Array.isArray(p.relevantLegislation) ? p.relevantLegislation : [];
+  for (const item of legislation) {
+    const it = item as Record<string, unknown>;
+    if (typeof it.verbatimQuote === "string") parts.push(it.verbatimQuote);
+    if (typeof it.connection === "string") parts.push(it.connection);
+  }
+  const precs = Array.isArray(p.verifiedHighCourtPrecedents) ? p.verifiedHighCourtPrecedents : [];
+  for (const prec of precs) {
+    const pr = prec as Record<string, unknown>;
+    if (typeof pr.factSummary === "string") parts.push(pr.factSummary);
+    if (typeof pr.legalAssessment === "string") parts.push(pr.legalAssessment);
+    if (typeof pr.outcome === "string") parts.push(pr.outcome);
+    if (typeof pr.similarityDifference === "string") parts.push(pr.similarityDifference);
+  }
+  return parts.join(" ").toLowerCase();
+}
+
+function checkContract(p: Record<string, unknown>): ContractCheckResult {
+  const missingSections: string[] = [];
+  const missingLegislationFields: Array<{ index: number; fields: string[] }> = [];
+  const missingPrecedentFields: Array<{ index: number; fields: string[] }> = [];
+  const unofficialSourceDetails: string[] = [];
+  const unsafeAdvicePhrases: string[] = [];
+
+  // 1. Required top-level sections
+  if (!isNonEmpty(p.shortAnswer)) missingSections.push("shortAnswer");
+
+  const lc = p.legalClassification as Record<string, unknown> | null | undefined;
+  const hasLegalClassification =
+    lc &&
+    typeof lc === "object" &&
+    Object.values(lc).some((v) =>
+      Array.isArray(v) ? (v as unknown[]).some((item) => isNonEmpty(item)) : isNonEmpty(v)
+    );
+  if (!hasLegalClassification) missingSections.push("legalClassification");
+
+  // missingInformation can be a string or string[]
+  const hasMissingInformation = Array.isArray(p.missingInformation)
+    ? (p.missingInformation as unknown[]).some((v) => isNonEmpty(v))
+    : isNonEmpty(p.missingInformation);
+  if (!hasMissingInformation) missingSections.push("missingInformation");
+
+  const lrp = p.lawyerReviewPoints;
+  const hasLawyerReviewPoints =
+    Array.isArray(lrp) &&
+    lrp.length > 0 &&
+    (lrp as unknown[]).some((pt) => isNonEmpty(pt));
+  if (!hasLawyerReviewPoints) missingSections.push("lawyerReviewPoints");
+
+  // 2. Per-legislation field completeness
+  const legislation = Array.isArray(p.relevantLegislation) ? p.relevantLegislation : [];
+  for (let i = 0; i < legislation.length; i++) {
+    const item = legislation[i] as Record<string, unknown>;
+    const missing: string[] = [];
+    if (!isNonEmpty(item.legislationName)) missing.push("legislationName");
+    if (!isNonEmpty(item.articleNumber)) missing.push("articleNumber");
+    if (!isNonEmpty(item.verbatimQuote)) missing.push("verbatimQuote");
+    if (!isNonEmpty(item.connection)) missing.push("connection");
+    if (missing.length > 0) missingLegislationFields.push({ index: i, fields: missing });
+  }
+
+  // 3. Per-precedent field completeness
+  const precs = Array.isArray(p.verifiedHighCourtPrecedents) ? p.verifiedHighCourtPrecedents : [];
+  for (let i = 0; i < precs.length; i++) {
+    const prec = precs[i] as Record<string, unknown>;
+    const missing: string[] = [];
+    if (!isNonEmpty(prec.courtAndChamber)) missing.push("courtAndChamber");
+    // date — missing if absent or is the fallback placeholder
+    if (!isNonEmpty(prec.date) || containsFallback(prec.date, PRECEDENT_FALLBACK_STRINGS.date)) {
+      missing.push("date");
+    }
+    if (!isNonEmpty(prec.factSummary) || containsFallback(prec.factSummary, PRECEDENT_FALLBACK_STRINGS.factSummary)) {
+      missing.push("factSummary");
+    }
+    if (!isNonEmpty(prec.legalAssessment) || containsFallback(prec.legalAssessment, PRECEDENT_FALLBACK_STRINGS.legalAssessment)) {
+      missing.push("legalAssessment");
+    }
+    if (!isNonEmpty(prec.outcome) || containsFallback(prec.outcome, PRECEDENT_FALLBACK_STRINGS.outcome)) {
+      missing.push("outcome");
+    }
+    if (!isNonEmpty(prec.similarityDifference) || containsFallback(prec.similarityDifference, PRECEDENT_FALLBACK_STRINGS.similarityDifference)) {
+      missing.push("similarityDifference");
+    }
+    if (missing.length > 0) missingPrecedentFields.push({ index: i, fields: missing });
+  }
+
+  // 4. Unofficial source detection
+  // accessSource === "mock" is always unofficial in a pack
+  for (let i = 0; i < precs.length; i++) {
+    const prec = precs[i] as Record<string, unknown>;
+    const trace = prec.decisionSourceTrace as Record<string, unknown> | undefined;
+    if (trace) {
+      const accessSource = trace.accessSource as string | undefined;
+      if (accessSource === "mock") {
+        unofficialSourceDetails.push(
+          `verifiedHighCourtPrecedents[${i}] accessSource is "mock" (documentId: "${prec.sourceDocumentId ?? "unknown"}"). Mock data must not appear in a physician-facing pack.`
+        );
+      }
+    }
+  }
+
+  // 5. MVP forbidden phrase scanning across all free-text fields
+  const allText = collectPackText(p);
+  for (const phrase of MVP_FORBIDDEN_PHRASES) {
+    if (allText.includes(phrase.toLowerCase())) {
+      unsafeAdvicePhrases.push(phrase);
+    }
+  }
+
+  const passed =
+    missingSections.length === 0 &&
+    missingLegislationFields.length === 0 &&
+    missingPrecedentFields.length === 0 &&
+    unofficialSourceDetails.length === 0 &&
+    unsafeAdvicePhrases.length === 0;
+
+  return {
+    passed,
+    missingSections,
+    missingLegislationFields,
+    missingPrecedentFields,
+    unofficialSourceDetected: unofficialSourceDetails.length > 0,
+    unofficialSourceDetails,
+    unsafeAdviceDetected: unsafeAdvicePhrases.length > 0,
+    unsafeAdvicePhrases
+  };
+}
+
+const EMPTY_CONTRACT_CHECK: ContractCheckResult = {
+  passed: false,
+  missingSections: [],
+  missingLegislationFields: [],
+  missingPrecedentFields: [],
+  unofficialSourceDetected: false,
+  unofficialSourceDetails: [],
+  unsafeAdviceDetected: false,
+  unsafeAdvicePhrases: []
+};
+
 export function auditPack(pack: unknown): AuditResult {
   const errors: string[] = [];
   const warnings: string[] = [];
@@ -50,6 +257,7 @@ export function auditPack(pack: unknown): AuditResult {
         sourceSummaries: 0,
         unavailableSources: 0
       },
+      contractCheck: EMPTY_CONTRACT_CHECK,
       recommendedNextStep: "Provide a valid DoctorLegalInformationPack JSON object."
     };
   }
@@ -77,7 +285,6 @@ export function auditPack(pack: unknown): AuditResult {
     }
   }
 
-  // Check selectionDiagnostics
   // Check calibrationStatus presence (warn if no source has calibration info)
   if (!p.calibrationStatus && !p.precedentDiagnostics) {
     warnings.push("No calibrationStatus found. Run probe:precedents to assess live source status.");
@@ -160,6 +367,26 @@ export function auditPack(pack: unknown): AuditResult {
     warnings.push(`${sourceWarnings.length} sourceWarning(s) present in pack.`);
   }
 
+  // Run contract checks
+  const contractCheck = checkContract(p);
+
+  // Surface contract failures as errors
+  for (const sec of contractCheck.missingSections) {
+    errors.push(`Contract: required section "${sec}" is missing or empty.`);
+  }
+  for (const { index, fields } of contractCheck.missingLegislationFields) {
+    errors.push(`Contract: relevantLegislation[${index}] missing required fields: ${fields.join(", ")}.`);
+  }
+  for (const { index, fields } of contractCheck.missingPrecedentFields) {
+    errors.push(`Contract: verifiedHighCourtPrecedents[${index}] missing or has placeholder in fields: ${fields.join(", ")}.`);
+  }
+  for (const detail of contractCheck.unofficialSourceDetails) {
+    errors.push(`Contract: ${detail}`);
+  }
+  for (const phrase of contractCheck.unsafeAdvicePhrases) {
+    errors.push(`Contract: MVP-forbidden phrase detected in pack text: "${phrase}".`);
+  }
+
   const ok = errors.length === 0;
   let recommendedNextStep: string;
   if (ok && warnings.length === 0) {
@@ -182,6 +409,7 @@ export function auditPack(pack: unknown): AuditResult {
       sourceSummaries,
       unavailableSources
     },
+    contractCheck,
     recommendedNextStep
   };
 }

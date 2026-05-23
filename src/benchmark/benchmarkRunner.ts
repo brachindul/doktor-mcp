@@ -102,6 +102,13 @@ export interface BenchmarkItemResult {
   preRerankTopDecisionId: string | null;
   postRerankTopDecisionId: string | null;
   rerankChangedSelection: boolean;
+  // Contract check metrics (v0.21.0)
+  contractPassed: boolean;
+  missingSections: string[];
+  missingLegislationFieldCount: number;
+  missingPrecedentFieldCount: number;
+  unofficialSourceDetected: boolean;
+  unsafeAdviceDetected: boolean;
   notes: string;
 }
 
@@ -198,6 +205,14 @@ export interface BenchmarkReport {
     weakRelevanceCount: number;
     missingTraceCount: number;
   };
+  // Contract check aggregate (v0.21.0)
+  contractPassedCount: number;
+  contractFailedCount: number;
+  contractMissingSectionTotal: number;
+  contractMissingLegislationFieldTotal: number;
+  contractMissingPrecedentFieldTotal: number;
+  contractUnofficialSourceCount: number;
+  contractUnsafeAdviceCount: number;
   // Query telemetry aggregate (live mode only)
   totalQueryAttempts: number;
   successfulQueryAttempts: number;
@@ -414,6 +429,12 @@ export function evaluateBenchmarkItem(input: {
     preRerankTopDecisionId: rerankResult.preRerankTopId,
     postRerankTopDecisionId: rerankResult.postRerankTopId,
     rerankChangedSelection: rerankResult.rerankChangedSelection,
+    contractPassed: auditRes.contractCheck.passed,
+    missingSections: auditRes.contractCheck.missingSections,
+    missingLegislationFieldCount: auditRes.contractCheck.missingLegislationFields.reduce((sum, e) => sum + e.fields.length, 0),
+    missingPrecedentFieldCount: auditRes.contractCheck.missingPrecedentFields.reduce((sum, e) => sum + e.fields.length, 0),
+    unofficialSourceDetected: auditRes.contractCheck.unofficialSourceDetected,
+    unsafeAdviceDetected: auditRes.contractCheck.unsafeAdviceDetected,
     notes: question.notes
   };
 }
@@ -575,6 +596,12 @@ function evaluateThrownBenchmarkItem(input: {
     preRerankTopDecisionId: null,
     postRerankTopDecisionId: null,
     rerankChangedSelection: false,
+    contractPassed: false,
+    missingSections: ["shortAnswer", "legalClassification", "missingInformation", "lawyerReviewPoints"],
+    missingLegislationFieldCount: 0,
+    missingPrecedentFieldCount: 0,
+    unofficialSourceDetected: false,
+    unsafeAdviceDetected: false,
     notes: input.question.notes
   };
 }
@@ -670,6 +697,13 @@ function buildBenchmarkReport(input: {
       weakRelevanceCount: verifiedAuditEntries.filter((entry) => (entry.healthLawRelevanceScore ?? 0) < 1).length,
       missingTraceCount: verifiedAuditEntries.filter((entry) => !entry.decisionSourceTracePresent).length
     },
+    contractPassedCount: input.results.filter((r) => r.contractPassed).length,
+    contractFailedCount: input.results.filter((r) => !r.contractPassed).length,
+    contractMissingSectionTotal: input.results.reduce((sum, r) => sum + r.missingSections.length, 0),
+    contractMissingLegislationFieldTotal: input.results.reduce((sum, r) => sum + r.missingLegislationFieldCount, 0),
+    contractMissingPrecedentFieldTotal: input.results.reduce((sum, r) => sum + r.missingPrecedentFieldCount, 0),
+    contractUnofficialSourceCount: input.results.filter((r) => r.unofficialSourceDetected).length,
+    contractUnsafeAdviceCount: input.results.filter((r) => r.unsafeAdviceDetected).length,
     ...buildQueryAggregateMetrics(input.results, verifiedAuditEntries),
     results: input.results
   };
