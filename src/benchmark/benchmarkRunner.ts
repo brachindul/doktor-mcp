@@ -6,6 +6,8 @@ import type { RerankResult } from "../health/precedentRerank.js";
 import { inferIssueProfileFromQuestion } from "../health/precedentRelevance.js";
 import { auditPack } from "../packAudit.js";
 import { healthLegislationHints } from "../sources/legislation/healthMappings.js";
+import { routeMedicalIssue } from "../medicalIssueRouter.js";
+import type { MedicalIssueId, MedicalIssueRouterResult } from "../medicalIssueRouter.js";
 import { doctorQuestions, FORBIDDEN_FIELDS_LIST, type BenchmarkQuestion } from "./doctorQuestions.js";
 import {
   buildSourceReliabilityMetrics,
@@ -110,6 +112,11 @@ export interface BenchmarkItemResult {
   missingPrecedentFieldCount: number;
   unofficialSourceDetected: boolean;
   unsafeAdviceDetected: boolean;
+  // Medical issue router summary (v0.23.0)
+  routedIssueIds: MedicalIssueId[];
+  primaryIssueId: MedicalIssueId | null;
+  routerConfidence: string | null;
+  routerMissingInfoHintCount: number;
   notes: string;
 }
 
@@ -205,6 +212,14 @@ export interface BenchmarkReport {
     missingMetadataCount: number;
     weakRelevanceCount: number;
     missingTraceCount: number;
+  };
+  // Medical issue router aggregate metrics (v0.23.0)
+  routerMetrics: {
+    routedIssueCoverage: Record<string, number>;
+    lowConfidenceRouteCount: number;
+    unclearOrMixedCount: number;
+    multiIssueQuestionCount: number;
+    primaryIssueDistribution: Record<string, number>;
   };
   // Official legislation coverage summary (v0.22.0)
   officialLegislationCoverage: {
@@ -378,6 +393,8 @@ export function evaluateBenchmarkItem(input: {
   const auditStatus: AuditStatus = auditRes.errors.length + verifiedAuditErrors.length > 0 ? "error" :
     auditRes.warnings.length + verifiedAuditWarnings.length > 0 ? "warning" : "clean";
 
+  const routerResult: MedicalIssueRouterResult = routeMedicalIssue(question.question);
+
   return {
     id: question.id,
     category: question.category,
@@ -447,6 +464,10 @@ export function evaluateBenchmarkItem(input: {
     missingPrecedentFieldCount: auditRes.contractCheck.missingPrecedentFields.reduce((sum, e) => sum + e.fields.length, 0),
     unofficialSourceDetected: auditRes.contractCheck.unofficialSourceDetected,
     unsafeAdviceDetected: auditRes.contractCheck.unsafeAdviceDetected,
+    routedIssueIds: routerResult.routes.map((r) => r.issueId),
+    primaryIssueId: routerResult.primaryIssueId,
+    routerConfidence: routerResult.routes[0]?.confidence ?? null,
+    routerMissingInfoHintCount: routerResult.missingInfoHints.length,
     notes: question.notes
   };
 }
@@ -614,6 +635,10 @@ function evaluateThrownBenchmarkItem(input: {
     missingPrecedentFieldCount: 0,
     unofficialSourceDetected: false,
     unsafeAdviceDetected: false,
+    routedIssueIds: [],
+    primaryIssueId: null,
+    routerConfidence: null,
+    routerMissingInfoHintCount: 0,
     notes: input.question.notes
   };
 }
@@ -625,6 +650,34 @@ const KNOWN_UNCOVERED_LEGISLATION = [
   "Ayakta Teshis ve Tedavi Yapilan Ozel Saglik Kuruluslari Hakkinda Yonetmelik",
   "Saglik Meslek Mensuplarinın Is ve Gorev Tanimlarına Dair Yonetmelik"
 ] as const;
+
+function buildRouterMetrics(results: BenchmarkItemResult[]): BenchmarkReport["routerMetrics"] {
+  const routedIssueCoverage: Record<string, number> = {};
+  const primaryIssueDistribution: Record<string, number> = {};
+  let lowConfidenceRouteCount = 0;
+  let unclearOrMixedCount = 0;
+  let multiIssueQuestionCount = 0;
+
+  for (const result of results) {
+    for (const issueId of result.routedIssueIds) {
+      routedIssueCoverage[issueId] = (routedIssueCoverage[issueId] ?? 0) + 1;
+    }
+    if (result.primaryIssueId) {
+      primaryIssueDistribution[result.primaryIssueId] = (primaryIssueDistribution[result.primaryIssueId] ?? 0) + 1;
+    }
+    if (result.routerConfidence === "low") lowConfidenceRouteCount++;
+    if (result.primaryIssueId === "unclear_or_mixed") unclearOrMixedCount++;
+    if (result.routedIssueIds.length > 1) multiIssueQuestionCount++;
+  }
+
+  return {
+    routedIssueCoverage,
+    lowConfidenceRouteCount,
+    unclearOrMixedCount,
+    multiIssueQuestionCount,
+    primaryIssueDistribution
+  };
+}
 
 function buildOfficialLegislationCoverage(results: BenchmarkItemResult[]): BenchmarkReport["officialLegislationCoverage"] {
   // Collect unique sourceIds registered in healthLegislationHints
@@ -756,6 +809,7 @@ function buildBenchmarkReport(input: {
       weakRelevanceCount: verifiedAuditEntries.filter((entry) => (entry.healthLawRelevanceScore ?? 0) < 1).length,
       missingTraceCount: verifiedAuditEntries.filter((entry) => !entry.decisionSourceTracePresent).length
     },
+    routerMetrics: buildRouterMetrics(input.results),
     officialLegislationCoverage: buildOfficialLegislationCoverage(input.results),
     contractPassedCount: input.results.filter((r) => r.contractPassed).length,
     contractFailedCount: input.results.filter((r) => !r.contractPassed).length,

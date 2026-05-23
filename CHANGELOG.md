@@ -1,5 +1,59 @@
 # Changelog
 
+## [0.23.0] — 2026-05-23 — Medical Issue Router
+
+> Tag: `v0.23.0-medical-issue-router`
+
+### Added
+
+- **`src/medicalIssueRouter.ts`** — Deterministic, keyword-driven medical issue router.
+  - No LLM calls; no external network; pure function.
+  - Covers **16 issue categories**: `informed_consent`, `medical_records`, `privacy_kvkk`, `emergency_care`, `referral_consultation`, `malpractice_complication`, `disciplinary_admin`, `patient_rights`, `criminal_liability`, `civil_compensation`, `private_health_facility`, `professional_scope_of_practice`, `workplace_employee_health`, `prescription_report`, `death_postmortem`, `unclear_or_mixed`.
+  - Per-issue: normalised phrase matching (+3 each) + keyword matching (+1 each); confidence thresholds: high ≥ 5, medium ≥ 2, low ≥ 1.
+  - Supports **multi-label routing** (a single question may map to several issue axes).
+  - Output per route: `issueId`, `label`, `confidence`, `score`, `matchedTerms`, `reason`, `suggestedTopicClusters`, `suggestedCourtSearchTerms`.
+  - Top-level output: `normalizedQuestion`, `routes[]`, `primaryIssueId`, `missingInfoHints`, `routerWarnings`.
+  - Turkish diacritic normalization via shared `normalizeText` from `precedentRelevance.ts`.
+  - Integrates with v0.22.0 topic clusters: `private_health_facility`, `professional_scope_of_practice` used in route output.
+  - **Safety invariants enforced**: no risk level, no definitive legal opinion, no action instructions, no petition/defence draft in any output field.
+
+- **`BenchmarkItemResult`** new fields (v0.23.0):
+  - `routedIssueIds` — issue IDs matched for this question
+  - `primaryIssueId` — top-scoring issue
+  - `routerConfidence` — confidence of the primary route
+  - `routerMissingInfoHintCount` — number of missing-info hints returned
+
+- **`BenchmarkReport.routerMetrics`** aggregate section:
+  - `routedIssueCoverage` — frequency map of each issue ID across all questions
+  - `lowConfidenceRouteCount` — questions where primary confidence is "low"
+  - `unclearOrMixedCount` — questions routed to `unclear_or_mixed`
+  - `multiIssueQuestionCount` — questions matching more than one issue
+  - `primaryIssueDistribution` — frequency map of primary issue IDs
+
+- **`tests/medicalIssueRouter.test.ts`** — 37 new pure-function tests:
+  - All 15 issue types with representative Turkish physician questions
+  - Multi-issue questions (onam + epikriz, disiplin + tazminat)
+  - Empty / whitespace / vague input → `unclear_or_mixed`
+  - Output contract validation (fields, types, ordering)
+  - Safety invariants (no forbidden content in any output field)
+  - Topic cluster alignment with v0.22.0 clusters
+  - Turkish diacritic normalization symmetry
+  - Total test count: **390** (was 353)
+
+### Constraints Observed
+
+- No latency/timeout hardening.
+- No Yargıtay/Bedesten performance changes.
+- No local-yargi module or fork.
+- No new live source integration.
+- Physician-facing output contract (`DoctorLegalInformationPack`) not modified.
+- No risk level, urgent action, definitive legal opinion, or petition/defence draft.
+- Benchmark dataset not enlarged (router runs on existing 15 questions).
+- `officialLegislationCoverage` metrics preserved (5 covered, 16 clusters, 3 gaps).
+- `exports/` and `.cache/` remain untracked.
+
+---
+
 ## [0.22.0] — 2026-05-23 — Official Health Legislation Coverage
 
 > Tag: `v0.22.0-official-health-legislation-coverage`
