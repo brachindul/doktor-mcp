@@ -16,6 +16,44 @@ export interface QueryAttemptTelemetry {
   usableCandidateCount: number;
   sourceUnavailable: boolean;
   errorCode?: string;
+  // Cache telemetry (populated when adapter has PrecedentCache wired)
+  cacheHit: boolean;
+  cacheMiss: boolean;
+  servedFromCache: boolean;
+  networkRequestMade: boolean;
+  cacheAgeMs: number | null;
+  // HTTP retry/backoff telemetry
+  retryCount: number;
+  backoffMs: number;
+  retryAfterMs: number | null;
+  timedOut: boolean;
+}
+
+/** Telemetry emitted by an adapter after each cache lookup or network attempt. */
+export interface AdapterRequestTelemetry {
+  cacheHit: boolean;
+  cacheMiss: boolean;
+  servedFromCache: boolean;
+  networkRequestMade: boolean;
+  cacheAgeMs: number | null;
+  retryCount: number;
+  backoffMs: number;
+  retryAfterMs: number | null;
+  timedOut: boolean;
+}
+
+export function defaultAdapterRequestTelemetry(): AdapterRequestTelemetry {
+  return {
+    cacheHit: false,
+    cacheMiss: false,
+    servedFromCache: false,
+    networkRequestMade: true,
+    cacheAgeMs: null,
+    retryCount: 0,
+    backoffMs: 0,
+    retryAfterMs: null,
+    timedOut: false
+  };
 }
 
 export interface QuerySessionSummary {

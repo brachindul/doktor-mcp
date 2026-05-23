@@ -6,6 +6,9 @@ import type { LiveDanistayResult, LiveDanistayUnavailable } from "./liveTypes.js
 import { DANISTAY_SOURCE } from "./liveTypes.js";
 import { extractDanistayFullText, classifyNonJsonResponse } from "./danistayNormalizer.js";
 import { extractLegalReasoning, extractOutcome } from "../precedentUtils.js";
+import { PrecedentCache } from "../precedentCache.js";
+import type { AdapterRequestTelemetry } from "../../contracts/queryTelemetry.js";
+import { defaultAdapterRequestTelemetry } from "../../contracts/queryTelemetry.js";
 
 const BASE_URL = "https://karararama.danistay.gov.tr";
 const SEARCH_URL = `${BASE_URL}/aramalist`;
@@ -15,17 +18,25 @@ export interface LiveDanistayAdapterOptions {
   fetchImpl?: typeof fetch;
   now?: () => Date;
   wait?: (ms: number) => Promise<void>;
+  cache?: PrecedentCache;
 }
 
 export class LiveDanistayAdapter implements PrecedentSourceAdapter {
   private readonly fetchImpl: typeof fetch;
   private readonly now: () => Date;
   private readonly wait: (ms: number) => Promise<void>;
+  private readonly cache: PrecedentCache;
+  /** Telemetry from the most recent searchAndNormalize call. */
+  public lastRequestTelemetry: AdapterRequestTelemetry = defaultAdapterRequestTelemetry();
+  /** Internal retry counter, reset per searchAndNormalize call. */
+  private _retryCount = 0;
+  private _totalBackoffMs = 0;
 
   constructor(options: LiveDanistayAdapterOptions = {}) {
     this.fetchImpl = options.fetchImpl ?? fetch;
     this.now = options.now ?? (() => new Date());
     this.wait = options.wait ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
+    this.cache = options.cache ?? PrecedentCache.disabled();
   }
 
   async searchHealthPrecedents(classification: ClassifiedMedicalLegalQuestion): Promise<CourtDecision[]> {
@@ -35,6 +46,25 @@ export class LiveDanistayAdapter implements PrecedentSourceAdapter {
   }
 
   async searchAndNormalize(query: string): Promise<LiveDanistayResult> {
+    this.lastRequestTelemetry = defaultAdapterRequestTelemetry();
+    this._retryCount = 0;
+    this._totalBackoffMs = 0;
+
+    // Cache lookup
+    const cacheLookup = await this.cache.getWithMeta<LiveDanistayResult>("danistay", query, MAX_RESULTS_PER_QUERY);
+    if (cacheLookup.hit && cacheLookup.value !== null) {
+      this.lastRequestTelemetry = {
+        ...defaultAdapterRequestTelemetry(),
+        cacheHit: true,
+        cacheMiss: false,
+        servedFromCache: true,
+        networkRequestMade: false,
+        cacheAgeMs: cacheLookup.ageMs
+      };
+      return cacheLookup.value;
+    }
+    this.lastRequestTelemetry.cacheMiss = true;
+
     const searchRequest = { url: SEARCH_URL, phrase: query, pageSize: MAX_RESULTS_PER_QUERY };
     const emptyTrace = this.buildEmptyTrace(query, searchRequest);
 
@@ -166,7 +196,7 @@ export class LiveDanistayAdapter implements PrecedentSourceAdapter {
       sourceTraces.push(trace);
     }
 
-    return {
+    const result: LiveDanistayResult = {
       status: "ok",
       source: DANISTAY_SOURCE,
       query,
@@ -175,6 +205,18 @@ export class LiveDanistayAdapter implements PrecedentSourceAdapter {
       decisions,
       sourceTraces
     };
+
+    // Update HTTP telemetry from accumulated retry counters
+    this.lastRequestTelemetry = {
+      ...this.lastRequestTelemetry,
+      retryCount: this._retryCount,
+      backoffMs: this._totalBackoffMs
+    };
+
+    // Write to cache for warm runs
+    await this.cache.set("danistay", query, MAX_RESULTS_PER_QUERY, result);
+
+    return result;
   }
 
   private async fetchFullText(url: string): Promise<string | null> {
@@ -198,7 +240,11 @@ export class LiveDanistayAdapter implements PrecedentSourceAdapter {
     const attempts = [0, 250, 750];
 
     for (const delay of attempts) {
-      if (delay > 0) await this.wait(delay);
+      if (delay > 0) {
+        this._retryCount += 1;
+        this._totalBackoffMs += delay;
+        await this.wait(delay);
+      }
 
       try {
         const response = await this.fetchImpl(url, init);

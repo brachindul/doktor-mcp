@@ -782,5 +782,62 @@ informational noise (transient live source quality notes) is visually separated 
 actionable tuning signals. A per-question taxonomy table is added to the Markdown report.
 `goodWithWarningsCount` is preserved for backward compatibility.
 
-v0.19 should consider source-specific query ranking, better court-result reranking before
-selection, and per-source latency/reliability metrics.
+v0.19.0 adds source query ranking and reliability metrics. Query attempt telemetry tracks
+source, issueProfile, queryText, queryType, queryRank, timing, resultCount, candidateCount,
+and usableCandidateCount per query attempt. A SOURCE_AFFINITIES table maps 12 issue profiles
+to 4 sources (Yargıtay, Danıştay, AYM, Bedesten) with affinity scores 1–3. The fallback
+query is only attempted when the first query returns 0 results. `rerankByIssueRelevance`
+stably sorts `precedent_usable` candidates by issue relevance score before final selection.
+Per-source and per-issueProfile reliability metrics (p50/p95, successes, verified count,
+avgRelevance) appear in benchmark reports. 59 new pure-function tests.
+
+v0.20.0 adds live performance/cache baseline. A shared `PrecedentCache` can be injected
+into the service; live adapters (Yargıtay, Danıştay) check the cache before each network
+call and write results on success. Adapters expose `lastRequestTelemetry` with cache hit/miss,
+cacheAgeMs, retryCount, backoffMs, retryAfterMs, and timedOut. These fields flow into
+`QueryAttemptTelemetry` so every query attempt carries full cache + HTTP retry provenance.
+A new `benchmark:doctor-questions:performance` command runs two consecutive live benchmark
+passes (cold then warm) over the same shared cache and produces cold/warm comparison,
+per-source latency, cache effectiveness, slow query diagnostics, retry/backoff summary, and
+performance warnings. Reports are written to `exports/doctor-benchmark/performance-benchmark-report.{json,md}`.
+40 new pure-function tests.
+
+### Performance Benchmark Command
+
+```sh
+npm run benchmark:doctor-questions:performance
+# or with limit:
+npm run benchmark:doctor-questions:performance -- --limit 5
+```
+
+The benchmark runs all 15 doctor questions twice. The cold run hits the live network and
+populates the local file cache (`.cache/precedents-perf/`). The warm run immediately
+replays the same queries from cache. The report shows:
+
+- Cold vs warm total duration and improvement %
+- Per-source cold/warm avg ms, p95, cache hits, network requests
+- Cache effectiveness: hit rate %, servedFromCache count, avg cache age
+- Retry/backoff summary: total retries, backoff time, rate-limit events, timeout count
+- Top 10 slowest query attempts (combined cold + warm)
+- Performance warnings (non-blocking; hard failures remain test/build/audit)
+
+### Interpreting p50/p95/p99
+
+| Value | Meaning |
+|---|---|
+| p50 | Median query duration — half of queries complete in this time or less |
+| p95 | 95th percentile — tail latency; most queries are faster than this |
+| p99 | 99th percentile — outlier latency; occasional slow queries |
+
+Cold p95 > 60s indicates a slow source (typically Yargıtay/Bedesten PDF fetch). Warm p95 > 10s
+indicates the cache is not effective for the slowest queries (possible TTL expiry or cache
+miss for full-text fetches inside the adapter).
+
+### Cache Integration
+
+The cache is disabled by default in normal live benchmark and smoke CLI runs. For the
+performance benchmark, a shared `PrecedentCache` (TTL 2h, dir `.cache/precedents-perf/`)
+is injected. The cache stores the complete `searchAndNormalize` result per (source, query,
+pageSize) key. The warm run replay is complete — no network calls are made for cached queries.
+
+`.cache/` is gitignored. Cache entries are not committed.

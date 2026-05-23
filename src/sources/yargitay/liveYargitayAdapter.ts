@@ -14,6 +14,9 @@ import {
 } from "../bedesten/bedestenApi.js";
 import { extractLegalReasoning, extractOutcome } from "../precedentUtils.js";
 import { HttpClient, BedestenRateLimitError, BedestenParseError, BedestenNetworkError } from "../../core/httpClient.js";
+import { PrecedentCache } from "../precedentCache.js";
+import type { AdapterRequestTelemetry } from "../../contracts/queryTelemetry.js";
+import { defaultAdapterRequestTelemetry } from "../../contracts/queryTelemetry.js";
 
 const SEARCH_URL = `${BEDESTEN_BASE_URL}/emsal-karar/searchDocuments`;
 const MAX_RESULTS_PER_QUERY = 5;
@@ -23,11 +26,15 @@ export interface LiveYargitayAdapterOptions {
   fetchImpl?: typeof fetch;
   now?: () => Date;
   wait?: (ms: number) => Promise<void>;
+  cache?: PrecedentCache;
 }
 
 export class LiveYargitayAdapter implements PrecedentSourceAdapter {
   private readonly httpClient: HttpClient;
   private readonly now: () => Date;
+  private readonly cache: PrecedentCache;
+  /** Telemetry from the most recent searchAndNormalize call. */
+  public lastRequestTelemetry: AdapterRequestTelemetry = defaultAdapterRequestTelemetry();
 
   constructor(options: LiveYargitayAdapterOptions = {}) {
     this.httpClient = options.httpClient ?? new HttpClient({
@@ -36,6 +43,7 @@ export class LiveYargitayAdapter implements PrecedentSourceAdapter {
       sleep: options.wait
     });
     this.now = options.now ?? (() => new Date());
+    this.cache = options.cache ?? PrecedentCache.disabled();
   }
 
   async searchHealthPrecedents(classification: ClassifiedMedicalLegalQuestion): Promise<CourtDecision[]> {
@@ -45,6 +53,23 @@ export class LiveYargitayAdapter implements PrecedentSourceAdapter {
   }
 
   async searchAndNormalize(query: string): Promise<LiveYargitayResult> {
+    this.lastRequestTelemetry = defaultAdapterRequestTelemetry();
+
+    // Cache lookup
+    const cacheLookup = await this.cache.getWithMeta<LiveYargitayResult>("yargitay", query, MAX_RESULTS_PER_QUERY);
+    if (cacheLookup.hit && cacheLookup.value !== null) {
+      this.lastRequestTelemetry = {
+        ...defaultAdapterRequestTelemetry(),
+        cacheHit: true,
+        cacheMiss: false,
+        servedFromCache: true,
+        networkRequestMade: false,
+        cacheAgeMs: cacheLookup.ageMs
+      };
+      return cacheLookup.value;
+    }
+    this.lastRequestTelemetry.cacheMiss = true;
+
     const emptyTrace = this.buildEmptyTrace(query);
 
     const searchBody = buildBedestenSearchBody(query, ["YARGITAYKARARI"], MAX_RESULTS_PER_QUERY);
@@ -56,6 +81,12 @@ export class LiveYargitayAdapter implements PrecedentSourceAdapter {
       });
     } catch (error) {
       const telemetry = (error as { telemetry?: { retryCount: number; backoffMs: number; httpStatus: number | null; contentType: string | null } }).telemetry;
+      this.lastRequestTelemetry = {
+        ...this.lastRequestTelemetry,
+        retryCount: telemetry?.retryCount ?? 0,
+        backoffMs: telemetry?.backoffMs ?? 0,
+        retryAfterMs: error instanceof BedestenRateLimitError ? error.retryAfterMs : null
+      };
       const errTrace = { ...emptyTrace, error: error instanceof Error ? error.message : String(error), ...(telemetry ?? {}) };
       if (error instanceof BedestenRateLimitError) {
         return unavailable("source_blocked", error.message, true, "Retry after the source cools down.", [errTrace]);
@@ -175,7 +206,7 @@ export class LiveYargitayAdapter implements PrecedentSourceAdapter {
       sourceTraces.push(trace);
     }
 
-    return {
+    const result: LiveYargitayResult = {
       status: "ok",
       source: YARGITAY_SOURCE,
       query,
@@ -187,6 +218,19 @@ export class LiveYargitayAdapter implements PrecedentSourceAdapter {
       decisions,
       sourceTraces
     };
+
+    // Update HTTP telemetry fields from the last HTTP call
+    const httpT = this.httpClient.lastTelemetry;
+    this.lastRequestTelemetry = {
+      ...this.lastRequestTelemetry,
+      retryCount: httpT.retryCount,
+      backoffMs: httpT.backoffMs
+    };
+
+    // Write to cache so warm runs can skip the network
+    await this.cache.set("yargitay", query, MAX_RESULTS_PER_QUERY, result);
+
+    return result;
   }
 
   private buildEmptyTrace(query: string): DecisionSourceTrace {

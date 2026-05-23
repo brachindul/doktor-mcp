@@ -8,6 +8,7 @@ import type {
   PrecedentSourceResult
 } from "../contracts/legal.js";
 import type { QueryAttemptTelemetry } from "../contracts/queryTelemetry.js";
+import { PrecedentCache } from "../sources/precedentCache.js";
 
 import { composeDoctorLegalInformationPack } from "../health/answerComposer.js";
 import { LegislationMapper } from "../health/legislationMapper.js";
@@ -43,6 +44,8 @@ export interface PhysicianLegalInformationServiceOptions {
   liveYargitay?: LiveYargitayAdapter;
   liveDanistay?: LiveDanistayAdapter;
   liveBedesten?: LiveBedestenAdapter;
+  /** Optional shared cache for live precedent adapters. Defaults to disabled. */
+  precedentCache?: PrecedentCache;
 }
 
 export class PhysicianLegalInformationService {
@@ -61,8 +64,9 @@ export class PhysicianLegalInformationService {
   constructor(options: PhysicianLegalInformationServiceOptions = {}) {
     this.mockLegislation = options.mockLegislation ?? new MockLegislationAdapter();
     this.liveLegislation = options.liveLegislation ?? new LiveOfficialLegislationAdapter();
-    this.liveYargitay = options.liveYargitay ?? new LiveYargitayAdapter();
-    this.liveDanistay = options.liveDanistay ?? new LiveDanistayAdapter();
+    const cache = options.precedentCache; // undefined = adapters use their own default (disabled)
+    this.liveYargitay = options.liveYargitay ?? new LiveYargitayAdapter({ cache });
+    this.liveDanistay = options.liveDanistay ?? new LiveDanistayAdapter({ cache });
     this.liveBedesten = options.liveBedesten ?? new LiveBedestenAdapter();
     this.legislationMapper = new LegislationMapper(this.mockLegislation);
   }
@@ -192,7 +196,7 @@ export class PhysicianLegalInformationService {
                 decisions = await this.liveBedesten.searchHealthPrecedents(classification);
                 resultCount = decisions.length;
                 success = resultCount > 0;
-              } catch (err) {
+              } catch (_err) {
                 isUnavailable = true;
                 errorCode = "source_error";
                 sourceAvailable = false;
@@ -207,6 +211,13 @@ export class PhysicianLegalInformationService {
           }
 
           const durationMs = Date.now() - t0;
+
+          // Read adapter-level request telemetry (cache hit/miss, retry counts)
+          const adapterT = src === "yargitay"
+            ? this.liveYargitay.lastRequestTelemetry
+            : src === "danistay"
+              ? this.liveDanistay.lastRequestTelemetry
+              : null;
 
           // Deduplicate and assess candidates
           const newDecisions = decisions.filter((d) => !seenIds.has(d.id));
@@ -231,7 +242,17 @@ export class PhysicianLegalInformationService {
             candidateCount,
             usableCandidateCount,
             sourceUnavailable: isUnavailable,
-            ...(errorCode ? { errorCode } : {})
+            ...(errorCode ? { errorCode } : {}),
+            // Cache & HTTP retry telemetry
+            cacheHit: adapterT?.cacheHit ?? false,
+            cacheMiss: adapterT?.cacheMiss ?? false,
+            servedFromCache: adapterT?.servedFromCache ?? false,
+            networkRequestMade: adapterT?.networkRequestMade ?? true,
+            cacheAgeMs: adapterT?.cacheAgeMs ?? null,
+            retryCount: adapterT?.retryCount ?? 0,
+            backoffMs: adapterT?.backoffMs ?? 0,
+            retryAfterMs: adapterT?.retryAfterMs ?? null,
+            timedOut: adapterT?.timedOut ?? false
           });
 
           // Only try fallback query if first query returned 0 results (and source not unavailable)

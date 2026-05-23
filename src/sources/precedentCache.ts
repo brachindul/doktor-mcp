@@ -9,6 +9,13 @@ interface CacheEntry<T> {
   result: T;
 }
 
+export interface CacheLookupResult<T> {
+  hit: boolean;
+  value: T | null;
+  ageMs: number | null;
+  key: string;
+}
+
 function safeKey(source: string, query: string, pageSize: number): string {
   const safe = query.replace(/[^a-zA-Z0-9À-ɏ]/g, "-").slice(0, 50).replace(/-+/g, "-").replace(/^-|-$/g, "");
   return `${source}_${safe}_${pageSize}.json`;
@@ -26,16 +33,22 @@ export class PrecedentCache {
   }
 
   async get<T>(source: string, query: string, pageSize: number): Promise<T | null> {
-    if (!this.enabled) return null;
-    const path = join(this.dir, safeKey(source, query, pageSize));
+    const result = await this.getWithMeta<T>(source, query, pageSize);
+    return result.value;
+  }
+
+  async getWithMeta<T>(source: string, query: string, pageSize: number): Promise<CacheLookupResult<T>> {
+    const key = safeKey(source, query, pageSize);
+    if (!this.enabled) return { hit: false, value: null, ageMs: null, key };
+    const filePath = join(this.dir, key);
     try {
-      const raw = await readFile(path, "utf-8");
+      const raw = await readFile(filePath, "utf-8");
       const entry = JSON.parse(raw) as CacheEntry<T>;
-      const age = Date.now() - new Date(entry.cachedAt).getTime();
-      if (age > this.ttlMs) return null;
-      return entry.result;
+      const ageMs = Date.now() - new Date(entry.cachedAt).getTime();
+      if (ageMs > this.ttlMs) return { hit: false, value: null, ageMs, key };
+      return { hit: true, value: entry.result, ageMs, key };
     } catch {
-      return null;
+      return { hit: false, value: null, ageMs: null, key };
     }
   }
 
