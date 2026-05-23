@@ -702,6 +702,17 @@ Reports include `startedAt`, `completedAt`, `durationMs`, `passedRegressionCount
 `failedRegressionCount`, `liveSourceUnavailableCount`, audit counts, legislation/precent
 coverage counts, and per-question scoring.
 
+v0.17.1 expands live benchmark quality audit fields for every selected verified precedent:
+court, chamber, decision date, docket/decision numbers, access source, document id/source
+id, source URL when available, full-text availability, reasoning detection, eligibility
+status/reasons, health-law relevance score, matched terms, and decision source trace
+presence. The report does not print full decision text.
+
+In live mode, mock fallback is a hard regression. AYM remains disabled/mock-only and cannot
+silently supply live verified precedents. `sourceUnavailable`, empty live search results,
+and transient upstream failures remain quality metrics and warnings unless they cause an
+unsafe precedent or schema/audit violation.
+
 ### Scoring
 
 Each question receives:
@@ -718,6 +729,13 @@ Each question receives:
 unavailability can lower quality, but only safety violations or audit errors make an item
 `unsafe`.
 
+Verified precedent scoring is intentionally stricter in v0.17.1. A selected verified
+precedent must be `precedent_usable`, have confirmed full text, have detected legal
+reasoning, and retain a decision source trace. Metadata-only, procedural-only,
+no-reasoning, full-text-unavailable, or mock-access records cannot receive verified
+precedent credit in live mode. Weak health-law relevance caps precedent safety credit and
+is reported as a tuning warning rather than being hidden behind a high aggregate score.
+
 ## Release Notes
 
 v0.16.1 is an audit and cleanup release for benchmark artifact hygiene. It keeps benchmark
@@ -730,6 +748,8 @@ hard failures. Track legislation ordering, `sourceUnavailable`, precedent safety
 `auditOk` as report metrics for those live runs.
 
 v0.17.0 adds those live benchmark/evaluation metrics and separate live report files.
-v0.17.1 should use the accumulated live reports to tune source query expansion, legislation
-priority gaps, and questions without verified precedents while keeping live outages as
-report metrics rather than hard failures.
+v0.17.1 audits the unusually strong v0.17.0 live result by tightening verified precedent
+eligibility, source trace checks, mock fallback detection, and benchmark Markdown/JSON audit
+fields. v0.18 should use these reports for query expansion, live quality thresholds, source
+reliability metrics, and legislation-priority tuning while keeping live outages distinct
+from unsafe precedent use.

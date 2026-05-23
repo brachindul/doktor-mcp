@@ -87,13 +87,31 @@ export interface FilteredPrecedent {
 
 export interface VerifiedPrecedentEntry {
   courtAndChamber: string;
+  court?: Exclude<SourceKind, "legislation">;
+  chamber?: string;
   date: string;
+  decisionDate?: string;
   meritsAndDecisionNumber: string;
+  meritsNumber?: string;
+  decisionNumber?: string;
   factSummary: string;
   legalAssessment: string;
   outcome: string;
   similarityDifference: string;
   sourceDocumentId: string;
+  sourceId?: string;
+  sourceUrl?: string;
+  accessSource?: string;
+  fullTextAvailable?: boolean;
+  reasoningDetected?: boolean;
+  eligibilityStatus?: PrecedentStatus;
+  eligibilityReasons?: string[];
+  exclusionReasons?: string[];
+  healthLawRelevanceScore?: number;
+  matchedQueryTerms?: string[];
+  matchedHealthLawTerms?: string[];
+  selectedAsVerifiedReason?: string;
+  decisionSourceTrace?: DecisionSourceTrace;
 }
 
 export interface LegalClassificationSection {

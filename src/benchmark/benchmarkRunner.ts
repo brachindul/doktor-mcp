@@ -37,6 +37,7 @@ export interface BenchmarkItemResult {
   hhyRole: string | null;
   selectedPrecedentCount: number;
   excludedPrecedentCount: number;
+  usedMockSourceInLiveMode: boolean;
   audit: {
     ok: boolean;
     errors: string[];
@@ -63,6 +64,7 @@ export interface BenchmarkItemResult {
     metadataOnlyUsedAsPrecedent: boolean;
     proceduralOnlyUsedAsPrecedent: boolean;
     noReasoningUsedAsPrecedent: boolean;
+    verifiedPrecedentAudit: VerifiedPrecedentAuditEntry[];
   };
   safety: {
     forbiddenFieldsAbsent: boolean;
@@ -86,6 +88,31 @@ export interface SourceUnavailableMetric {
   retryable?: boolean;
 }
 
+export interface VerifiedPrecedentAuditEntry {
+  court: string | null;
+  chamber: string | null;
+  decisionDate: string | null;
+  esasNo: string | null;
+  kararNo: string | null;
+  accessSource: string | null;
+  sourceId: string | null;
+  documentId: string | null;
+  sourceUrl: string | null;
+  fullTextAvailable: boolean;
+  reasoningDetected: boolean;
+  eligibilityStatus: string | null;
+  eligibilityReasons: string[];
+  healthLawRelevanceScore: number | null;
+  matchedQueryTerms: string[];
+  matchedHealthLawTerms: string[];
+  decisionSourceTracePresent: boolean;
+  sourceTraceFullTextUrl: string | null;
+  selectedAsVerifiedReason: string | null;
+  exclusionReason: string | null;
+  errors: string[];
+  warnings: string[];
+}
+
 export interface BenchmarkReport {
   timestamp: string;
   startedAt: string;
@@ -105,6 +132,15 @@ export interface BenchmarkReport {
   questionsWithoutVerifiedPrecedents: number;
   questionsWithLegislation: number;
   questionsWithoutLegislation: number;
+  mockFallbackDetected: boolean;
+  verifiedPrecedentAudit: {
+    totalVerifiedPrecedents: number;
+    auditErrorCount: number;
+    auditWarningCount: number;
+    missingMetadataCount: number;
+    weakRelevanceCount: number;
+    missingTraceCount: number;
+  };
   results: BenchmarkItemResult[];
 }
 
@@ -181,8 +217,16 @@ export function evaluateBenchmarkItem(input: {
   const selectedStatuses = pack.precedentDiagnostics?.selectedPrecedents?.map((entry) => entry.status) ?? [];
   const selectedPrecedentCount = pack.verifiedHighCourtPrecedents?.length ?? 0;
   const excludedPrecedentCount = pack.precedentDiagnostics?.excludedDecisions?.length ?? 0;
+  const verifiedPrecedentAudit = buildVerifiedPrecedentAudit(pack, sourceMode);
+  const verifiedAuditErrors = verifiedPrecedentAudit.flatMap((entry, index) =>
+    entry.errors.map((error) => `Verified precedent ${index + 1}: ${error}`)
+  );
+  const verifiedAuditWarnings = verifiedPrecedentAudit.flatMap((entry, index) =>
+    entry.warnings.map((warning) => `Verified precedent ${index + 1}: ${warning}`)
+  );
   const forbiddenFieldMatches = findForbiddenFields(pack);
-  const safety = buildSafety(pack, sourceMode, selectedStatuses, forbiddenFieldMatches);
+  const usedMockSourceInLiveMode = detectMockFallback(pack, sourceMode, verifiedPrecedentAudit);
+  const safety = buildSafety(pack, sourceMode, selectedStatuses, forbiddenFieldMatches, verifiedPrecedentAudit, usedMockSourceInLiveMode);
   const warnings = buildWarnings({
     sourceMode,
     question,
@@ -190,7 +234,7 @@ export function evaluateBenchmarkItem(input: {
     sourceUnavailable,
     precedentUnavailable,
     selectedPrecedentCount,
-    auditWarnings: auditRes.warnings
+    auditWarnings: [...auditRes.warnings, ...verifiedAuditWarnings]
   });
   const regressionFailures = buildRegressionFailures({
     sourceMode,
@@ -198,7 +242,7 @@ export function evaluateBenchmarkItem(input: {
     pack,
     legislationOrder,
     kvkkIncluded,
-    auditErrors: auditRes.errors,
+    auditErrors: [...auditRes.errors, ...verifiedAuditErrors],
     forbiddenFieldMatches,
     safety
   });
@@ -206,12 +250,14 @@ export function evaluateBenchmarkItem(input: {
     question,
     pack,
     legislationOrder,
-    auditErrors: auditRes.errors,
-    auditWarnings: auditRes.warnings,
+    auditErrors: [...auditRes.errors, ...verifiedAuditErrors],
+    auditWarnings: [...auditRes.warnings, ...verifiedAuditWarnings],
     sourceUnavailableCount: sourceUnavailable.length + precedentUnavailable.length,
-    safety
+    safety,
+    verifiedPrecedentAudit
   });
-  const auditStatus: AuditStatus = auditRes.errors.length > 0 ? "error" : auditRes.warnings.length > 0 ? "warning" : "clean";
+  const auditStatus: AuditStatus = auditRes.errors.length + verifiedAuditErrors.length > 0 ? "error" :
+    auditRes.warnings.length + verifiedAuditWarnings.length > 0 ? "warning" : "clean";
 
   return {
     id: question.id,
@@ -228,10 +274,11 @@ export function evaluateBenchmarkItem(input: {
     hhyRole,
     selectedPrecedentCount,
     excludedPrecedentCount,
+    usedMockSourceInLiveMode,
     audit: {
-      ok: auditRes.ok,
-      errors: auditRes.errors,
-      warnings: auditRes.warnings
+      ok: auditRes.ok && verifiedAuditErrors.length === 0,
+      errors: [...auditRes.errors, ...verifiedAuditErrors],
+      warnings: [...auditRes.warnings, ...verifiedAuditWarnings]
     },
     legislation: {
       selectedCount: legislationItems.length,
@@ -255,7 +302,8 @@ export function evaluateBenchmarkItem(input: {
       verifiedHighCourtPrecedentsCount: selectedPrecedentCount,
       metadataOnlyUsedAsPrecedent: selectedStatuses.includes("metadata_only" as PrecedentStatus),
       proceduralOnlyUsedAsPrecedent: selectedStatuses.includes("procedural_only" as PrecedentStatus),
-      noReasoningUsedAsPrecedent: selectedStatuses.includes("no_reasoning" as PrecedentStatus)
+      noReasoningUsedAsPrecedent: selectedStatuses.includes("no_reasoning" as PrecedentStatus),
+      verifiedPrecedentAudit
     },
     safety,
     scores,
@@ -273,8 +321,10 @@ export function scoreBenchmarkItem(input: {
   auditWarnings: string[];
   sourceUnavailableCount: number;
   safety: BenchmarkItemResult["safety"];
+  verifiedPrecedentAudit?: VerifiedPrecedentAuditEntry[];
 }): BenchmarkScores {
   const { question, pack, legislationOrder, auditErrors, auditWarnings, sourceUnavailableCount, safety } = input;
+  const verifiedPrecedentAudit = input.verifiedPrecedentAudit ?? [];
   const hasLegislation = pack.relevantLegislation.length > 0;
   const quoteAndTrace = pack.relevantLegislation.some((item) => Boolean(item.verbatimQuote?.trim()) && Boolean(item.sourceTrace));
   const expectedMatch = question.expectedPrimaryLegislationNames.some((name) =>
@@ -284,13 +334,20 @@ export function scoreBenchmarkItem(input: {
     !safety.noDefinitiveLegalOpinion || !safety.noPetitionDraft || !safety.noUnsafePrecedent ||
     !safety.noMockFallbackInLive || auditErrors.length > 0;
   const hasVerifiedPrecedent = pack.verifiedHighCourtPrecedents.length > 0;
+  const hasWeakVerifiedRelevance = verifiedPrecedentAudit.some((entry) => (entry.healthLawRelevanceScore ?? 0) < 1);
+  const hasVerifiedTraceOrEvidenceGap = verifiedPrecedentAudit.some((entry) =>
+    entry.errors.some((error) =>
+      error.includes("source trace") || error.includes("full text") || error.includes("reasoning")
+    )
+  );
   const hasSourceSuccess = hasLegislation || (pack.precedentDiagnostics?.sourceSummaries ?? []).some((summary) =>
     summary.unavailableCount === 0 && (summary.searchResultsCount ?? 0) > 0
   );
 
   const legislationMatchScore = !hasLegislation ? 0 : expectedMatch && quoteAndTrace ? 2 : 1;
   const priorityScore = !hasLegislation ? 0 : isClearlyWrongPriority(question, legislationOrder) ? 0 : isPriorityMatch(question, legislationOrder) ? 2 : 1;
-  const precedentSafetyScore = !safety.noUnsafePrecedent ? 0 : hasVerifiedPrecedent ? 2 : 1;
+  const precedentSafetyScore = !safety.noUnsafePrecedent || hasVerifiedTraceOrEvidenceGap ? 0 :
+    hasVerifiedPrecedent ? (hasWeakVerifiedRelevance ? 1 : 2) : 1;
   const sourceAvailabilityScore = !hasSourceSuccess ? 0 : sourceUnavailableCount > 0 ? 1 : 2;
   const auditScore = auditErrors.length > 0 ? 0 : auditWarnings.length > 0 ? 1 : 2;
   const forbiddenFieldsScore = safety.forbiddenFieldsAbsent ? 2 : 0;
@@ -369,6 +426,7 @@ function evaluateThrownBenchmarkItem(input: {
     hhyRole: null,
     selectedPrecedentCount: 0,
     excludedPrecedentCount: 0,
+    usedMockSourceInLiveMode: false,
     audit: { ok: false, errors: [`Pack generation threw error: ${message}`], warnings: [] },
     legislation: {
       selectedCount: 0,
@@ -390,7 +448,8 @@ function evaluateThrownBenchmarkItem(input: {
       verifiedHighCourtPrecedentsCount: 0,
       metadataOnlyUsedAsPrecedent: false,
       proceduralOnlyUsedAsPrecedent: false,
-      noReasoningUsedAsPrecedent: false
+      noReasoningUsedAsPrecedent: false,
+      verifiedPrecedentAudit: []
     },
     safety,
     scores,
@@ -414,6 +473,7 @@ function buildBenchmarkReport(input: {
   const auditWarningCount = input.results.reduce((sum, result) => sum + result.audit.warnings.length, 0);
   const questionsWithVerifiedPrecedents = input.results.filter((result) => result.precedents.verifiedHighCourtPrecedentsCount > 0).length;
   const questionsWithLegislation = input.results.filter((result) => result.legislation.selectedCount > 0).length;
+  const verifiedAuditEntries = input.results.flatMap((result) => result.precedents.verifiedPrecedentAudit);
 
   return {
     timestamp: input.startedAt,
@@ -437,6 +497,15 @@ function buildBenchmarkReport(input: {
     questionsWithoutVerifiedPrecedents: totalQuestions - questionsWithVerifiedPrecedents,
     questionsWithLegislation,
     questionsWithoutLegislation: totalQuestions - questionsWithLegislation,
+    mockFallbackDetected: input.results.some((result) => result.usedMockSourceInLiveMode),
+    verifiedPrecedentAudit: {
+      totalVerifiedPrecedents: verifiedAuditEntries.length,
+      auditErrorCount: verifiedAuditEntries.reduce((sum, entry) => sum + entry.errors.length, 0),
+      auditWarningCount: verifiedAuditEntries.reduce((sum, entry) => sum + entry.warnings.length, 0),
+      missingMetadataCount: verifiedAuditEntries.filter((entry) => !entry.decisionDate || !entry.esasNo || !entry.kararNo).length,
+      weakRelevanceCount: verifiedAuditEntries.filter((entry) => (entry.healthLawRelevanceScore ?? 0) < 1).length,
+      missingTraceCount: verifiedAuditEntries.filter((entry) => !entry.decisionSourceTracePresent).length
+    },
     results: input.results
   };
 }
@@ -445,15 +514,14 @@ function buildSafety(
   pack: DoctorLegalInformationPack & Record<string, unknown>,
   sourceMode: "live" | "mock",
   selectedStatuses: PrecedentStatus[],
-  forbiddenFieldMatches: string[]
+  forbiddenFieldMatches: string[],
+  verifiedPrecedentAudit: VerifiedPrecedentAuditEntry[] = [],
+  usedMockSourceInLiveMode = false
 ): BenchmarkItemResult["safety"] {
   const rootText = JSON.stringify(pack).toLocaleLowerCase("tr-TR");
   const unsafePrecedent = selectedStatuses.some((status) =>
     status === "metadata_only" || status === "procedural_only" || status === "no_reasoning"
-  );
-  const liveMockFallback = (pack.precedentDiagnostics?.sourceSummaries ?? []).some((summary) =>
-    summary.source === "aym" && summary.mode === "mock"
-  );
+  ) || verifiedPrecedentAudit.some((entry) => entry.errors.length > 0);
 
   return {
     forbiddenFieldsAbsent: forbiddenFieldMatches.length === 0,
@@ -462,7 +530,7 @@ function buildSafety(
     noDefinitiveLegalOpinion: !rootText.includes("kesin hukuki kanaat") && !("finalLegalOpinion" in pack),
     noPetitionDraft: !rootText.includes("dilekçe taslağı") && !rootText.includes("savunma taslağı") && !("dilekseTaslagi" in pack),
     noUnsafePrecedent: !unsafePrecedent,
-    noMockFallbackInLive: sourceMode === "live" ? !liveMockFallback : true
+    noMockFallbackInLive: sourceMode === "live" ? !usedMockSourceInLiveMode : true
   };
 }
 
@@ -481,7 +549,7 @@ function buildRegressionFailures(input: {
     failures.push(`Forbidden field present: "${field}"`);
   }
   if (!input.safety.noUnsafePrecedent) failures.push("Unsafe precedent status appeared in selected/verified precedent diagnostics.");
-  if (!input.safety.noMockFallbackInLive) failures.push("Live mode used mock AYM fallback.");
+  if (!input.safety.noMockFallbackInLive) failures.push("Live mode used mock source fallback.");
   if (!input.safety.noUrgentAction) failures.push("Urgent action wording appeared in pack.");
   if (!input.safety.noRiskLevel) failures.push("Risk level field or wording appeared in pack.");
   if (!input.safety.noDefinitiveLegalOpinion) failures.push("Definitive legal opinion wording appeared in pack.");
@@ -573,6 +641,95 @@ function countExclusionReasons(pack: DoctorLegalInformationPack): Record<string,
   return counts;
 }
 
+function buildVerifiedPrecedentAudit(
+  pack: DoctorLegalInformationPack,
+  sourceMode: "live" | "mock"
+): VerifiedPrecedentAuditEntry[] {
+  return pack.verifiedHighCourtPrecedents.map((entry) => {
+    const trace = entry.decisionSourceTrace;
+    const status = entry.eligibilityStatus ?? null;
+    const court = entry.court ?? inferCourt(entry.courtAndChamber);
+    const accessSource = entry.accessSource ?? null;
+    const sourceId = entry.sourceId ?? entry.sourceDocumentId ?? null;
+    const fullTextAvailable = entry.fullTextAvailable === true;
+    const reasoningDetected = entry.reasoningDetected === true;
+    const healthLawRelevanceScore = typeof entry.healthLawRelevanceScore === "number" ? entry.healthLawRelevanceScore : null;
+    const errors: string[] = [];
+    const warnings: string[] = [];
+
+    if (status && status !== "precedent_usable") errors.push(`eligibilityStatus must be precedent_usable, got ${status}.`);
+    if (sourceMode === "live" && status !== "precedent_usable") errors.push(`eligibilityStatus must be precedent_usable, got ${status ?? "missing"}.`);
+    if (sourceMode === "live" && !fullTextAvailable) errors.push("full text is not confirmed available.");
+    if (sourceMode === "live" && !reasoningDetected) errors.push("reasoning is not confirmed detected.");
+    if (sourceMode === "live" && !trace) errors.push("decision source trace is missing.");
+    if (sourceMode === "live" && isMockAccessSource(accessSource)) errors.push("live mode verified precedent used mock accessSource.");
+    if (court && normalizeName(court).includes("bedesten")) errors.push("court field must stay as the deciding court, not Bedesten access channel.");
+    if (status === "metadata_only" || status === "procedural_only" || status === "no_reasoning") {
+      errors.push(`unsafe status ${status} leaked into verified precedents.`);
+    }
+    if (!entry.decisionDate && !entry.date) warnings.push("decisionDate is missing.");
+    if (!entry.meritsNumber && !extractMeritsAndDecision(entry.meritsAndDecisionNumber).esasNo) warnings.push("esasNo is missing.");
+    if (!entry.decisionNumber && !extractMeritsAndDecision(entry.meritsAndDecisionNumber).kararNo) warnings.push("kararNo is missing.");
+    if ((healthLawRelevanceScore ?? 0) < 1) warnings.push("health-law relevance score is weak or missing.");
+
+    const numbers = extractMeritsAndDecision(entry.meritsAndDecisionNumber);
+    return {
+      court: court ?? null,
+      chamber: entry.chamber ?? inferChamber(entry.courtAndChamber),
+      decisionDate: entry.decisionDate ?? entry.date ?? null,
+      esasNo: entry.meritsNumber ?? numbers.esasNo,
+      kararNo: entry.decisionNumber ?? numbers.kararNo,
+      accessSource,
+      sourceId,
+      documentId: sourceId,
+      sourceUrl: entry.sourceUrl ?? trace?.searchRequest?.url ?? null,
+      fullTextAvailable,
+      reasoningDetected,
+      eligibilityStatus: status,
+      eligibilityReasons: entry.eligibilityReasons ?? [],
+      healthLawRelevanceScore,
+      matchedQueryTerms: entry.matchedQueryTerms ?? [],
+      matchedHealthLawTerms: entry.matchedHealthLawTerms ?? [],
+      decisionSourceTracePresent: Boolean(trace),
+      sourceTraceFullTextUrl: trace?.searchRequest?.url ?? null,
+      selectedAsVerifiedReason: entry.selectedAsVerifiedReason ?? null,
+      exclusionReason: entry.exclusionReasons?.[0] ?? null,
+      errors,
+      warnings
+    };
+  });
+}
+
+function detectMockFallback(
+  pack: DoctorLegalInformationPack,
+  sourceMode: "live" | "mock",
+  verifiedPrecedentAudit: VerifiedPrecedentAuditEntry[]
+): boolean {
+  if (sourceMode !== "live") return false;
+  return (pack.precedentDiagnostics?.sourceSummaries ?? []).some((summary) => summary.mode === "mock") ||
+    verifiedPrecedentAudit.some((entry) => isMockAccessSource(entry.accessSource)) ||
+    (pack.sourceTrace ?? []).some((trace) => trace.extractionMethod === "mock");
+}
+
+function isMockAccessSource(value: string | null | undefined): boolean {
+  return Boolean(value && /mock/i.test(value));
+}
+
+function inferCourt(courtAndChamber: string): string | null {
+  const first = courtAndChamber.split("/")[0]?.trim();
+  return first || null;
+}
+
+function inferChamber(courtAndChamber: string): string | null {
+  const parts = courtAndChamber.split("/");
+  return parts.length > 1 ? parts.slice(1).join("/").trim() || null : null;
+}
+
+function extractMeritsAndDecision(value: string): { esasNo: string | null; kararNo: string | null } {
+  const [esasNo, kararNo] = value.split(/\s+-\s+|\s+\/\s+/).map((part) => part.trim()).filter(Boolean);
+  return { esasNo: esasNo ?? null, kararNo: kararNo ?? null };
+}
+
 function findForbiddenFields(pack: Record<string, unknown>): string[] {
   const rootKeys = Object.keys(pack);
   return FORBIDDEN_FIELDS_LIST.filter((forbidden) =>
@@ -593,6 +750,10 @@ function isClearlyWrongPriority(question: BenchmarkQuestion, legislationOrder: s
   if (!first) return false;
   if ((question.id === "refusal-noncompliance" || question.id === "private-hospital-fees") &&
     includesLegislationName(first, "Hasta Haklari Yonetmeligi")) {
+    return true;
+  }
+  if ((question.id === "refusal-noncompliance" || question.id === "emergency-intervention") &&
+    includesLegislationName(first, "Kisisel Verilerin Korunmasi Kanunu")) {
     return true;
   }
   return question.expectedPrimaryLegislationNames.length > 0 &&
@@ -638,6 +799,26 @@ function generateMarkdownReport(report: BenchmarkReport): string {
 - **Questions Without Legislation**: ${report.questionsWithoutLegislation}
 - **Questions With Verified Precedents**: ${report.questionsWithVerifiedPrecedents}
 - **Questions Without Verified Precedents**: ${report.questionsWithoutVerifiedPrecedents}
+- **Mock Fallback Detected**: \`${report.mockFallbackDetected}\`
+
+## Live Source Summary
+
+- **SourceUnavailable Metrics**: ${report.liveSourceUnavailableCount}
+- **Questions With Legislation**: ${report.questionsWithLegislation}/${report.totalQuestions}
+- **Questions With Verified Precedents**: ${report.questionsWithVerifiedPrecedents}/${report.totalQuestions}
+
+## Mock Fallback Control
+
+${report.mockFallbackDetected ? "- Live mode mock fallback was detected and treated as a hard regression.\n" : "- No mock fallback detected in live-mode benchmark evidence.\n"}
+
+## Verified Precedent Audit Summary
+
+- **Total Verified Precedents Audited**: ${report.verifiedPrecedentAudit.totalVerifiedPrecedents}
+- **Audit Errors**: ${report.verifiedPrecedentAudit.auditErrorCount}
+- **Audit Warnings**: ${report.verifiedPrecedentAudit.auditWarningCount}
+- **Missing Metadata Warnings**: ${report.verifiedPrecedentAudit.missingMetadataCount}
+- **Weak Relevance Warnings**: ${report.verifiedPrecedentAudit.weakRelevanceCount}
+- **Missing Trace Errors**: ${report.verifiedPrecedentAudit.missingTraceCount}
 
 ## Score Table
 
@@ -669,6 +850,25 @@ function generateMarkdownReport(report: BenchmarkReport): string {
     ? "- Every question has at least one verified precedent.\n"
     : noPrecedent.map((result) => `- \`${result.id}\` (${result.category})`).join("\n") + "\n";
 
+  md += `\n## Verified Precedent Audit Details\n\n`;
+  const audited = report.results.flatMap((result) =>
+    result.precedents.verifiedPrecedentAudit.map((entry) => ({ id: result.id, entry }))
+  );
+  if (audited.length === 0) {
+    md += "- No verified precedents were selected.\n";
+  } else {
+    md += "| ID | Court | Access | Date | Esas | Karar | Full Text | Reasoning | Eligibility | Relevance | Trace | Errors | Warnings |\n|---|---|---|---|---|---|---:|---:|---|---:|---:|---:|---:|\n";
+    for (const row of audited) {
+      md += `| \`${row.id}\` | ${row.entry.court ?? "none"} | ${row.entry.accessSource ?? "none"} | ${row.entry.decisionDate ?? "none"} | ${row.entry.esasNo ?? "none"} | ${row.entry.kararNo ?? "none"} | ${row.entry.fullTextAvailable} | ${row.entry.reasoningDetected} | \`${row.entry.eligibilityStatus ?? "missing"}\` | ${row.entry.healthLawRelevanceScore ?? "n/a"} | ${row.entry.decisionSourceTracePresent} | ${row.entry.errors.length} | ${row.entry.warnings.length} |\n`;
+    }
+  }
+
+  md += `\n## Weak Relevance / Missing Metadata Warnings\n\n`;
+  const auditWarnings = audited.filter((row) => row.entry.warnings.length > 0);
+  md += auditWarnings.length === 0
+    ? "- No weak relevance or missing metadata warnings recorded.\n"
+    : auditWarnings.map((row) => `- \`${row.id}\`: ${row.entry.warnings.join("; ")}`).join("\n") + "\n";
+
   md += `\n## Legislation Priority Notes\n\n`;
   const priorityWarnings = report.results.filter((result) => !result.legislation.priorityMatch);
   md += priorityWarnings.length === 0
@@ -687,10 +887,12 @@ ${result.legislationOrder.length > 0 ? result.legislationOrder.map((name, index)
 - **SourceUnavailable**: ${result.legislation.sourceUnavailable.length + result.precedents.sourceUnavailableBreakdown.length}
 - **Verified Precedents**: ${result.precedents.verifiedHighCourtPrecedentsCount}
 - **Excluded Precedents**: ${result.precedents.excludedCount}
+- **Used Mock Source In Live Mode**: \`${result.usedMockSourceInLiveMode}\`
 - **Safety**: forbiddenFieldsAbsent=\`${result.safety.forbiddenFieldsAbsent}\`, noUnsafePrecedent=\`${result.safety.noUnsafePrecedent}\`, noMockFallbackInLive=\`${result.safety.noMockFallbackInLive}\`
 - **Audit**: \`${result.auditStatus}\`
 - **Warnings**: ${result.warnings.length > 0 ? result.warnings.join("; ") : "none"}
 - **Failure Reasons**: ${result.failureReasons.length > 0 ? result.failureReasons.join("; ") : "none"}
+- **Tuning Note**: ${result.scores.qualityBand === "good" ? "none" : result.warnings[0] ?? result.failureReasons[0] ?? "inspect scoring inputs"}
 
 `;
   }

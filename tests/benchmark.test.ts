@@ -149,6 +149,67 @@ describe("Benchmark Dataset & Runner Tests", () => {
       };
     }
 
+    function validVerifiedPrecedent(overrides: Record<string, unknown> = {}) {
+      return {
+        courtAndChamber: "YARGITAY / 13. Hukuk Dairesi",
+        court: "yargitay",
+        chamber: "13. Hukuk Dairesi",
+        date: "2024-01-01",
+        decisionDate: "2024-01-01",
+        meritsAndDecisionNumber: "2023/1 - 2024/2",
+        meritsNumber: "2023/1",
+        decisionNumber: "2024/2",
+        factSummary: "Saglik hukuku olayi.",
+        legalAssessment: "Gerekceli karar.",
+        outcome: "Sonuc.",
+        similarityDifference: "Benzer olay.",
+        sourceDocumentId: "yargitay:1",
+        sourceId: "yargitay:1",
+        sourceUrl: "https://karararama.yargitay.gov.tr/",
+        accessSource: "bedesten",
+        fullTextAvailable: true,
+        reasoningDetected: true,
+        eligibilityStatus: "precedent_usable",
+        eligibilityReasons: ["Full text and legal reasoning available."],
+        healthLawRelevanceScore: 2,
+        matchedQueryTerms: ["hekim"],
+        matchedHealthLawTerms: ["tibbi"],
+        selectedAsVerifiedReason: "Reasoned and relevant health-law precedent.",
+        decisionSourceTrace: {
+          query: question.question,
+          source: "yargitay",
+          court: "yargitay",
+          searchRequest: { url: "https://bedesten.adalet.gov.tr/", phrase: "hekim", pageSize: 10 },
+          searchResultsCount: 1,
+          selectedResult: { documentId: "doc-1", title: "Yargitay karari" },
+          selectedResultReason: "Best health-law match.",
+          documentId: "doc-1",
+          sourceId: "yargitay:1",
+          fullTextAvailable: true,
+          fullTextRetrievalMethod: "bedesten",
+          retrievedAt: "2026-05-23T00:00:00.000Z",
+          eligibilityStatus: "precedent_usable",
+          eligibilityReasons: ["Full text and reasoning available."],
+          exclusionReasons: []
+        },
+        ...overrides
+      } as DoctorLegalInformationPack["verifiedHighCourtPrecedents"][number];
+    }
+
+    function packWithVerifiedPrecedent(precedent: DoctorLegalInformationPack["verifiedHighCourtPrecedents"][number]) {
+      return makePack({
+        verifiedHighCourtPrecedents: [precedent],
+        precedentDiagnostics: {
+          query: question.question,
+          selectedPrecedentCount: 1,
+          excludedDecisionCount: 0,
+          sourceSummaries: [{ source: "yargitay", mode: "live", searched: true, searchResultsCount: 1, candidateCount: 1, selectedCount: 1, excludedCount: 0, unavailableCount: 0, errorCodes: [] }],
+          selectedPrecedents: [{ source: "yargitay", court: "yargitay", status: precedent.eligibilityStatus ?? "precedent_usable", matchedHealthTopics: [], eligibilityReasons: precedent.eligibilityReasons ?? [] }],
+          excludedDecisions: []
+        }
+      });
+    }
+
     it("treats sourceUnavailable as a live metric instead of a hard regression failure", () => {
       const pack = makePack({
         sourceUnavailable: [{
@@ -192,6 +253,64 @@ describe("Benchmark Dataset & Runner Tests", () => {
       expect(result.regressionStatus).toBe("failed");
       expect(result.safety.noUnsafePrecedent).toBe(false);
       expect(result.scores.qualityBand).toBe("unsafe");
+    });
+
+    it.each(["metadata_only", "procedural_only", "no_reasoning"] as const)(
+      "rejects %s selected verified precedent in live audit",
+      (status) => {
+        const pack = packWithVerifiedPrecedent(validVerifiedPrecedent({ eligibilityStatus: status }));
+        const result = evaluateBenchmarkItem({ question, pack, sourceMode: "live", durationMs: 5 });
+
+        expect(result.regressionStatus).toBe("failed");
+        expect(result.safety.noUnsafePrecedent).toBe(false);
+        expect(result.scores.qualityBand).toBe("unsafe");
+      }
+    );
+
+    it("rejects verified precedent when full text is not confirmed", () => {
+      const pack = packWithVerifiedPrecedent(validVerifiedPrecedent({ fullTextAvailable: false }));
+      const result = evaluateBenchmarkItem({ question, pack, sourceMode: "live", durationMs: 5 });
+
+      expect(result.auditStatus).toBe("error");
+      expect(result.scores.precedentSafetyScore).toBe(0);
+      expect(result.scores.qualityBand).toBe("unsafe");
+    });
+
+    it("rejects verified precedent when source trace is missing", () => {
+      const pack = packWithVerifiedPrecedent(validVerifiedPrecedent({ decisionSourceTrace: undefined }));
+      const result = evaluateBenchmarkItem({ question, pack, sourceMode: "live", durationMs: 5 });
+
+      expect(result.audit.errors.join(" ")).toContain("source trace");
+      expect(result.scores.precedentSafetyScore).toBe(0);
+      expect(result.scores.qualityBand).toBe("unsafe");
+    });
+
+    it("treats mock accessSource in live mode as a hard regression", () => {
+      const pack = packWithVerifiedPrecedent(validVerifiedPrecedent({ accessSource: "mock" }));
+      const result = evaluateBenchmarkItem({ question, pack, sourceMode: "live", durationMs: 5 });
+
+      expect(result.usedMockSourceInLiveMode).toBe(true);
+      expect(result.safety.noMockFallbackInLive).toBe(false);
+      expect(result.regressionStatus).toBe("failed");
+      expect(result.scores.qualityBand).toBe("unsafe");
+    });
+
+    it("preserves court/accessSource separation for Bedesten-accessed Yargitay decisions", () => {
+      const pack = packWithVerifiedPrecedent(validVerifiedPrecedent({ court: "yargitay", accessSource: "bedesten" }));
+      const result = evaluateBenchmarkItem({ question, pack, sourceMode: "live", durationMs: 5 });
+
+      expect(result.precedents.verifiedPrecedentAudit[0].court).toBe("yargitay");
+      expect(result.precedents.verifiedPrecedentAudit[0].accessSource).toBe("bedesten");
+      expect(result.audit.errors).toHaveLength(0);
+    });
+
+    it("caps precedent score when relevance is weak but evidence is otherwise safe", () => {
+      const pack = packWithVerifiedPrecedent(validVerifiedPrecedent({ healthLawRelevanceScore: 0 }));
+      const result = evaluateBenchmarkItem({ question, pack, sourceMode: "live", durationMs: 5 });
+
+      expect(result.scores.precedentSafetyScore).toBe(1);
+      expect(result.scores.qualityBand).not.toBe("unsafe");
+      expect(result.warnings.join(" ")).toContain("relevance");
     });
 
     it("marks forbidden MVP fields as unsafe", () => {

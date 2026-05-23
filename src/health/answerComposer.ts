@@ -32,16 +32,77 @@ function classificationSection(classification: ClassifiedMedicalLegalQuestion): 
 }
 
 function formatPrecedent(decision: CourtDecision) {
+  const trace = decision.decisionSourceTrace;
+  const accessSource = inferAccessSource(decision);
+  const reasoningDetected = Boolean(decision.legalReasoning?.trim());
+  const matchedHealthLawTerms = findMatchedHealthLawTerms(decision);
+  const healthLawRelevanceScore = matchedHealthLawTerms.length >= 2
+    ? 2
+    : matchedHealthLawTerms.length === 1 || decision.topicTags.length > 0 ? 1 : 0;
+
   return {
     courtAndChamber: [decision.court.toLocaleUpperCase("tr-TR"), decision.chamber].filter(Boolean).join(" / "),
+    court: decision.court,
+    chamber: decision.chamber,
     date: decision.decisionDate ?? "Kaynakta tarih yok",
+    decisionDate: decision.decisionDate,
     meritsAndDecisionNumber: [decision.meritsNumber, decision.decisionNumber].filter(Boolean).join(" - "),
+    meritsNumber: decision.meritsNumber,
+    decisionNumber: decision.decisionNumber,
     factSummary: decision.factSummary ?? "Kaynakta olay ozeti yok",
     legalAssessment: decision.legalReasoning ?? "Kaynakta hukuki degerlendirme yok",
     outcome: decision.outcome ?? "Kaynakta sonuc yok",
     similarityDifference: decision.relevanceNote ?? "Benzerlik teyit edilmedi",
-    sourceDocumentId: decision.evidence.documentId
+    sourceDocumentId: decision.evidence.documentId,
+    sourceId: decision.evidence.sourceId,
+    sourceUrl: decision.evidence.sourceUrl,
+    accessSource,
+    fullTextAvailable: trace?.fullTextAvailable ?? decision.evidence.fullText,
+    reasoningDetected,
+    eligibilityStatus: trace?.eligibilityStatus,
+    eligibilityReasons: trace?.eligibilityReasons,
+    exclusionReasons: trace?.exclusionReasons,
+    healthLawRelevanceScore,
+    matchedQueryTerms: trace?.query ? [trace.query] : [],
+    matchedHealthLawTerms,
+    selectedAsVerifiedReason: trace?.eligibilityReasons?.at(-1) ?? "Filtered as precedent_usable.",
+    ...(trace ? { decisionSourceTrace: trace } : {})
   };
+}
+
+function inferAccessSource(decision: CourtDecision): string {
+  const url = decision.decisionSourceTrace?.searchRequest?.url ?? decision.evidence.sourceUrl ?? "";
+  if (url.includes("bedesten.adalet.gov.tr")) return "bedesten";
+  if (url.includes("karararama.danistay.gov.tr")) return "karararama.danistay.gov.tr";
+  if (decision.decisionSourceTrace?.fullTextRetrievalMethod === "mock") return "mock";
+  return decision.evidence.source;
+}
+
+function findMatchedHealthLawTerms(decision: CourtDecision): string[] {
+  const haystack = `${decision.factSummary ?? ""} ${decision.legalReasoning ?? ""} ${decision.fullText ?? ""}`.toLocaleLowerCase("tr-TR");
+  const terms = [
+    "hekim",
+    "doktor",
+    "tabip",
+    "hasta",
+    "tedavi",
+    "tibbi",
+    "tıbbi",
+    "müdahale",
+    "mudahale",
+    "riza",
+    "rıza",
+    "onam",
+    "aydınlat",
+    "aydinlat",
+    "sağlık",
+    "saglik",
+    "mahremiyet",
+    "acil",
+    "deontoloji",
+    "malpraktis"
+  ];
+  return [...new Set([...decision.topicTags, ...terms.filter((term) => haystack.includes(term))])];
 }
 
 export function composeDoctorLegalInformationPack(
