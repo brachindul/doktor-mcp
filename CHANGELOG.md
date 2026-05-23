@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.21.1] — 2026-05-23 — Release Housekeeping
+
+> Tag: `v0.21.1-release-housekeeping`
+> **No functional changes.** This is a repository hygiene release only.
+
+### Changed
+
+- `package.json` version: `0.21.0` → `0.21.1`
+- `package-lock.json` version: `0.20.0` → `0.21.1` (lock file version was lagging two releases behind; corrected)
+
+### Notes
+
+- No latency/timeout hardening.
+- No Yargıtay/Bedesten performance changes.
+- No new source integrations.
+- No changes to physician-facing output contract behaviour.
+- No benchmark dataset changes.
+- `exports/` and `.cache/` remain untracked (confirmed in `.gitignore`).
+- Tag `v0.21.0-physician-pack-contract-hardening` is retained on commit `da4b583` (last code commit of v0.21.0); this release's tag is on the v0.21.1 commit.
+
+---
+
 ## [0.21.0] — 2026-05-23 — Physician Pack Contract Hardening
 
 > Tag: `v0.21.0-physician-pack-contract-hardening` → commit `da4b583`
