@@ -78,6 +78,9 @@ export interface BenchmarkItemResult {
   scores: BenchmarkScores;
   failureReasons: string[];
   warnings: string[];
+  informationalWarnings: string[];
+  tuningWarnings: string[];
+  safetyWarnings: string[];
   notes: string;
 }
 
@@ -139,9 +142,17 @@ export interface BenchmarkReport {
   mockFallbackDetected: boolean;
   goodCleanCount: number;
   goodWithWarningsCount: number;
+  goodWithInformationalWarningsCount: number;
+  goodWithTuningWarningsCount: number;
   acceptableCount: number;
   needsTuningCount: number;
   unsafeCount: number;
+  informationalWarningCount: number;
+  tuningWarningCount: number;
+  safetyWarningCount: number;
+  questionsWithInformationalWarnings: number;
+  questionsWithTuningWarnings: number;
+  questionsWithSafetyWarnings: number;
   weakRelevanceWarningCount: number;
   questionsWithWeakRelevance: number;
   averageHealthLawRelevanceScore: number | null;
@@ -252,15 +263,17 @@ export function evaluateBenchmarkItem(input: {
   const forbiddenFieldMatches = findForbiddenFields(pack);
   const usedMockSourceInLiveMode = detectMockFallback(pack, sourceMode, verifiedPrecedentAudit);
   const safety = buildSafety(pack, sourceMode, selectedStatuses, forbiddenFieldMatches, verifiedPrecedentAudit, usedMockSourceInLiveMode);
-  const warnings = buildWarnings({
+  const categorized = buildCategorizedWarnings({
     sourceMode,
     question,
     legislationOrder,
     sourceUnavailable,
     precedentUnavailable,
     selectedPrecedentCount,
-    auditWarnings: [...auditRes.warnings, ...verifiedAuditWarnings]
+    packAuditWarnings: auditRes.warnings,
+    verifiedAuditWarnings
   });
+  const warnings = [...categorized.informational, ...categorized.tuning, ...categorized.safety];
   const regressionFailures = buildRegressionFailures({
     sourceMode,
     question,
@@ -334,6 +347,9 @@ export function evaluateBenchmarkItem(input: {
     scores,
     failureReasons: regressionFailures,
     warnings,
+    informationalWarnings: categorized.informational,
+    tuningWarnings: categorized.tuning,
+    safetyWarnings: categorized.safety,
     notes: question.notes
   };
 }
@@ -482,6 +498,9 @@ function evaluateThrownBenchmarkItem(input: {
     scores,
     failureReasons: [`Pack generation failed: ${message}`],
     warnings: [],
+    informationalWarnings: [],
+    tuningWarnings: [],
+    safetyWarnings: [],
     notes: input.question.notes
   };
 }
@@ -534,9 +553,21 @@ function buildBenchmarkReport(input: {
     mockFallbackDetected: input.results.some((result) => result.usedMockSourceInLiveMode),
     goodCleanCount: input.results.filter((result) => result.scores.qualityBand === "good" && result.warnings.length === 0).length,
     goodWithWarningsCount: input.results.filter((result) => result.scores.qualityBand === "good" && result.warnings.length > 0).length,
+    goodWithInformationalWarningsCount: input.results.filter((result) =>
+      result.scores.qualityBand === "good" && result.informationalWarnings.length > 0 && result.tuningWarnings.length === 0 && result.safetyWarnings.length === 0
+    ).length,
+    goodWithTuningWarningsCount: input.results.filter((result) =>
+      result.scores.qualityBand === "good" && result.tuningWarnings.length > 0
+    ).length,
     acceptableCount: input.results.filter((result) => result.scores.qualityBand === "acceptable").length,
     needsTuningCount: input.results.filter((result) => result.scores.qualityBand === "needs_tuning").length,
     unsafeCount: input.results.filter((result) => result.scores.qualityBand === "unsafe").length,
+    informationalWarningCount: input.results.reduce((sum, result) => sum + result.informationalWarnings.length, 0),
+    tuningWarningCount: input.results.reduce((sum, result) => sum + result.tuningWarnings.length, 0),
+    safetyWarningCount: input.results.reduce((sum, result) => sum + result.safetyWarnings.length, 0),
+    questionsWithInformationalWarnings: input.results.filter((result) => result.informationalWarnings.length > 0).length,
+    questionsWithTuningWarnings: input.results.filter((result) => result.tuningWarnings.length > 0).length,
+    questionsWithSafetyWarnings: input.results.filter((result) => result.safetyWarnings.length > 0).length,
     weakRelevanceWarningCount: verifiedAuditEntries.filter((entry) => (entry.healthLawRelevanceScore ?? 0) < 1).length,
     questionsWithWeakRelevance: weakEntriesByResult.filter((entry) => entry.weakEntries.length > 0).length,
     averageHealthLawRelevanceScore: average(relevanceScores),
@@ -632,23 +663,49 @@ function buildRegressionFailures(input: {
   return [...new Set(failures)];
 }
 
-function buildWarnings(input: {
+function buildCategorizedWarnings(input: {
   sourceMode: "live" | "mock";
   question: BenchmarkQuestion;
   legislationOrder: string[];
   sourceUnavailable: SourceUnavailableMetric[];
   precedentUnavailable: SourceUnavailableMetric[];
   selectedPrecedentCount: number;
-  auditWarnings: string[];
-}): string[] {
-  const warnings = [...input.auditWarnings];
-  if (input.sourceUnavailable.length > 0) warnings.push(`Legislation source unavailable: ${input.sourceUnavailable.map((entry) => entry.errorCode).join(", ")}`);
-  if (input.precedentUnavailable.length > 0) warnings.push(`Precedent source unavailable: ${input.precedentUnavailable.map((entry) => `${entry.source}:${entry.errorCode}`).join(", ")}`);
-  if (input.legislationOrder.length === 0) warnings.push("No legislation selected.");
-  if (!isPriorityMatch(input.question, input.legislationOrder)) warnings.push("Expected primary legislation is not in the leading positions.");
-  if (input.selectedPrecedentCount === 0) warnings.push("No verified high court precedent selected.");
-  if (input.sourceMode === "live") warnings.push("Live source quality is informational; transient source gaps are metrics, not automatic failures.");
-  return [...new Set(warnings)];
+  packAuditWarnings: string[];
+  verifiedAuditWarnings: string[];
+}): { informational: string[]; tuning: string[]; safety: string[] } {
+  const informational: string[] = [];
+  const tuning: string[] = [];
+
+  for (const warning of input.packAuditWarnings) {
+    informational.push(warning);
+  }
+  for (const warning of input.verifiedAuditWarnings) {
+    if (/relevance score/i.test(warning) || /weak relevance/i.test(warning)) {
+      tuning.push(warning);
+    } else {
+      informational.push(warning);
+    }
+  }
+
+  if (input.sourceUnavailable.length > 0) {
+    informational.push(`Legislation source unavailable: ${input.sourceUnavailable.map((entry) => entry.errorCode).join(", ")}`);
+  }
+  if (input.precedentUnavailable.length > 0) {
+    informational.push(`Precedent source unavailable: ${input.precedentUnavailable.map((entry) => `${entry.source}:${entry.errorCode}`).join(", ")}`);
+  }
+  if (input.sourceMode === "live") {
+    informational.push("Live source quality is informational; transient source gaps are metrics, not automatic failures.");
+  }
+
+  if (input.legislationOrder.length === 0) tuning.push("No legislation selected.");
+  if (!isPriorityMatch(input.question, input.legislationOrder)) tuning.push("Expected primary legislation is not in the leading positions.");
+  if (input.selectedPrecedentCount === 0) tuning.push("No verified high court precedent selected.");
+
+  return {
+    informational: [...new Set(informational)],
+    tuning: [...new Set(tuning)],
+    safety: []
+  };
 }
 
 function collectTopicClusters(pack: DoctorLegalInformationPack): string[] {
@@ -886,9 +943,14 @@ function generateMarkdownReport(report: BenchmarkReport): string {
 - **Mock Fallback Detected**: \`${report.mockFallbackDetected}\`
 - **Good Clean**: ${report.goodCleanCount}
 - **Good With Warnings**: ${report.goodWithWarningsCount}
+- **Good (Informational Only)**: ${report.goodWithInformationalWarningsCount}
+- **Good With Tuning Warnings**: ${report.goodWithTuningWarningsCount}
 - **Acceptable**: ${report.acceptableCount}
 - **Needs Tuning**: ${report.needsTuningCount}
 - **Unsafe**: ${report.unsafeCount}
+- **Informational Warnings**: ${report.informationalWarningCount} (${report.questionsWithInformationalWarnings} questions)
+- **Tuning Warnings**: ${report.tuningWarningCount} (${report.questionsWithTuningWarnings} questions)
+- **Safety Warnings**: ${report.safetyWarningCount} (${report.questionsWithSafetyWarnings} questions)
 - **Weak Relevance Warnings**: ${report.weakRelevanceWarningCount}
 - **Questions With Weak Relevance**: ${report.questionsWithWeakRelevance}
 - **Average Health-Law Relevance Score**: ${report.averageHealthLawRelevanceScore ?? "n/a"}
@@ -903,6 +965,25 @@ function generateMarkdownReport(report: BenchmarkReport): string {
 ## Mock Fallback Control
 
 ${report.mockFallbackDetected ? "- Live mode mock fallback was detected and treated as a hard regression.\n" : "- No mock fallback detected in live-mode benchmark evidence.\n"}
+
+## Warning Taxonomy
+
+| Category | Count | Questions Affected |
+|---|---:|---:|
+| Informational | ${report.informationalWarningCount} | ${report.questionsWithInformationalWarnings} |
+| Tuning | ${report.tuningWarningCount} | ${report.questionsWithTuningWarnings} |
+| Safety | ${report.safetyWarningCount} | ${report.questionsWithSafetyWarnings} |
+| Audit Errors | ${report.auditErrorCount} | ${report.results.filter((r) => r.audit.errors.length > 0).length} |
+
+**Informational** — live source gaps, missing metadata, source availability notes. Not actionable; do not affect quality band.
+**Tuning** — weak relevance, missing legislation, priority mismatches. Indicate areas for deterministic mapping improvement.
+**Safety** — verified precedent adjacent issues. Currently 0 in this schema version.
+
+## Per-Question Warning Summary
+
+| ID | Band | Informational | Tuning | Safety | Precedents | Relevance | Audit |
+|---|---|---:|---:|---:|---:|---:|---|
+${report.results.map((r) => `| \`${r.id}\` | \`${r.scores.qualityBand}\` | ${r.informationalWarnings.length} | ${r.tuningWarnings.length} | ${r.safetyWarnings.length} | ${r.precedents.verifiedHighCourtPrecedentsCount} | ${r.precedents.verifiedPrecedentAudit[0]?.healthLawRelevanceScore ?? "n/a"} | ${r.audit.errors.length > 0 ? "error" : r.audit.warnings.length > 0 ? "warn" : "ok"} |`).join("\n")}
 
 ## Verified Precedent Audit Summary
 
@@ -994,12 +1075,14 @@ ${result.legislationOrder.length > 0 ? result.legislationOrder.map((name, index)
 `;
   }
 
-  md += `## v0.17.1 Tuning Suggestions
+  md += `## v0.18.1 Tuning Suggestions
 
-- Use questions with \`needs_tuning\` bands to adjust deterministic health-law mappings.
-- Treat source-unavailable rows as live reliability metrics, not automatic legal-quality defects.
-- Inspect questions without verified precedents for better search query expansion before changing safety filters.
+- **Informational warnings** (live source gaps, missing metadata) are expected in live mode and do not indicate quality defects.
+- **Tuning warnings** (weak relevance, missing legislation, priority order) identify areas for deterministic health-law mapping improvement.
+- Use questions with \`needs_tuning\` bands to adjust health-law search query expansion.
+- Treat source-unavailable metrics as live reliability signals, not automatic legal-quality failures.
 - Keep audit errors and unsafe precedent usage as hard regression failures.
+- v0.19 target: source-specific query ranking and per-source latency/reliability metrics.
 `;
 
   return md;

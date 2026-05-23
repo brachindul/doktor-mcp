@@ -771,6 +771,16 @@ from unsafe precedent use.
 
 v0.18.0 implements the first precedent relevance tuning pass: issue-profile based query
 selection, deterministic decision issue-signal scoring, weak relevance explanations, and
-good-vs-good-with-warnings benchmark metrics. v0.19 should consider source-specific query
-ranking, better court-result reranking before selection, and per-profile live reliability
-baselines.
+good-vs-good-with-warnings benchmark metrics.
+
+v0.18.1 adds warning taxonomy to benchmark and evaluation reports. Warnings are now split
+into three categories: `informationalWarnings` (live source gaps, missing metadata, source
+availability notes), `tuningWarnings` (weak relevance, missing legislation, priority
+mismatches), and `safetyWarnings` (reserved for safety-adjacent precedent issues). The
+report adds `goodWithInformationalWarningsCount` and `goodWithTuningWarningsCount` so
+informational noise (transient live source quality notes) is visually separated from
+actionable tuning signals. A per-question taxonomy table is added to the Markdown report.
+`goodWithWarningsCount` is preserved for backward compatibility.
+
+v0.19 should consider source-specific query ranking, better court-result reranking before
+selection, and per-source latency/reliability metrics.
