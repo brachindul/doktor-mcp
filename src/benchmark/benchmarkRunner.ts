@@ -269,6 +269,15 @@ export interface BenchmarkReport {
   rerankChangedSelectionCount: number;
   sourceReliability: SourceReliabilityMetrics[];
   issueProfileReliability: IssueProfileReliabilityMetrics[];
+  // Live request timeout / retry aggregate (v0.25.0)
+  liveTimeoutMetrics: {
+    timeoutCount: number;
+    rateLimitCount: number;
+    transientFailureCount: number;
+    totalRetries: number;
+    totalBackoffMs: number;
+    timedOutSources: string[];
+  };
   results: BenchmarkItemResult[];
 }
 
@@ -777,6 +786,19 @@ function buildOfficialLegislationCoverage(results: BenchmarkItemResult[]): Bench
   };
 }
 
+function buildLiveTimeoutMetrics(results: BenchmarkItemResult[]): BenchmarkReport["liveTimeoutMetrics"] {
+  const allTelemetry = results.flatMap((r) => r.queryTelemetry);
+  const timeoutCount = allTelemetry.filter((t) => t.timedOut).length;
+  // Rate-limit proxy: retryAfterMs set means a 429 Retry-After header was honoured
+  const rateLimitCount = allTelemetry.filter((t) => t.retryAfterMs !== null && t.retryAfterMs > 0).length;
+  // Transient failure: any attempt that needed at least one retry
+  const transientFailureCount = allTelemetry.filter((t) => t.retryCount > 0).length;
+  const totalRetries = allTelemetry.reduce((sum, t) => sum + t.retryCount, 0);
+  const totalBackoffMs = allTelemetry.reduce((sum, t) => sum + t.backoffMs, 0);
+  const timedOutSources = [...new Set(allTelemetry.filter((t) => t.timedOut).map((t) => t.source))];
+  return { timeoutCount, rateLimitCount, transientFailureCount, totalRetries, totalBackoffMs, timedOutSources };
+}
+
 function buildBenchmarkReport(input: {
   startedAt: string;
   completedAt: string;
@@ -879,6 +901,7 @@ function buildBenchmarkReport(input: {
     contractUnofficialSourceCount: input.results.filter((r) => r.unofficialSourceDetected).length,
     contractUnsafeAdviceCount: input.results.filter((r) => r.unsafeAdviceDetected).length,
     ...buildQueryAggregateMetrics(input.results, verifiedAuditEntries),
+    liveTimeoutMetrics: buildLiveTimeoutMetrics(input.results),
     results: input.results
   };
 }

@@ -1,10 +1,13 @@
 import { bedestenRateLimiter, RateLimiter, type SleepFn } from "./rateLimiter.js";
+import { policyForSource, withTimeout } from "../live/requestPolicy.js";
 
 export interface HttpClientOptions {
   baseUrl: string;
   fetchImpl?: typeof fetch;
   maxRetries?: number;
   retryFallbackMs?: number;
+  /** Per-request timeout in ms. Defaults to the "bedesten-search" policy timeout (12 s). */
+  timeoutMs?: number;
   rateLimiter?: RateLimiter;
   sleep?: SleepFn;
   /** Alias for sleep — kept for backward compatibility with adapter `wait` option. */
@@ -22,6 +25,7 @@ export interface HttpRequestTelemetry {
   backoffMs: number;
   httpStatus: number | null;
   contentType: string | null;
+  timedOut: boolean;
 }
 
 export class BedestenNetworkError extends Error {
@@ -30,7 +34,7 @@ export class BedestenNetworkError extends Error {
     super("Bedesten’e bağlanılamadı.");
     this.name = "BedestenNetworkError";
     this.cause = cause;
-    this.telemetry = telemetry ?? { retryCount: 0, backoffMs: 0, httpStatus: null, contentType: null };
+    this.telemetry = telemetry ?? { retryCount: 0, backoffMs: 0, httpStatus: null, contentType: null, timedOut: false };
   }
 }
 
@@ -43,7 +47,7 @@ export class BedestenHttpError extends Error {
   ) {
     super(`Bedesten isteği başarısız oldu (HTTP ${status}).`);
     this.name = "BedestenHttpError";
-    this.telemetry = telemetry ?? { retryCount: 0, backoffMs: 0, httpStatus: status, contentType: null };
+    this.telemetry = telemetry ?? { retryCount: 0, backoffMs: 0, httpStatus: status, contentType: null, timedOut: false };
   }
 }
 
@@ -56,7 +60,7 @@ export class BedestenRateLimitError extends Error {
       )} saniye sonra tekrar denenebilir.`
     );
     this.name = "BedestenRateLimitError";
-    this.telemetry = telemetry ?? { retryCount: 0, backoffMs: retryAfterMs, httpStatus: 429, contentType: null };
+    this.telemetry = telemetry ?? { retryCount: 0, backoffMs: retryAfterMs, httpStatus: 429, contentType: null, timedOut: false };
   }
 }
 
@@ -66,7 +70,7 @@ export class BedestenParseError extends Error {
     super(message);
     this.name = "BedestenParseError";
     this.cause = cause;
-    this.telemetry = telemetry ?? { retryCount: 0, backoffMs: 0, httpStatus: null, contentType: null };
+    this.telemetry = telemetry ?? { retryCount: 0, backoffMs: 0, httpStatus: null, contentType: null, timedOut: false };
   }
 }
 
@@ -80,6 +84,7 @@ export class HttpClient {
   private readonly fetchImpl: typeof fetch;
   private readonly maxRetries: number;
   private readonly retryFallbackMs: number;
+  private readonly timeoutMs: number;
   private readonly rateLimiter: RateLimiter;
   private readonly sleep: SleepFn;
   private readonly random: () => number;
@@ -89,7 +94,8 @@ export class HttpClient {
     retryCount: 0,
     backoffMs: 0,
     httpStatus: null,
-    contentType: null
+    contentType: null,
+    timedOut: false
   };
 
   constructor(options: HttpClientOptions) {
@@ -97,6 +103,7 @@ export class HttpClient {
     this.fetchImpl = options.fetchImpl ?? fetch;
     this.maxRetries = options.maxRetries ?? 2;
     this.retryFallbackMs = options.retryFallbackMs ?? 5_000;
+    this.timeoutMs = options.timeoutMs ?? policyForSource("bedesten-search").timeoutMs;
     const providedSleep = options.sleep ?? options.wait;
     this.sleep = providedSleep ?? defaultSleep;
     this.random = options.random ?? Math.random;
@@ -141,13 +148,15 @@ export class HttpClient {
       let response: Response;
 
       try {
-        response = await this.rateLimiter.schedule(() => this.fetchImpl(url, init));
+        response = await this.rateLimiter.schedule(() => withTimeout(this.fetchImpl, url, init, this.timeoutMs));
       } catch (error) {
+        const timedOut = error instanceof Error && error.name === "AbortError";
         this.lastTelemetry = {
           retryCount,
           backoffMs: totalBackoffMs,
           httpStatus: lastStatus,
-          contentType: lastContentType
+          contentType: lastContentType,
+          timedOut
         };
         throw new BedestenNetworkError(error, this.lastTelemetry);
       }
@@ -167,7 +176,8 @@ export class HttpClient {
             retryCount,
             backoffMs: totalBackoffMs,
             httpStatus: 429,
-            contentType: lastContentType
+            contentType: lastContentType,
+            timedOut: false
           };
           throw new BedestenRateLimitError(retryAfterMs, this.lastTelemetry);
         }
@@ -184,7 +194,8 @@ export class HttpClient {
           retryCount,
           backoffMs: totalBackoffMs,
           httpStatus: response.status,
-          contentType: lastContentType
+          contentType: lastContentType,
+          timedOut: false
         };
         throw new BedestenHttpError(response.status, await response.text(), this.lastTelemetry);
       }
@@ -193,7 +204,8 @@ export class HttpClient {
         retryCount,
         backoffMs: totalBackoffMs,
         httpStatus: response.status,
-        contentType: lastContentType
+        contentType: lastContentType,
+        timedOut: false
       };
 
       return parseResponse<T>(response, this.lastTelemetry);
@@ -203,7 +215,8 @@ export class HttpClient {
       retryCount,
       backoffMs: totalBackoffMs,
       httpStatus: lastStatus,
-      contentType: lastContentType
+      contentType: lastContentType,
+      timedOut: false
     };
     throw new BedestenRateLimitError(this.retryFallbackMs, this.lastTelemetry);
   }

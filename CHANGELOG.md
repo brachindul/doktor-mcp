@@ -1,5 +1,75 @@
 # Changelog
 
+## [0.25.0] — 2026-05-23 — Live Timeout / Retry Hardening
+
+> Tag: `v0.25.0-live-timeout-retry-hardening`
+
+### Added
+
+- **`src/live/requestPolicy.ts`** — Pure utility module; no network calls, no external dependencies.
+  - `LiveRequestErrorKind` union: `timeout | network | rateLimit | serverError | clientError | zeroResult | parseError | unknown`
+  - `LiveRequestPolicy` interface: `timeoutMs`, `maxRetries`, `backoffBaseMs`, `backoffMaxMs`, `jitterFactor`
+  - `SOURCE_POLICIES` — per-source tuned policies:
+    - `mevzuat-search`: 8 s timeout, 2 retries
+    - `mevzuat-pdf`: 30 s timeout, 1 retry
+    - `bedesten-search`: 12 s timeout, 2 retries
+    - `bedesten-fulltext`: 20 s timeout, 1 retry
+    - `danistay-search`: 15 s timeout, 2 retries
+  - `DEFAULT_POLICY`: 15 s, 2 retries (fallback for unknown source names)
+  - `policyForSource(sourceName)` — lookup with DEFAULT_POLICY fallback
+  - `classifyLiveError(error, httpStatus?)` — priority-ordered error classification
+  - `classifyZeroResult()` — explicit zero-result classification
+  - `shouldRetry(kind, attemptsUsed, maxRetries)` — retry only transient kinds (timeout/rateLimit/serverError/network); never retries zeroResult/clientError/parseError/unknown
+  - `computeBackoffMs(attempt, policy, random?)` — jittered exponential: `min(base×2^attempt, maxMs) ±jitterFactor`; injectable `random` for deterministic tests
+  - `withTimeout(fetchImpl, url, init, timeoutMs)` — wraps any fetch call with an AbortController deadline; AbortError on expiry → classified as `"timeout"` by `classifyLiveError`
+  - `executeWithRetry<T>(options)` — policy-governed retry loop with injectable `sleep` and `random`; returns `RetryResult<T>` with `value`, `succeeded`, `retryCount`, `totalBackoffMs`, `lastErrorKind`, `timedOut`, `lastError`
+
+- **`src/sources/legislation/liveOfficialLegislationAdapter.ts`** wired:
+  - `fetchWithAdaptiveBackoff` now accepts a `sourceName` parameter and wraps each fetch attempt with `withTimeout(this.fetchImpl, url, init, policy.timeoutMs)`
+  - `searchOfficialLegislation` uses `"mevzuat-search"` policy (8 s timeout)
+  - `getDocument` uses `"mevzuat-pdf"` policy (30 s timeout)
+  - Timeout errors produce a `"source_error"` unavailable result with an explicit "timed out after Xms" message
+
+- **`src/core/httpClient.ts`** wired:
+  - `HttpClientOptions.timeoutMs?: number` — defaults to `policyForSource("bedesten-search").timeoutMs` (12 s)
+  - `HttpRequestTelemetry.timedOut: boolean` — set to `true` when an AbortError is caught from the fetch
+  - `requestJson` wraps the fetch inside `rateLimiter.schedule(() => withTimeout(...))` — timeout starts when the slot is acquired and the fetch begins
+  - All `lastTelemetry` assignments include `timedOut`
+
+- **`BenchmarkReport.liveTimeoutMetrics`** aggregate section (v0.25.0):
+  - `timeoutCount` — query telemetry entries where `timedOut === true`
+  - `rateLimitCount` — entries where `retryAfterMs > 0` (429 Retry-After honoured)
+  - `transientFailureCount` — entries where `retryCount > 0`
+  - `totalRetries` — sum of `retryCount` across all telemetry
+  - `totalBackoffMs` — sum of `backoffMs` across all telemetry
+  - `timedOutSources` — unique sources that produced at least one timeout
+
+- **`tests/requestPolicy.test.ts`** — 48 new pure-function tests:
+  - `policyForSource`: all 5 named sources, default fallback
+  - `classifyLiveError`: AbortError, DOMException AbortError, TypeError, plain Error + null httpStatus, HTTP 429/500/503/404/400, parse error message pattern, unknown
+  - `classifyZeroResult`: always returns `"zeroResult"`
+  - `shouldRetry`: all 8 error kinds × retriable/non-retriable; max retries boundary; reason string completeness
+  - `computeBackoffMs`: base/doubling/clamping; never negative; jitter range; integer output
+  - `withTimeout`: resolves on time; AbortError fires when deadline exceeded; propagates pre-deadline rejection; does not mutate original init
+  - `executeWithRetry`: success path; non-retriable failure; retry-to-success; max-retries exhaustion; timedOut flag; totalBackoffMs accumulation; lastError null/set
+  - Total test count: **467** (was 419)
+
+### Changed
+
+- `HttpRequestTelemetry` — added `timedOut: boolean`; all error classes updated to default to `timedOut: false`
+
+### Constraints Observed
+
+- local-yargi is NOT imported; patterns reimplemented independently.
+- No new live source integrations.
+- No physician-facing output contract changes.
+- No risk level, urgent action, definitive legal opinion, or petition/defence draft.
+- `DoctorLegalInformationPack` output format not modified.
+- Router issue class list not changed.
+- `exports/` and `.cache/` remain untracked.
+
+---
+
 ## [0.24.0] — 2026-05-23 — Source Sufficiency Gate
 
 > Tag: `v0.24.0-source-sufficiency-gate`

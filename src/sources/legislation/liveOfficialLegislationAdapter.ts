@@ -5,6 +5,7 @@ import type {
   LegislationSourceTrace
 } from "../../contracts/legal.js";
 import type { LegislationSourceAdapter } from "../types.js";
+import { classifyLiveError, policyForSource, withTimeout } from "../../live/requestPolicy.js";
 import { extractArticlesFromOfficialText } from "./articleParser.js";
 import { healthLegislationHints } from "./healthMappings.js";
 import { PROVISION_RANKING_METHOD, rankExtractedArticles } from "./provisionRanker.js";
@@ -162,7 +163,7 @@ export class LiveOfficialLegislationAdapter implements LegislationSourceAdapter 
           GenelArama: true
         }
       })
-    });
+    }, "mevzuat-search");
     if (isUnavailable(response)) return response;
 
     try {
@@ -197,7 +198,7 @@ export class LiveOfficialLegislationAdapter implements LegislationSourceAdapter 
   async getDocument(result: OfficialLegislationSearchResult): Promise<LiveLegislationDocument | LiveLegislationUnavailable> {
     const response = await this.fetchWithAdaptiveBackoff(result.documentUrl, {
       headers: officialHeaders()
-    });
+    }, "mevzuat-pdf");
     if (isUnavailable(response)) return response;
 
     const contentType = response.headers.get("content-type") ?? "application/octet-stream";
@@ -234,17 +235,18 @@ export class LiveOfficialLegislationAdapter implements LegislationSourceAdapter 
     }
   }
 
-  private async fetchWithAdaptiveBackoff(url: string, init: RequestInit): Promise<Response | LiveLegislationUnavailable> {
-    const attempts = [0, 250, 750];
+  private async fetchWithAdaptiveBackoff(url: string, init: RequestInit, sourceName: string): Promise<Response | LiveLegislationUnavailable> {
+    const policy = policyForSource(sourceName);
+    const delays = [0, 250, 750];
 
-    for (const delay of attempts) {
+    for (const delay of delays) {
       if (delay > 0) await this.wait(delay);
 
       try {
-        const response = await this.fetchImpl(url, init);
+        const response = await withTimeout(this.fetchImpl, url, init, policy.timeoutMs);
         if (response.ok) return response;
-        if ((response.status === 403 || response.status === 429) && delay !== attempts.at(-1)) continue;
-        if (response.status >= 500 && delay !== attempts.at(-1)) continue;
+        if ((response.status === 403 || response.status === 429) && delay !== delays.at(-1)) continue;
+        if (response.status >= 500 && delay !== delays.at(-1)) continue;
 
         if (response.status === 403 || response.status === 429) {
           return unavailable(
@@ -262,10 +264,14 @@ export class LiveOfficialLegislationAdapter implements LegislationSourceAdapter 
           "Retry the official source or verify the mapped document identifier."
         );
       } catch (error) {
-        if (delay !== attempts.at(-1)) continue;
+        const kind = classifyLiveError(error);
+        if (delay !== delays.at(-1)) continue;
+        const message = kind === "timeout"
+          ? `Official source request timed out after ${policy.timeoutMs}ms (source: ${sourceName}).`
+          : `Official source request failed: ${error instanceof Error ? error.message : String(error)}`;
         return unavailable(
           "source_error",
-          `Official source request failed: ${error instanceof Error ? error.message : String(error)}`,
+          message,
           true,
           "Retry the official source after checking network access."
         );
