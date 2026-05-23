@@ -8,6 +8,8 @@ import { auditPack } from "../packAudit.js";
 import { healthLegislationHints } from "../sources/legislation/healthMappings.js";
 import { routeMedicalIssue } from "../medicalIssueRouter.js";
 import type { MedicalIssueId, MedicalIssueRouterResult } from "../medicalIssueRouter.js";
+import { evaluateSourceSufficiency } from "../sourceSufficiency.js";
+import type { SourceSufficiencyLevel, MissingAuthorityType } from "../sourceSufficiency.js";
 import { doctorQuestions, FORBIDDEN_FIELDS_LIST, type BenchmarkQuestion } from "./doctorQuestions.js";
 import {
   buildSourceReliabilityMetrics,
@@ -117,6 +119,11 @@ export interface BenchmarkItemResult {
   primaryIssueId: MedicalIssueId | null;
   routerConfidence: string | null;
   routerMissingInfoHintCount: number;
+  // Source sufficiency gate (v0.24.0)
+  sourceSufficiencyLevel: SourceSufficiencyLevel;
+  missingAuthorityTypes: MissingAuthorityType[];
+  sourceSufficiencyReasonCount: number;
+  canComposeResearchPack: boolean;
   notes: string;
 }
 
@@ -212,6 +219,15 @@ export interface BenchmarkReport {
     missingMetadataCount: number;
     weakRelevanceCount: number;
     missingTraceCount: number;
+  };
+  // Source sufficiency aggregate metrics (v0.24.0)
+  sourceSufficiencyMetrics: {
+    sourceSufficiencyDistribution: Record<SourceSufficiencyLevel, number>;
+    insufficientSourceCount: number;
+    partialSourceCount: number;
+    sufficientSourceCount: number;
+    missingAuthorityTypeDistribution: Record<string, number>;
+    cannotComposeResearchPackCount: number;
   };
   // Medical issue router aggregate metrics (v0.23.0)
   routerMetrics: {
@@ -395,6 +411,18 @@ export function evaluateBenchmarkItem(input: {
 
   const routerResult: MedicalIssueRouterResult = routeMedicalIssue(question.question);
 
+  const sufficiencyResult = evaluateSourceSufficiency({
+    routedIssueIds: routerResult.routes.map((r) => r.issueId),
+    primaryIssueId: routerResult.primaryIssueId,
+    relevantLegislation: (Array.isArray(pack.relevantLegislation) ? pack.relevantLegislation : []) as Array<Record<string, unknown>>,
+    verifiedPrecedents: (Array.isArray(pack.verifiedHighCourtPrecedents) ? pack.verifiedHighCourtPrecedents : []) as unknown as Array<Record<string, unknown>>,
+    contractPassed: auditRes.contractCheck.passed,
+    unofficialSourceDetected: auditRes.contractCheck.unofficialSourceDetected,
+    usedMockSourceInLiveMode,
+    sourceMode,
+    auditOk: auditRes.ok
+  });
+
   return {
     id: question.id,
     category: question.category,
@@ -468,6 +496,10 @@ export function evaluateBenchmarkItem(input: {
     primaryIssueId: routerResult.primaryIssueId,
     routerConfidence: routerResult.routes[0]?.confidence ?? null,
     routerMissingInfoHintCount: routerResult.missingInfoHints.length,
+    sourceSufficiencyLevel: sufficiencyResult.level,
+    missingAuthorityTypes: sufficiencyResult.missingAuthorityTypes,
+    sourceSufficiencyReasonCount: sufficiencyResult.reasons.length,
+    canComposeResearchPack: sufficiencyResult.canComposeResearchPack,
     notes: question.notes
   };
 }
@@ -639,6 +671,10 @@ function evaluateThrownBenchmarkItem(input: {
     primaryIssueId: null,
     routerConfidence: null,
     routerMissingInfoHintCount: 0,
+    sourceSufficiencyLevel: "insufficient",
+    missingAuthorityTypes: ["legislation", "highCourtPrecedent", "officialSourceTrace"],
+    sourceSufficiencyReasonCount: 1,
+    canComposeResearchPack: false,
     notes: input.question.notes
   };
 }
@@ -650,6 +686,29 @@ const KNOWN_UNCOVERED_LEGISLATION = [
   "Ayakta Teshis ve Tedavi Yapilan Ozel Saglik Kuruluslari Hakkinda Yonetmelik",
   "Saglik Meslek Mensuplarinın Is ve Gorev Tanimlarına Dair Yonetmelik"
 ] as const;
+
+function buildSufficiencyMetrics(results: BenchmarkItemResult[]): BenchmarkReport["sourceSufficiencyMetrics"] {
+  const dist: Record<SourceSufficiencyLevel, number> = { sufficient: 0, partial: 0, insufficient: 0 };
+  const missingDist: Record<string, number> = {};
+  let cannotCompose = 0;
+
+  for (const result of results) {
+    dist[result.sourceSufficiencyLevel]++;
+    if (!result.canComposeResearchPack) cannotCompose++;
+    for (const missing of result.missingAuthorityTypes) {
+      missingDist[missing] = (missingDist[missing] ?? 0) + 1;
+    }
+  }
+
+  return {
+    sourceSufficiencyDistribution: dist,
+    insufficientSourceCount: dist.insufficient,
+    partialSourceCount: dist.partial,
+    sufficientSourceCount: dist.sufficient,
+    missingAuthorityTypeDistribution: missingDist,
+    cannotComposeResearchPackCount: cannotCompose
+  };
+}
 
 function buildRouterMetrics(results: BenchmarkItemResult[]): BenchmarkReport["routerMetrics"] {
   const routedIssueCoverage: Record<string, number> = {};
@@ -809,6 +868,7 @@ function buildBenchmarkReport(input: {
       weakRelevanceCount: verifiedAuditEntries.filter((entry) => (entry.healthLawRelevanceScore ?? 0) < 1).length,
       missingTraceCount: verifiedAuditEntries.filter((entry) => !entry.decisionSourceTracePresent).length
     },
+    sourceSufficiencyMetrics: buildSufficiencyMetrics(input.results),
     routerMetrics: buildRouterMetrics(input.results),
     officialLegislationCoverage: buildOfficialLegislationCoverage(input.results),
     contractPassedCount: input.results.filter((r) => r.contractPassed).length,

@@ -1,5 +1,81 @@
 # Changelog
 
+## [0.24.0] — 2026-05-23 — Source Sufficiency Gate
+
+> Tag: `v0.24.0-source-sufficiency-gate`
+
+### Added
+
+- **`src/sourceSufficiency.ts`** — Deterministic source sufficiency evaluator.
+  - No LLM calls; no external network; pure function.
+  - Input: router result, relevantLegislation, verifiedPrecedents, contractPassed, unofficialSourceDetected, usedMockSourceInLiveMode, auditOk.
+  - Output: `SourceSufficiencyResult` with level (`sufficient` / `partial` / `insufficient`), `missingAuthorityTypes`, `reasons`, issue IDs, counts, flags, and `canComposeResearchPack`.
+
+- **`SourceSufficiencyLevel`** type: `"sufficient" | "partial" | "insufficient"`.
+
+- **`MissingAuthorityType`** taxonomy (6 types):
+  - `legislation` — no official legislation retrieved
+  - `highCourtPrecedent` — no verified high-court decision
+  - `fullTextReasoning` — precedents lack full-text gerekçe
+  - `issueSpecificMatch` — retrieved sources do not thematically match routed issues
+  - `officialSourceTrace` — no gov.tr sourceTrace on legislation, or unofficial/mock source
+  - `verifiedPrecedentEligibility` — all precedents are metadata-only / procedural-only / no-reasoning
+
+- **Sufficiency level logic**:
+  - `sufficient`: legislation + quote + article number + gov.tr sourceTrace + verified precedent + full-text reasoning + no unofficial/mock source + contract passed + not unclear_or_mixed — all met.
+  - `partial`: legislation present, no hard blocker, but one or more criteria missing (no precedent, weak full-text, failed contract, issue-specific mismatch).
+  - `insufficient`: no legislation, OR unofficial source detected, OR mock fallback in live mode, OR all precedents ineligible.
+  - `canComposeResearchPack`: true iff legislation is present and no hard blocker.
+
+- **`BenchmarkItemResult`** new fields (v0.24.0):
+  - `sourceSufficiencyLevel` — level for this question
+  - `missingAuthorityTypes` — array of missing authority type IDs
+  - `sourceSufficiencyReasonCount` — count of diagnostic reasons
+  - `canComposeResearchPack` — boolean
+
+- **`BenchmarkReport.sourceSufficiencyMetrics`** aggregate section:
+  - `sourceSufficiencyDistribution` — `{sufficient, partial, insufficient}` counts
+  - `insufficientSourceCount`
+  - `partialSourceCount`
+  - `sufficientSourceCount`
+  - `missingAuthorityTypeDistribution` — frequency map by authority type
+  - `cannotComposeResearchPackCount`
+
+- **`tests/sourceSufficiency.test.ts`** — 29 new pure-function tests:
+  - sufficient: all criteria met → level, fields, missing count
+  - partial: legislation + no precedent; legislation + contract fail; mixed eligibility statuses
+  - insufficient: no legislation; unofficial source; mock in live mode; all-metadata-only/procedural-only
+  - unclear_or_mixed + no legislation → insufficient
+  - canComposeResearchPack false/true conditions
+  - Issue-specific legislation and precedent counting
+  - missingAuthorityTypes no-duplicate invariant
+  - Safety invariants: no forbidden phrases in reasons/warnings
+  - Total test count: **419** (was 390)
+
+### Mock Benchmark Diagnostics (v0.24.0)
+
+In mock mode all 15 questions score **partial** (expected):
+- Legislation is present → no "insufficient"
+- Mock legislation carries no sourceTrace → `officialSourceTrace` missing
+- No verified court decisions in mock pack → `highCourtPrecedent` missing
+- `canComposeResearchPack: true` for all 15 (legislation exists, no hard blocker)
+
+In live mode with properly retrieved sources, `sufficient` is expected for well-matched queries.
+
+### Constraints Observed
+
+- No latency/timeout hardening.
+- No Yargıtay/Bedesten performance changes.
+- No local-yargi module or fork.
+- No new live source integration.
+- `DoctorLegalInformationPack` output format not modified.
+- No risk level, urgent action, definitive legal opinion, or petition/defence draft.
+- Router issue class list not changed.
+- `officialLegislationCoverage` metrics preserved (5 covered, 16 clusters, 3 gaps).
+- `exports/` and `.cache/` remain untracked.
+
+---
+
 ## [0.23.0] — 2026-05-23 — Medical Issue Router
 
 > Tag: `v0.23.0-medical-issue-router`
