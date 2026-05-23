@@ -2,6 +2,9 @@
 
 ## [0.21.0] — 2026-05-23 — Physician Pack Contract Hardening
 
+> Tag: `v0.21.0-physician-pack-contract-hardening` → commit `da4b583`
+> (Two commits: initial `c648126` + audit patch `da4b583`; tag re-applied to final commit.)
+
 ### Added
 
 - **`ContractCheckResult`** interface in `src/packAudit.ts` with fields:
@@ -30,6 +33,13 @@
 ### Fixed
 
 - `legalClassification`, `missingInformation`, and `lawyerReviewPoints` contract checks now correctly handle both `string` and `string[]` field variants as defined in `DoctorLegalInformationPack`.
+
+### Audit Patch (commit `da4b583`)
+
+- **`meritsAndDecisionNumber` check added** — the required esas/karar field in `VerifiedPrecedentEntry` is now validated: empty string, whitespace-only, or the fallback placeholder `"Kaynakta esas/karar no yok"` all cause `contractCheck.passed === false`.
+- **Legislation sourceTrace URL scanning** — any non-null URL (`landingUrl`, `fullTextUrl`, `detailUrl`, `directPdfUrl`, `generatedPdfUrl`) in `relevantLegislation[i].sourceTrace` that does not match `*.gov.tr` is flagged as unofficial.
+- **Mock-source regex broadened** — precedent `accessSource` detection is now case-insensitive `/mock/i`, catching `MOCK_FALLBACK`, `mock-fixture`, etc.
+- 12 new tests added (328 total).
 
 ---
 
