@@ -66,7 +66,9 @@ export interface HealthLegislationHint {
     | "physician_refusal_or_withdrawal"
     | "patient_noncompliance"
     | "physician_patient_relationship_termination"
-    | "emergency_exception";
+    | "emergency_exception"
+    | "private_health_facility"
+    | "professional_scope_of_practice";
   legislationRole: "health_primary" | "supporting_general";
   healthLawPriority: number;
   selectionReason: string;

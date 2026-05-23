@@ -255,5 +255,73 @@ export const healthLegislationHints: HealthLegislationHint[] = [
     terms: ["kisisel saglik verisi", "kişisel sağlık verisi", "saglik verisi", "sağlık verisi", "kvkk"],
     articleNumbers: ["6"],
     dimensions: ["privacy_kvkk", "patient_rights"]
+  },
+  // --- professional_scope_of_practice cluster ---
+  // Tababet Kanunu Art. 1 & 25: who may practise medicine and permissible acts.
+  // Art. 25 (ücreti belirleme / yasaklar) da mesleki sınır konuları için kullanılır.
+  {
+    ...tababet,
+    topicCluster: "professional_scope_of_practice",
+    legislationRole: "health_primary",
+    healthLawPriority: 10,
+    selectionReason:
+      "Hekimlik yetkisi, uzmanlık sınırları ve mesleki faaliyet kapsamı Tababet Kanunu md.1 ve md.25 ile çerçevelenir.",
+    terms: [
+      "uzmanlik siniri", "uzmanlık sınırı", "uzman disinda", "uzman dışında",
+      "yetki siniri", "yetki sınırı", "meslek siniri", "meslek sınırı",
+      "bransim disinda", "branşım dışında", "uzmanlik alani", "uzmanlık alanı",
+      "tabip yetki", "hekim yetki"
+    ],
+    articleNumbers: ["1", "25"],
+    dimensions: ["professional_ethics", "disciplinary_administrative"]
+  },
+  // Saglik Hizmetleri Temel Kanunu: health service delivery scope and discipline framework.
+  {
+    ...healthServices,
+    topicCluster: "professional_scope_of_practice",
+    legislationRole: "supporting_general",
+    healthLawPriority: 30,
+    selectionReason:
+      "Sağlık Hizmetleri Temel Kanunu md.3 ve md.9, hizmet kapsamı ve mesleki denetim çerçevesini destekler.",
+    terms: [
+      "uzmanlik siniri", "uzmanlık sınırı", "uzman disinda", "uzman dışında",
+      "yetki siniri", "yetki sınırı", "meslek siniri", "meslek sınırı",
+      "saglik personeli gorevi", "sağlık personeli görevi",
+      "hekim yetki", "tabip yetki"
+    ],
+    articleNumbers: ["3", "9"],
+    dimensions: ["professional_ethics", "disciplinary_administrative"]
+  },
+  // --- private_health_facility cluster ---
+  // Sağlık Hizmetleri Temel Kanunu governs private facility authorisation and obligations.
+  // Tababet Kanunu Art. 1: licensing requirements apply to physicians in private settings too.
+  {
+    ...healthServices,
+    topicCluster: "private_health_facility",
+    legislationRole: "health_primary",
+    healthLawPriority: 10,
+    selectionReason:
+      "Özel sağlık kuruluşlarının hizmet koşulları, yetkilendirme ve denetimi Sağlık Hizmetleri Temel Kanunu kapsamındadır.",
+    terms: [
+      "ozel hastane", "özel hastane", "ozel saglik kurulusu", "özel sağlık kuruluşu",
+      "ozel klinik", "özel klinik", "muayenehane", "poliklinik",
+      "ozel saglik", "özel sağlık", "saglik kurulusu rutbesi", "sağlık kuruluşu"
+    ],
+    articleNumbers: ["1", "3", "9"],
+    dimensions: ["professional_ethics", "disciplinary_administrative"]
+  },
+  {
+    ...tababet,
+    topicCluster: "private_health_facility",
+    legislationRole: "supporting_general",
+    healthLawPriority: 20,
+    selectionReason:
+      "Tababet Kanunu md.1: lisans şartları özel kuruluşta çalışan hekimler için de geçerlidir.",
+    terms: [
+      "ozel hastane", "özel hastane", "ozel saglik kurulusu", "özel sağlık kuruluşu",
+      "ozel klinik", "özel klinik", "muayenehane"
+    ],
+    articleNumbers: ["1"],
+    dimensions: ["professional_ethics"]
   }
 ];

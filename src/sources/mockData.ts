@@ -50,6 +50,28 @@ export const mockLegislationProvisions: LegislationProvision[] = [
     connection: "Saglik verisi ve mahremiyet sorularinda resmi madde metni eslestirmesi icin mock kayittir.",
     dimensions: ["privacy_kvkk"],
     evidence: evidence("legislation", "leg-kvkk-6", true)
+  },
+  {
+    documentId: "leg-tababet-25",
+    legislationName: "Tababet ve Suabati Sanatlarinin Tarzi Icrasina Dair Kanun",
+    articleNumber: "25",
+    verbatimText:
+      "Tabip ve dis tabipleri, mesleklerini icra ederken uzmanliklari disinda kalan muameleleri yapamazlar.",
+    connection:
+      "Hekimin uzmanlık sınırları ve yetkisiz tıbbi faaliyet yasağına ilişkin mesleki kapsam sorularında kullanılır.",
+    dimensions: ["professional_ethics", "disciplinary_administrative"],
+    evidence: evidence("legislation", "leg-tababet-25", true)
+  },
+  {
+    documentId: "leg-healthservices-9",
+    legislationName: "Saglik Hizmetleri Temel Kanunu",
+    articleNumber: "9",
+    verbatimText:
+      "Saglik kurum ve kuruluslari, saglik personelinin mesleki faaliyetlerini ilgili mevzuat hukumlerine uygun sekilde yurutmek zorundadir.",
+    connection:
+      "Özel ve kamu sağlık kuruluşlarının denetim yükümlülüğü ve mesleki faaliyet çerçevesine ilişkin sorularda kullanılır.",
+    dimensions: ["professional_ethics", "disciplinary_administrative"],
+    evidence: evidence("legislation", "leg-healthservices-9", true)
   }
 ];
 

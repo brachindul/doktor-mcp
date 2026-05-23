@@ -5,6 +5,7 @@ import { buildSessionSummary } from "../contracts/queryTelemetry.js";
 import type { RerankResult } from "../health/precedentRerank.js";
 import { inferIssueProfileFromQuestion } from "../health/precedentRelevance.js";
 import { auditPack } from "../packAudit.js";
+import { healthLegislationHints } from "../sources/legislation/healthMappings.js";
 import { doctorQuestions, FORBIDDEN_FIELDS_LIST, type BenchmarkQuestion } from "./doctorQuestions.js";
 import {
   buildSourceReliabilityMetrics,
@@ -204,6 +205,17 @@ export interface BenchmarkReport {
     missingMetadataCount: number;
     weakRelevanceCount: number;
     missingTraceCount: number;
+  };
+  // Official legislation coverage summary (v0.22.0)
+  officialLegislationCoverage: {
+    coveredOfficialLegislationCount: number;
+    coveredLegislationTitles: string[];
+    knownUncoveredLegislation: string[];
+    missingKnownHealthLegislationCount: number;
+    topicClustersRegistered: string[];
+    topicClusterCount: number;
+    unofficialLegislationSourceCount: number;
+    coverageWarnings: string[];
   };
   // Contract check aggregate (v0.21.0)
   contractPassedCount: number;
@@ -606,6 +618,53 @@ function evaluateThrownBenchmarkItem(input: {
   };
 }
 
+// Known gaps — legislation that would be valuable but whose mevzuat.gov.tr
+// internal IDs are not yet confirmed (so they are not added to the registry).
+const KNOWN_UNCOVERED_LEGISLATION = [
+  "Ozel Hastaneler Yonetmeligi",
+  "Ayakta Teshis ve Tedavi Yapilan Ozel Saglik Kuruluslari Hakkinda Yonetmelik",
+  "Saglik Meslek Mensuplarinın Is ve Gorev Tanimlarına Dair Yonetmelik"
+] as const;
+
+function buildOfficialLegislationCoverage(results: BenchmarkItemResult[]): BenchmarkReport["officialLegislationCoverage"] {
+  // Collect unique sourceIds registered in healthLegislationHints
+  const registeredSourceIds = [...new Set(healthLegislationHints.map((h) => h.sourceId))];
+  const coveredTitles = [...new Set(healthLegislationHints.map((h) => h.title))];
+  const topicClustersRegistered = [...new Set(healthLegislationHints.map((h) => h.topicCluster))];
+
+  // Count legislation entries in benchmark results whose sourceTrace contains non-gov.tr URLs
+  let unofficialCount = 0;
+  for (const result of results) {
+    if (result.unofficialSourceDetected) {
+      unofficialCount++;
+    }
+  }
+
+  const coverageWarnings: string[] = [];
+  if (KNOWN_UNCOVERED_LEGISLATION.length > 0) {
+    coverageWarnings.push(
+      `${KNOWN_UNCOVERED_LEGISLATION.length} mevzuat(lar) kapsam dışı: mevzuat.gov.tr dahili ID doğrulanamadı — ` +
+      KNOWN_UNCOVERED_LEGISLATION.join(", ")
+    );
+  }
+  if (unofficialCount > 0) {
+    coverageWarnings.push(
+      `${unofficialCount} soruda resmi olmayan mevzuat kaynağı tespit edildi (contract check: unofficialSourceDetected).`
+    );
+  }
+
+  return {
+    coveredOfficialLegislationCount: registeredSourceIds.length,
+    coveredLegislationTitles: coveredTitles,
+    knownUncoveredLegislation: [...KNOWN_UNCOVERED_LEGISLATION],
+    missingKnownHealthLegislationCount: KNOWN_UNCOVERED_LEGISLATION.length,
+    topicClustersRegistered,
+    topicClusterCount: topicClustersRegistered.length,
+    unofficialLegislationSourceCount: unofficialCount,
+    coverageWarnings
+  };
+}
+
 function buildBenchmarkReport(input: {
   startedAt: string;
   completedAt: string;
@@ -697,6 +756,7 @@ function buildBenchmarkReport(input: {
       weakRelevanceCount: verifiedAuditEntries.filter((entry) => (entry.healthLawRelevanceScore ?? 0) < 1).length,
       missingTraceCount: verifiedAuditEntries.filter((entry) => !entry.decisionSourceTracePresent).length
     },
+    officialLegislationCoverage: buildOfficialLegislationCoverage(input.results),
     contractPassedCount: input.results.filter((r) => r.contractPassed).length,
     contractFailedCount: input.results.filter((r) => !r.contractPassed).length,
     contractMissingSectionTotal: input.results.reduce((sum, r) => sum + r.missingSections.length, 0),
