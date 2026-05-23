@@ -51,8 +51,30 @@ const PRECEDENT_FALLBACK_STRINGS: Record<string, string> = {
   factSummary: "Kaynakta olay ozeti yok",
   legalAssessment: "Kaynakta hukuki degerlendirme yok",
   outcome: "Kaynakta sonuc yok",
-  similarityDifference: "Benzerlik teyit edilmedi"
+  similarityDifference: "Benzerlik teyit edilmedi",
+  meritsAndDecisionNumber: "Kaynakta esas/karar no yok"
 };
+
+// Official domains for Turkish legal sources. Any URL in a legislation sourceTrace
+// that does not match these patterns is considered unofficial.
+const OFFICIAL_LEGISLATION_DOMAIN_SUFFIX = ".gov.tr";
+const LEGISLATION_SOURCETRACE_URL_FIELDS = [
+  "landingUrl",
+  "fullTextUrl",
+  "detailUrl",
+  "directPdfUrl",
+  "generatedPdfUrl"
+] as const;
+
+function isOfficialLegislationUrl(url: string): boolean {
+  try {
+    const { hostname } = new URL(url);
+    return hostname.endsWith(OFFICIAL_LEGISLATION_DOMAIN_SUFFIX);
+  } catch {
+    // Unparseable URL — treat as unofficial
+    return false;
+  }
+}
 
 // MVP forbidden phrases — must not appear in any free-text field of the pack
 const MVP_FORBIDDEN_PHRASES = [
@@ -184,20 +206,50 @@ function checkContract(p: Record<string, unknown>): ContractCheckResult {
     if (!isNonEmpty(prec.similarityDifference) || containsFallback(prec.similarityDifference, PRECEDENT_FALLBACK_STRINGS.similarityDifference)) {
       missing.push("similarityDifference");
     }
+    // meritsAndDecisionNumber — required "esas/karar" field
+    if (
+      !isNonEmpty(prec.meritsAndDecisionNumber) ||
+      containsFallback(prec.meritsAndDecisionNumber, PRECEDENT_FALLBACK_STRINGS.meritsAndDecisionNumber)
+    ) {
+      missing.push("meritsAndDecisionNumber");
+    }
     if (missing.length > 0) missingPrecedentFields.push({ index: i, fields: missing });
   }
 
   // 4. Unofficial source detection
-  // accessSource === "mock" is always unofficial in a pack
+  // 4a. Precedent: accessSource containing "mock" (case-insensitive) is always unofficial
   for (let i = 0; i < precs.length; i++) {
     const prec = precs[i] as Record<string, unknown>;
     const trace = prec.decisionSourceTrace as Record<string, unknown> | undefined;
     if (trace) {
       const accessSource = trace.accessSource as string | undefined;
-      if (accessSource === "mock") {
+      if (accessSource && /mock/i.test(accessSource)) {
         unofficialSourceDetails.push(
-          `verifiedHighCourtPrecedents[${i}] accessSource is "mock" (documentId: "${prec.sourceDocumentId ?? "unknown"}"). Mock data must not appear in a physician-facing pack.`
+          `verifiedHighCourtPrecedents[${i}] accessSource is "${accessSource}" (documentId: "${prec.sourceDocumentId ?? "unknown"}"). Mock data must not appear in a physician-facing pack.`
         );
+      }
+    }
+    // Also check top-level accessSource field on the precedent entry itself
+    const topAccessSource = prec.accessSource as string | undefined;
+    if (topAccessSource && /mock/i.test(topAccessSource) && !trace) {
+      unofficialSourceDetails.push(
+        `verifiedHighCourtPrecedents[${i}] top-level accessSource is "${topAccessSource}" (documentId: "${prec.sourceDocumentId ?? "unknown"}"). Mock data must not appear in a physician-facing pack.`
+      );
+    }
+  }
+
+  // 4b. Legislation: sourceTrace URLs must point to official Turkish government domains (*.gov.tr)
+  for (let i = 0; i < legislation.length; i++) {
+    const item = legislation[i] as Record<string, unknown>;
+    const sourceTrace = item.sourceTrace as Record<string, unknown> | undefined;
+    if (sourceTrace) {
+      for (const field of LEGISLATION_SOURCETRACE_URL_FIELDS) {
+        const url = sourceTrace[field] as string | null | undefined;
+        if (url && !isOfficialLegislationUrl(url)) {
+          unofficialSourceDetails.push(
+            `relevantLegislation[${i}].sourceTrace.${field} points to unofficial domain: "${url}". Only *.gov.tr sources are permitted for legislation.`
+          );
+        }
       }
     }
   }

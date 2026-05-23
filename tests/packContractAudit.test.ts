@@ -35,6 +35,31 @@ function makePrecedentItem(overrides: Record<string, unknown> = {}) {
   };
 }
 
+function makeLegislationItemWithTrace(traceOverrides: Record<string, unknown> = {}, itemOverrides: Record<string, unknown> = {}) {
+  return {
+    ...makeLegislationItem(),
+    sourceTrace: {
+      query: "tıbbi ihmal",
+      matchedHealthMapping: null,
+      officialSearchRequest: null,
+      officialSearchResultsCount: null,
+      selectedSearchResult: null,
+      selectedResultReason: null,
+      landingUrl: "https://www.mevzuat.gov.tr/mevzuatMetin/3.5.234.pdf",
+      detailUrl: null,
+      fullTextUrl: "https://www.mevzuat.gov.tr/mevzuatMetin/3.5.234.pdf",
+      directPdfUrl: null,
+      generatedPdfUrl: null,
+      contentType: "application/pdf",
+      extractionMethod: "pdf-text",
+      extractedArticleNumbers: ["13"],
+      retrievedAt: "2026-05-23T00:00:00.000Z",
+      ...traceOverrides
+    },
+    ...itemOverrides
+  };
+}
+
 function makeMinimalValidPack(overrides: Record<string, unknown> = {}) {
   return {
     shortAnswer: "Hekim ihmal halinde hem cezai hem hukuki sorumluluk taşır.",
@@ -280,6 +305,62 @@ describe("contract: precedent field completeness", () => {
 });
 
 // ---------------------------------------------------------------------------
+// meritsAndDecisionNumber (esas/karar) contract check
+// ---------------------------------------------------------------------------
+
+describe("contract: meritsAndDecisionNumber (esas/karar) field", () => {
+  it("passes when meritsAndDecisionNumber is present and non-empty", () => {
+    const pack = makeMinimalValidPack({
+      verifiedHighCourtPrecedents: [makePrecedentItem({ meritsAndDecisionNumber: "2021/1234 E. - 2022/5678 K." })]
+    });
+    const result = auditPack(pack);
+    const allMissingFields = result.contractCheck.missingPrecedentFields.flatMap((e) => e.fields);
+    expect(allMissingFields).not.toContain("meritsAndDecisionNumber");
+  });
+
+  it("fails when meritsAndDecisionNumber is empty string", () => {
+    const pack = makeMinimalValidPack({
+      verifiedHighCourtPrecedents: [makePrecedentItem({ meritsAndDecisionNumber: "" })]
+    });
+    const result = auditPack(pack);
+    expect(result.contractCheck.missingPrecedentFields[0]?.fields).toContain("meritsAndDecisionNumber");
+  });
+
+  it("fails when meritsAndDecisionNumber is whitespace only", () => {
+    const pack = makeMinimalValidPack({
+      verifiedHighCourtPrecedents: [makePrecedentItem({ meritsAndDecisionNumber: "   " })]
+    });
+    const result = auditPack(pack);
+    expect(result.contractCheck.missingPrecedentFields[0]?.fields).toContain("meritsAndDecisionNumber");
+  });
+
+  it("fails when meritsAndDecisionNumber is the fallback placeholder", () => {
+    const pack = makeMinimalValidPack({
+      verifiedHighCourtPrecedents: [makePrecedentItem({ meritsAndDecisionNumber: "Kaynakta esas/karar no yok" })]
+    });
+    const result = auditPack(pack);
+    expect(result.contractCheck.missingPrecedentFields[0]?.fields).toContain("meritsAndDecisionNumber");
+  });
+
+  it("ok is false and error mentions meritsAndDecisionNumber when it is empty", () => {
+    const pack = makeMinimalValidPack({
+      verifiedHighCourtPrecedents: [makePrecedentItem({ meritsAndDecisionNumber: "" })]
+    });
+    const result = auditPack(pack);
+    expect(result.ok).toBe(false);
+    expect(result.errors.some((e) => e.includes("meritsAndDecisionNumber"))).toBe(true);
+  });
+
+  it("contractCheck.passed is false when meritsAndDecisionNumber is missing", () => {
+    const pack = makeMinimalValidPack({
+      verifiedHighCourtPrecedents: [makePrecedentItem({ meritsAndDecisionNumber: "" })]
+    });
+    const result = auditPack(pack);
+    expect(result.contractCheck.passed).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Unofficial source detection
 // ---------------------------------------------------------------------------
 
@@ -319,6 +400,70 @@ describe("contract: unofficial source detection", () => {
 
   it("does not flag when decisionSourceTrace is absent", () => {
     const pack = makeMinimalValidPack();
+    const result = auditPack(pack);
+    expect(result.contractCheck.unofficialSourceDetected).toBe(false);
+  });
+
+  it("detects mock-variant accessSource strings (case-insensitive)", () => {
+    const pack = makeMinimalValidPack({
+      verifiedHighCourtPrecedents: [
+        makePrecedentItem({
+          decisionSourceTrace: {
+            accessSource: "MOCK_FALLBACK",
+            fullTextAvailable: true,
+            eligibilityStatus: "precedent_usable"
+          }
+        })
+      ]
+    });
+    const result = auditPack(pack);
+    expect(result.contractCheck.unofficialSourceDetected).toBe(true);
+  });
+
+  it("does not flag official *.gov.tr legislation sourceTrace URLs", () => {
+    const pack = makeMinimalValidPack({
+      relevantLegislation: [makeLegislationItemWithTrace()]
+    });
+    const result = auditPack(pack);
+    expect(result.contractCheck.unofficialSourceDetected).toBe(false);
+  });
+
+  it("detects unofficial (non-gov.tr) landingUrl in legislation sourceTrace", () => {
+    const pack = makeMinimalValidPack({
+      relevantLegislation: [
+        makeLegislationItemWithTrace({ landingUrl: "https://hukukburosu.com/madde/13" })
+      ]
+    });
+    const result = auditPack(pack);
+    expect(result.contractCheck.unofficialSourceDetected).toBe(true);
+    expect(result.contractCheck.unofficialSourceDetails.some((d) => d.includes("landingUrl"))).toBe(true);
+  });
+
+  it("detects unofficial fullTextUrl in legislation sourceTrace", () => {
+    const pack = makeMinimalValidPack({
+      relevantLegislation: [
+        makeLegislationItemWithTrace({ fullTextUrl: "https://blog.hukuk.net/deontoloji.pdf" })
+      ]
+    });
+    const result = auditPack(pack);
+    expect(result.contractCheck.unofficialSourceDetected).toBe(true);
+    expect(result.contractCheck.unofficialSourceDetails.some((d) => d.includes("fullTextUrl"))).toBe(true);
+  });
+
+  it("does not flag null URL fields in legislation sourceTrace", () => {
+    const pack = makeMinimalValidPack({
+      relevantLegislation: [
+        makeLegislationItemWithTrace({ landingUrl: null, fullTextUrl: null, directPdfUrl: null })
+      ]
+    });
+    const result = auditPack(pack);
+    expect(result.contractCheck.unofficialSourceDetected).toBe(false);
+  });
+
+  it("does not flag legislation item with no sourceTrace at all", () => {
+    const pack = makeMinimalValidPack({
+      relevantLegislation: [makeLegislationItem()]
+    });
     const result = auditPack(pack);
     expect(result.contractCheck.unofficialSourceDetected).toBe(false);
   });
