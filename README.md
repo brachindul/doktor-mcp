@@ -643,9 +643,11 @@ After `npm run build`, run the compiled stdio MCP server with:
 npm run mcp
 ```
 
-## Physician Question Benchmark Suite (v0.16.0)
+## Physician Question Benchmark Suite
 
-v0.16.0 introduces a comprehensive quality evaluation and regression-testing benchmark suite specifically focused on typical physician-centric legal questions. 
+v0.16.0 introduced a comprehensive quality evaluation and regression-testing benchmark
+suite specifically focused on typical physician-centric legal questions. v0.17.0 extends
+the same 15-question set with live-source evaluation metrics.
 
 ### Purpose
 - **Quality Measurement**: Systematically evaluate the performance, legislation mapping, precedent count, and schema conformity of 15-20 target questions across 15 separate medical-legal categories.
@@ -659,8 +661,11 @@ Use the benchmark runner script to execute tests and view report outputs:
 # Run the complete benchmark in mock mode (default)
 npm run benchmark:doctor-questions
 
-# Run in live mode (queries live legislation and precedents)
+# Run in live mode (queries live legislation and precedents, reports live-source metrics)
 npm run benchmark:doctor-questions -- --sourceMode live
+
+# Equivalent live shortcut
+npm run benchmark:doctor-questions:live
 
 # Limit the run to first N questions
 npm run benchmark:doctor-questions -- --limit 5
@@ -672,10 +677,46 @@ npm run benchmark:doctor-questions -- --out exports/my-custom-report
 > [!WARNING]
 > Running the benchmark in `--sourceMode live` makes actual HTTP requests to Cumhurbaşkanlığı Mevzuat (`mevzuat.gov.tr`) and high court services (`bedesten.adalet.gov.tr` and `karararama.danistay.gov.tr`). Ensure you have stable internet and keep request volume sensible to avoid rate limiting (HTTP 429) or IP throttling by these servers.
 
+### Mock vs Live Benchmark
+
+Mock mode is a deterministic regression guard. It can fail the command when expected
+legislation, priority, audit, or safety invariants regress.
+
+Live mode is an evaluation run. It keeps the same safety invariants, but source outages,
+empty results, rate limits, and `sourceUnavailable` entries are reported as metrics and
+warnings instead of automatic failures. Unsafe precedent use, forbidden MVP fields, mock
+fallback in live mode, or audit errors remain hard regression failures.
+
 ### Benchmark Reports & Exports
-All execution runs generate two files in the `exports/doctor-benchmark/` directory (which is git-ignored):
-- `doctor-benchmark-report.json`: Fully structured and parseable JSON report capturing exact details, prioritization lists, counts, and assertions.
-- `doctor-benchmark-report.md`: A human-friendly Markdown report containing summaries, breakdown tables, passing/failing statuses, and detailed question statistics.
+Execution runs generate parseable JSON and Markdown reports in `exports/doctor-benchmark/`
+(git-ignored):
+
+- Mock mode:
+  - `doctor-benchmark-report.json`
+  - `doctor-benchmark-report.md`
+- Live mode:
+  - `live-benchmark-report.json`
+  - `live-benchmark-report.md`
+
+Reports include `startedAt`, `completedAt`, `durationMs`, `passedRegressionCount`,
+`failedRegressionCount`, `liveSourceUnavailableCount`, audit counts, legislation/precent
+coverage counts, and per-question scoring.
+
+### Scoring
+
+Each question receives:
+
+- `legislationMatchScore` from 0 to 2
+- `priorityScore` from 0 to 2
+- `precedentSafetyScore` from 0 to 2
+- `sourceAvailabilityScore` from 0 to 2
+- `auditScore` from 0 to 2
+- `forbiddenFieldsScore` as 0 or 2
+- `totalScore`, `maxScore`, `scorePercent`, and `qualityBand`
+
+`qualityBand` is `good`, `acceptable`, `needs_tuning`, or `unsafe`. Live source
+unavailability can lower quality, but only safety violations or audit errors make an item
+`unsafe`.
 
 ## Release Notes
 
@@ -687,3 +728,8 @@ without changing the pack/tool JSON shape.
 v0.17 should add live benchmark metrics without turning transient live-source failures into
 hard failures. Track legislation ordering, `sourceUnavailable`, precedent safety, and
 `auditOk` as report metrics for those live runs.
+
+v0.17.0 adds those live benchmark/evaluation metrics and separate live report files.
+v0.17.1 should use the accumulated live reports to tune source query expansion, legislation
+priority gaps, and questions without verified precedents while keeping live outages as
+report metrics rather than hard failures.

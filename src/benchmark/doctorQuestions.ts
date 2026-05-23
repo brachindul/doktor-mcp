@@ -5,6 +5,7 @@ export interface BenchmarkQuestion {
   expectedTopicClusters: string[];
   expectedPrimaryLegislationRoles: Record<string, "health_primary" | "supporting_general">;
   expectedPrimaryLegislationNames: string[];
+  expectedLegislationHints?: string[];
   shouldIncludeLegislation: string[];
   shouldNotIncludeLegislation: string[];
   expectedPrecedentSources: string[];

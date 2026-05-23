@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { doctorQuestions, FORBIDDEN_FIELDS_LIST } from "../src/benchmark/doctorQuestions.js";
-import { runBenchmark } from "../src/benchmark/benchmarkRunner.js";
+import { evaluateBenchmarkItem, runBenchmark, scoreBenchmarkItem } from "../src/benchmark/benchmarkRunner.js";
 import { PhysicianLegalInformationService } from "../src/app/service.js";
+import type { DoctorLegalInformationPack } from "../src/contracts/legal.js";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -69,13 +70,182 @@ describe("Benchmark Dataset & Runner Tests", () => {
       // Verify JSON purity
       const parsed = JSON.parse(fs.readFileSync(jsonFile, "utf8"));
       expect(parsed.totalQuestions).toBe(1);
+      expect(parsed.startedAt).toBeDefined();
+      expect(parsed.completedAt).toBeDefined();
+      expect(parsed.passedRegressionCount).toBe(1);
       expect(parsed.results[0].id).toBe(doctorQuestions[0].id);
+      expect(parsed.results[0].scores.totalScore).toBeGreaterThanOrEqual(0);
     } finally {
       // Clean up
       if (fs.existsSync(tempOutDir)) {
         fs.rmSync(tempOutDir, { recursive: true, force: true });
       }
     }
+  });
+
+  describe("Live Benchmark Evaluation Metrics", () => {
+    const question = doctorQuestions[0];
+
+    function makePack(overrides: Partial<DoctorLegalInformationPack> & Record<string, unknown> = {}): DoctorLegalInformationPack & Record<string, unknown> {
+      return {
+        shortAnswer: "Kaynak metrik paketi.",
+        legalClassification: {
+          criminal: [],
+          civilCompensation: [],
+          disciplinaryAdministrative: [],
+          patientRights: [],
+          privacyKvkk: [],
+          professionalEthics: ["Meslek etigi boyutu soru ile eslestirildi."]
+        },
+        relevantLegislation: [
+          {
+            legislationName: "Tibbi Deontoloji Nizamnamesi",
+            articleNumber: "19",
+            verbatimQuote: "MADDE 19- Hekim kaynak metni.",
+            connection: "Mocked official trace for benchmark evaluation.",
+            sourceDocumentId: "mevzuat:2.3.412578",
+            sourceTrace: {
+              query: question.question,
+              matchedHealthMapping: {
+                sourceId: "mevzuat:2.3.412578",
+                query: "deontoloji nizamnamesi",
+                title: "Tibbi Deontoloji Nizamnamesi",
+                articleNumbers: ["19"],
+                topicCluster: "physician_refusal_or_withdrawal",
+                legislationRole: "health_primary",
+                healthLawPriority: 10
+              },
+              officialSearchRequest: null,
+              officialSearchResultsCount: null,
+              selectedSearchResult: null,
+              selectedResultReason: null,
+              landingUrl: null,
+              detailUrl: null,
+              fullTextUrl: null,
+              directPdfUrl: null,
+              generatedPdfUrl: null,
+              contentType: "application/pdf",
+              extractionMethod: "pdf-text > article-marker",
+              extractedArticleNumbers: ["19"],
+              retrievedAt: "2026-05-23T00:00:00.000Z"
+            }
+          }
+        ],
+        verifiedHighCourtPrecedents: [],
+        missingInformation: [],
+        lawyerReviewPoints: [],
+        sourceWarnings: [],
+        precedentDiagnostics: {
+          query: question.question,
+          selectedPrecedentCount: 0,
+          excludedDecisionCount: 0,
+          sourceSummaries: [
+            { source: "yargitay", mode: "live", searched: false, searchResultsCount: null, candidateCount: 0, selectedCount: 0, excludedCount: 0, unavailableCount: 1, errorCodes: ["source_error"] }
+          ],
+          selectedPrecedents: [],
+          excludedDecisions: []
+        },
+        ...overrides
+      };
+    }
+
+    it("treats sourceUnavailable as a live metric instead of a hard regression failure", () => {
+      const pack = makePack({
+        sourceUnavailable: [{
+          status: "unavailable",
+          source: "mevzuat.gov.tr",
+          errorCode: "source_error",
+          message: "Temporary upstream problem.",
+          retryable: true,
+          recommendedNextStep: "Retry later."
+        }]
+      });
+
+      const result = evaluateBenchmarkItem({ question, pack, sourceMode: "live", durationMs: 12 });
+
+      expect(result.regressionStatus).toBe("passed");
+      expect(result.legislation.sourceUnavailable).toHaveLength(1);
+      expect(result.precedents.sourceUnavailableBreakdown).toHaveLength(1);
+      expect(result.scores.qualityBand).not.toBe("unsafe");
+    });
+
+    it("marks unsafe precedent usage as unsafe and a regression failure", () => {
+      const pack = makePack({
+        precedentDiagnostics: {
+          query: question.question,
+          selectedPrecedentCount: 1,
+          excludedDecisionCount: 0,
+          sourceSummaries: [],
+          selectedPrecedents: [{
+            source: "yargitay",
+            court: "yargitay",
+            status: "metadata_only",
+            matchedHealthTopics: [],
+            eligibilityReasons: []
+          }],
+          excludedDecisions: []
+        }
+      });
+
+      const result = evaluateBenchmarkItem({ question, pack, sourceMode: "live", durationMs: 5 });
+
+      expect(result.regressionStatus).toBe("failed");
+      expect(result.safety.noUnsafePrecedent).toBe(false);
+      expect(result.scores.qualityBand).toBe("unsafe");
+    });
+
+    it("marks forbidden MVP fields as unsafe", () => {
+      const pack = makePack({ riskLevel: "high" });
+      const result = evaluateBenchmarkItem({ question, pack, sourceMode: "live", durationMs: 5 });
+
+      expect(result.regressionStatus).toBe("failed");
+      expect(result.safety.forbiddenFieldsAbsent).toBe(false);
+      expect(result.scores.forbiddenFieldsScore).toBe(0);
+      expect(result.scores.qualityBand).toBe("unsafe");
+    });
+
+    it("scores a safe pack with verified precedent in the expected range", () => {
+      const pack = makePack({
+        verifiedHighCourtPrecedents: [{
+          courtAndChamber: "YARGITAY / 13. Hukuk Dairesi",
+          date: "2024-01-01",
+          meritsAndDecisionNumber: "2023/1 - 2024/2",
+          factSummary: "Saglik hukuku olayi.",
+          legalAssessment: "Gerekceli karar.",
+          outcome: "Sonuc.",
+          similarityDifference: "Benzer olay.",
+          sourceDocumentId: "yargitay:1"
+        }],
+        precedentDiagnostics: {
+          query: question.question,
+          selectedPrecedentCount: 1,
+          excludedDecisionCount: 0,
+          sourceSummaries: [{ source: "yargitay", mode: "live", searched: true, searchResultsCount: 1, candidateCount: 1, selectedCount: 1, excludedCount: 0, unavailableCount: 0, errorCodes: [] }],
+          selectedPrecedents: [{ source: "yargitay", court: "yargitay", status: "precedent_usable", matchedHealthTopics: [], eligibilityReasons: ["Emsal olarak kullanilabilir."] }],
+          excludedDecisions: []
+        }
+      });
+      const result = scoreBenchmarkItem({
+        question,
+        pack,
+        legislationOrder: pack.relevantLegislation.map((item) => item.legislationName),
+        auditErrors: [],
+        auditWarnings: [],
+        sourceUnavailableCount: 0,
+        safety: {
+          forbiddenFieldsAbsent: true,
+          noUrgentAction: true,
+          noRiskLevel: true,
+          noDefinitiveLegalOpinion: true,
+          noPetitionDraft: true,
+          noUnsafePrecedent: true,
+          noMockFallbackInLive: true
+        }
+      });
+
+      expect(result.totalScore).toBeGreaterThanOrEqual(10);
+      expect(result.qualityBand).toBe("good");
+    });
   });
 
   describe("Specific Regression Guards", () => {

@@ -35,14 +35,18 @@ async function main() {
     console.log("\n====================================================");
     console.log("Benchmark Completed Successfully!");
     console.log(`- Total Questions: ${report.totalQuestions}`);
-    console.log(`- Passed: ${report.passedCount}`);
-    console.log(`- Failed: ${report.failedCount}`);
+    console.log(`- Regression Passed: ${report.passedRegressionCount}`);
+    console.log(`- Regression Failed: ${report.failedRegressionCount}`);
+    console.log(`- Live Source Unavailable Metrics: ${report.liveSourceUnavailableCount}`);
+    console.log(`- Questions With Legislation: ${report.questionsWithLegislation}`);
+    console.log(`- Questions With Verified Precedents: ${report.questionsWithVerifiedPrecedents}`);
     console.log(`\nReports generated in:`);
-    console.log(`- JSON: ${outDir}/doctor-benchmark-report.json`);
-    console.log(`- Markdown: ${outDir}/doctor-benchmark-report.md`);
+    const baseName = sourceMode === "live" ? "live-benchmark-report" : "doctor-benchmark-report";
+    console.log(`- JSON: ${outDir}/${baseName}.json`);
+    console.log(`- Markdown: ${outDir}/${baseName}.md`);
     console.log("====================================================");
 
-    if (report.failedCount > 0) {
+    if (report.failedRegressionCount > 0) {
       console.log("\nFailed Questions Summary:");
       for (const res of report.results) {
         if (!res.passed) {
@@ -54,7 +58,7 @@ async function main() {
       }
       process.exit(1);
     } else {
-      console.log("\nAll benchmark assertions passed cleanly! 🎉");
+      console.log("\nAll benchmark regression assertions passed cleanly.");
       process.exit(0);
     }
   } catch (err: any) {
