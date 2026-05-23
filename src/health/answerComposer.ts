@@ -7,6 +7,7 @@ import type {
   LegislationSelectionDiagnostics,
   SourceUnavailable
 } from "../contracts/legal.js";
+import { assessPrecedentRelevance } from "./precedentRelevance.js";
 
 const dimensionLabels = {
   criminal: "Ceza hukuku boyutu resmi kaynak eslestirmesi bekliyor.",
@@ -31,14 +32,11 @@ function classificationSection(classification: ClassifiedMedicalLegalQuestion): 
   };
 }
 
-function formatPrecedent(decision: CourtDecision) {
+function formatPrecedent(decision: CourtDecision, classification: ClassifiedMedicalLegalQuestion) {
   const trace = decision.decisionSourceTrace;
   const accessSource = inferAccessSource(decision);
   const reasoningDetected = Boolean(decision.legalReasoning?.trim());
-  const matchedHealthLawTerms = findMatchedHealthLawTerms(decision);
-  const healthLawRelevanceScore = matchedHealthLawTerms.length >= 2
-    ? 2
-    : matchedHealthLawTerms.length === 1 || decision.topicTags.length > 0 ? 1 : 0;
+  const relevance = assessPrecedentRelevance(classification, decision);
 
   return {
     courtAndChamber: [decision.court.toLocaleUpperCase("tr-TR"), decision.chamber].filter(Boolean).join(" / "),
@@ -62,9 +60,13 @@ function formatPrecedent(decision: CourtDecision) {
     eligibilityStatus: trace?.eligibilityStatus,
     eligibilityReasons: trace?.eligibilityReasons,
     exclusionReasons: trace?.exclusionReasons,
-    healthLawRelevanceScore,
+    healthLawRelevanceScore: relevance.score,
     matchedQueryTerms: trace?.query ? [trace.query] : [],
-    matchedHealthLawTerms,
+    matchedHealthLawTerms: relevance.matchedIssueSignals,
+    issueProfile: relevance.issueProfile,
+    missingExpectedIssueTerms: relevance.missingExpectedIssueTerms,
+    weakRelevanceReason: relevance.whyWeak,
+    suggestedQueryTerms: relevance.suggestedQueryTerms,
     selectedAsVerifiedReason: trace?.eligibilityReasons?.at(-1) ?? "Filtered as precedent_usable.",
     ...(trace ? { decisionSourceTrace: trace } : {})
   };
@@ -76,33 +78,6 @@ function inferAccessSource(decision: CourtDecision): string {
   if (url.includes("karararama.danistay.gov.tr")) return "karararama.danistay.gov.tr";
   if (decision.decisionSourceTrace?.fullTextRetrievalMethod === "mock") return "mock";
   return decision.evidence.source;
-}
-
-function findMatchedHealthLawTerms(decision: CourtDecision): string[] {
-  const haystack = `${decision.factSummary ?? ""} ${decision.legalReasoning ?? ""} ${decision.fullText ?? ""}`.toLocaleLowerCase("tr-TR");
-  const terms = [
-    "hekim",
-    "doktor",
-    "tabip",
-    "hasta",
-    "tedavi",
-    "tibbi",
-    "tıbbi",
-    "müdahale",
-    "mudahale",
-    "riza",
-    "rıza",
-    "onam",
-    "aydınlat",
-    "aydinlat",
-    "sağlık",
-    "saglik",
-    "mahremiyet",
-    "acil",
-    "deontoloji",
-    "malpraktis"
-  ];
-  return [...new Set([...decision.topicTags, ...terms.filter((term) => haystack.includes(term))])];
 }
 
 export function composeDoctorLegalInformationPack(
@@ -131,7 +106,7 @@ export function composeDoctorLegalInformationPack(
       ...(provision.sourceTrace ? { sourceTrace: provision.sourceTrace } : {}),
       ...(provision.ranking ? { ranking: provision.ranking } : {})
     })),
-    verifiedHighCourtPrecedents: precedents.map(formatPrecedent),
+    verifiedHighCourtPrecedents: precedents.map((precedent) => formatPrecedent(precedent, classification)),
     missingInformation: classification.missingInformation,
     lawyerReviewPoints: [
       "Somut olay belgeleri ile resmi kaynak eslestirmesinin avukat tarafindan kontrolu",

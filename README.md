@@ -736,6 +736,21 @@ no-reasoning, full-text-unavailable, or mock-access records cannot receive verif
 precedent credit in live mode. Weak health-law relevance caps precedent safety credit and
 is reported as a tuning warning rather than being hidden behind a high aggregate score.
 
+v0.18.0 adds precedent relevance tuning on top of that audit layer. The benchmark now
+reports weak relevance by question and source, sample decision ids, matched issue terms,
+missing expected issue terms, a `whyWeak` explanation, and suggested follow-up query terms.
+It also separates `goodCleanCount` from `goodWithWarningsCount` and reports average/median
+health-law relevance scores.
+
+Weak relevance means the decision passed the hard precedent safety gates, but the decision
+text matched only broad health words or did not overlap strongly with the question's issue
+profile. Issue profiles include informed consent, malpractice/complication, emergency care,
+treatment refusal, privacy/records, psychiatric privacy, violence/threat, referral,
+private-hospital fee disputes, public discipline, intensive care, and pregnancy emergency.
+Live source unavailability remains a metric/warning; unsafe remains reserved for safety
+violations such as mock fallback, missing full text/reasoning/trace, or unusable precedent
+statuses leaking into verified output.
+
 ## Release Notes
 
 v0.16.1 is an audit and cleanup release for benchmark artifact hygiene. It keeps benchmark
@@ -753,3 +768,9 @@ eligibility, source trace checks, mock fallback detection, and benchmark Markdow
 fields. v0.18 should use these reports for query expansion, live quality thresholds, source
 reliability metrics, and legislation-priority tuning while keeping live outages distinct
 from unsafe precedent use.
+
+v0.18.0 implements the first precedent relevance tuning pass: issue-profile based query
+selection, deterministic decision issue-signal scoring, weak relevance explanations, and
+good-vs-good-with-warnings benchmark metrics. v0.19 should consider source-specific query
+ranking, better court-result reranking before selection, and per-profile live reliability
+baselines.

@@ -110,6 +110,10 @@ export interface VerifiedPrecedentEntry {
   healthLawRelevanceScore?: number;
   matchedQueryTerms?: string[];
   matchedHealthLawTerms?: string[];
+  issueProfile?: string;
+  missingExpectedIssueTerms?: string[];
+  weakRelevanceReason?: string | null;
+  suggestedQueryTerms?: string[];
   selectedAsVerifiedReason?: string;
   decisionSourceTrace?: DecisionSourceTrace;
 }

@@ -105,6 +105,10 @@ export interface VerifiedPrecedentAuditEntry {
   healthLawRelevanceScore: number | null;
   matchedQueryTerms: string[];
   matchedHealthLawTerms: string[];
+  issueProfile: string | null;
+  missingExpectedIssueTerms: string[];
+  whyWeak: string | null;
+  suggestedQueryTerms: string[];
   decisionSourceTracePresent: boolean;
   sourceTraceFullTextUrl: string | null;
   selectedAsVerifiedReason: string | null;
@@ -133,6 +137,27 @@ export interface BenchmarkReport {
   questionsWithLegislation: number;
   questionsWithoutLegislation: number;
   mockFallbackDetected: boolean;
+  goodCleanCount: number;
+  goodWithWarningsCount: number;
+  acceptableCount: number;
+  needsTuningCount: number;
+  unsafeCount: number;
+  weakRelevanceWarningCount: number;
+  questionsWithWeakRelevance: number;
+  averageHealthLawRelevanceScore: number | null;
+  medianHealthLawRelevanceScore: number | null;
+  weakRelevanceByQuestion: Record<string, number>;
+  weakRelevanceBySource: Record<string, number>;
+  weakRelevanceExamples: Array<{
+    questionId: string;
+    decisionId: string | null;
+    court: string | null;
+    chamber: string | null;
+    matchedTerms: string[];
+    missingExpectedIssueTerms: string[];
+    whyWeak: string | null;
+    suggestedQueryTerms: string[];
+  }>;
   verifiedPrecedentAudit: {
     totalVerifiedPrecedents: number;
     auditErrorCount: number;
@@ -335,6 +360,7 @@ export function scoreBenchmarkItem(input: {
     !safety.noMockFallbackInLive || auditErrors.length > 0;
   const hasVerifiedPrecedent = pack.verifiedHighCourtPrecedents.length > 0;
   const hasWeakVerifiedRelevance = verifiedPrecedentAudit.some((entry) => (entry.healthLawRelevanceScore ?? 0) < 1);
+  const weakVerifiedCount = verifiedPrecedentAudit.filter((entry) => (entry.healthLawRelevanceScore ?? 0) < 1).length;
   const hasVerifiedTraceOrEvidenceGap = verifiedPrecedentAudit.some((entry) =>
     entry.errors.some((error) =>
       error.includes("source trace") || error.includes("full text") || error.includes("reasoning")
@@ -351,7 +377,8 @@ export function scoreBenchmarkItem(input: {
   const sourceAvailabilityScore = !hasSourceSuccess ? 0 : sourceUnavailableCount > 0 ? 1 : 2;
   const auditScore = auditErrors.length > 0 ? 0 : auditWarnings.length > 0 ? 1 : 2;
   const forbiddenFieldsScore = safety.forbiddenFieldsAbsent ? 2 : 0;
-  const totalScore = legislationMatchScore + priorityScore + precedentSafetyScore + sourceAvailabilityScore + auditScore + forbiddenFieldsScore;
+  const relevancePenalty = weakVerifiedCount >= 3 ? 2 : weakVerifiedCount > 0 ? 1 : 0;
+  const totalScore = legislationMatchScore + priorityScore + precedentSafetyScore + sourceAvailabilityScore + auditScore + forbiddenFieldsScore - relevancePenalty;
   const maxScore = 12;
   const scorePercent = Math.round((totalScore / maxScore) * 100);
 
@@ -474,6 +501,13 @@ function buildBenchmarkReport(input: {
   const questionsWithVerifiedPrecedents = input.results.filter((result) => result.precedents.verifiedHighCourtPrecedentsCount > 0).length;
   const questionsWithLegislation = input.results.filter((result) => result.legislation.selectedCount > 0).length;
   const verifiedAuditEntries = input.results.flatMap((result) => result.precedents.verifiedPrecedentAudit);
+  const weakEntriesByResult = input.results.map((result) => ({
+    result,
+    weakEntries: result.precedents.verifiedPrecedentAudit.filter((entry) => (entry.healthLawRelevanceScore ?? 0) < 1)
+  }));
+  const relevanceScores = verifiedAuditEntries
+    .map((entry) => entry.healthLawRelevanceScore)
+    .filter((score): score is number => typeof score === "number");
 
   return {
     timestamp: input.startedAt,
@@ -498,6 +532,31 @@ function buildBenchmarkReport(input: {
     questionsWithLegislation,
     questionsWithoutLegislation: totalQuestions - questionsWithLegislation,
     mockFallbackDetected: input.results.some((result) => result.usedMockSourceInLiveMode),
+    goodCleanCount: input.results.filter((result) => result.scores.qualityBand === "good" && result.warnings.length === 0).length,
+    goodWithWarningsCount: input.results.filter((result) => result.scores.qualityBand === "good" && result.warnings.length > 0).length,
+    acceptableCount: input.results.filter((result) => result.scores.qualityBand === "acceptable").length,
+    needsTuningCount: input.results.filter((result) => result.scores.qualityBand === "needs_tuning").length,
+    unsafeCount: input.results.filter((result) => result.scores.qualityBand === "unsafe").length,
+    weakRelevanceWarningCount: verifiedAuditEntries.filter((entry) => (entry.healthLawRelevanceScore ?? 0) < 1).length,
+    questionsWithWeakRelevance: weakEntriesByResult.filter((entry) => entry.weakEntries.length > 0).length,
+    averageHealthLawRelevanceScore: average(relevanceScores),
+    medianHealthLawRelevanceScore: median(relevanceScores),
+    weakRelevanceByQuestion: Object.fromEntries(weakEntriesByResult
+      .filter((entry) => entry.weakEntries.length > 0)
+      .map((entry) => [entry.result.id, entry.weakEntries.length])),
+    weakRelevanceBySource: countBy(verifiedAuditEntries.filter((entry) => (entry.healthLawRelevanceScore ?? 0) < 1), (entry) => entry.court ?? "unknown"),
+    weakRelevanceExamples: weakEntriesByResult.flatMap(({ result, weakEntries }) =>
+      weakEntries.slice(0, 3).map((entry) => ({
+        questionId: result.id,
+        decisionId: entry.sourceId,
+        court: entry.court,
+        chamber: entry.chamber,
+        matchedTerms: entry.matchedHealthLawTerms,
+        missingExpectedIssueTerms: entry.missingExpectedIssueTerms,
+        whyWeak: entry.whyWeak,
+        suggestedQueryTerms: entry.suggestedQueryTerms
+      }))
+    ).slice(0, 20),
     verifiedPrecedentAudit: {
       totalVerifiedPrecedents: verifiedAuditEntries.length,
       auditErrorCount: verifiedAuditEntries.reduce((sum, entry) => sum + entry.errors.length, 0),
@@ -641,6 +700,27 @@ function countExclusionReasons(pack: DoctorLegalInformationPack): Record<string,
   return counts;
 }
 
+function average(values: number[]): number | null {
+  if (values.length === 0) return null;
+  return Math.round((values.reduce((sum, value) => sum + value, 0) / values.length) * 100) / 100;
+}
+
+function median(values: number[]): number | null {
+  if (values.length === 0) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+}
+
+function countBy<T>(values: T[], keyFn: (value: T) => string): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const value of values) {
+    const key = keyFn(value);
+    counts[key] = (counts[key] ?? 0) + 1;
+  }
+  return counts;
+}
+
 function buildVerifiedPrecedentAudit(
   pack: DoctorLegalInformationPack,
   sourceMode: "live" | "mock"
@@ -690,6 +770,10 @@ function buildVerifiedPrecedentAudit(
       healthLawRelevanceScore,
       matchedQueryTerms: entry.matchedQueryTerms ?? [],
       matchedHealthLawTerms: entry.matchedHealthLawTerms ?? [],
+      issueProfile: entry.issueProfile ?? null,
+      missingExpectedIssueTerms: entry.missingExpectedIssueTerms ?? [],
+      whyWeak: entry.weakRelevanceReason ?? null,
+      suggestedQueryTerms: entry.suggestedQueryTerms ?? [],
       decisionSourceTracePresent: Boolean(trace),
       sourceTraceFullTextUrl: trace?.searchRequest?.url ?? null,
       selectedAsVerifiedReason: entry.selectedAsVerifiedReason ?? null,
@@ -800,6 +884,15 @@ function generateMarkdownReport(report: BenchmarkReport): string {
 - **Questions With Verified Precedents**: ${report.questionsWithVerifiedPrecedents}
 - **Questions Without Verified Precedents**: ${report.questionsWithoutVerifiedPrecedents}
 - **Mock Fallback Detected**: \`${report.mockFallbackDetected}\`
+- **Good Clean**: ${report.goodCleanCount}
+- **Good With Warnings**: ${report.goodWithWarningsCount}
+- **Acceptable**: ${report.acceptableCount}
+- **Needs Tuning**: ${report.needsTuningCount}
+- **Unsafe**: ${report.unsafeCount}
+- **Weak Relevance Warnings**: ${report.weakRelevanceWarningCount}
+- **Questions With Weak Relevance**: ${report.questionsWithWeakRelevance}
+- **Average Health-Law Relevance Score**: ${report.averageHealthLawRelevanceScore ?? "n/a"}
+- **Median Health-Law Relevance Score**: ${report.medianHealthLawRelevanceScore ?? "n/a"}
 
 ## Live Source Summary
 
@@ -819,6 +912,10 @@ ${report.mockFallbackDetected ? "- Live mode mock fallback was detected and trea
 - **Missing Metadata Warnings**: ${report.verifiedPrecedentAudit.missingMetadataCount}
 - **Weak Relevance Warnings**: ${report.verifiedPrecedentAudit.weakRelevanceCount}
 - **Missing Trace Errors**: ${report.verifiedPrecedentAudit.missingTraceCount}
+
+## Weak Relevance Kararlari
+
+${renderWeakRelevanceMarkdown(report)}
 
 ## Score Table
 
@@ -905,5 +1002,24 @@ ${result.legislationOrder.length > 0 ? result.legislationOrder.map((name, index)
 - Keep audit errors and unsafe precedent usage as hard regression failures.
 `;
 
+  return md;
+}
+
+function renderWeakRelevanceMarkdown(report: BenchmarkReport): string {
+  if (report.weakRelevanceExamples.length === 0) {
+    return "- Weak relevance precedent warning recorded edilmedi.\n";
+  }
+  let md = "| Question | Decision | Court | Matched Terms | Missing Issue Terms | Why Weak | Suggested Query Terms |\n|---|---|---|---|---|---|---|\n";
+  for (const example of report.weakRelevanceExamples) {
+    md += `| \`${example.questionId}\` | \`${example.decisionId ?? "unknown"}\` | ${[example.court, example.chamber].filter(Boolean).join(" / ") || "unknown"} | ${example.matchedTerms.join(", ") || "none"} | ${example.missingExpectedIssueTerms.slice(0, 4).join(", ") || "none"} | ${(example.whyWeak ?? "weak issue overlap").replace(/\|/g, "/")} | ${example.suggestedQueryTerms.slice(0, 3).join(", ")} |\n`;
+  }
+  md += "\n### Weak Relevance By Question\n\n";
+  md += Object.keys(report.weakRelevanceByQuestion).length === 0
+    ? "- none\n"
+    : Object.entries(report.weakRelevanceByQuestion).map(([id, count]) => `- \`${id}\`: ${count}`).join("\n") + "\n";
+  md += "\n### Weak Relevance By Source\n\n";
+  md += Object.keys(report.weakRelevanceBySource).length === 0
+    ? "- none\n"
+    : Object.entries(report.weakRelevanceBySource).map(([source, count]) => `- \`${source}\`: ${count}`).join("\n") + "\n";
   return md;
 }

@@ -1,4 +1,5 @@
 import type { ClassifiedMedicalLegalQuestion } from "../contracts/legal.js";
+import { suggestedQueriesForQuestion } from "./precedentRelevance.js";
 
 interface HealthLawQuery {
   searchTerm: string;
@@ -48,6 +49,8 @@ const QUERY_EXPANSION: Record<string, HealthLawQuery> = {
 };
 
 export function pickHealthLawQuery(classification: ClassifiedMedicalLegalQuestion): string {
+  const issueQuery = suggestedQueriesForQuestion(classification.question, 1)[0];
+  if (issueQuery) return issueQuery;
   let best: HealthLawQuery | null = null;
   for (const term of classification.searchTerms) {
     const mapped = QUERY_EXPANSION[term];
@@ -58,6 +61,8 @@ export function pickHealthLawQuery(classification: ClassifiedMedicalLegalQuestio
 
 export function pickHealthLawQueries(classification: ClassifiedMedicalLegalQuestion, maxQueries = 2): string[] {
   const seen = new Set<string>();
+  const issueQueries = suggestedQueriesForQuestion(classification.question, maxQueries);
+  for (const query of issueQueries) seen.add(query);
   const queries: HealthLawQuery[] = [];
   for (const term of classification.searchTerms) {
     const mapped = QUERY_EXPANSION[term];
@@ -67,6 +72,8 @@ export function pickHealthLawQueries(classification: ClassifiedMedicalLegalQuest
     }
   }
   queries.sort((a, b) => a.priority - b.priority);
-  const result = queries.slice(0, maxQueries).map((q) => q.searchTerm);
+  const result = [...issueQueries, ...queries.slice(0, maxQueries).map((q) => q.searchTerm)]
+    .filter((query, index, all) => all.indexOf(query) === index)
+    .slice(0, maxQueries);
   return result.length > 0 ? result : [classification.question];
 }
