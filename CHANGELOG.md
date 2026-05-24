@@ -1,5 +1,53 @@
 # Changelog
 
+## [0.28.0] — 2026-05-24 — Official Health Legislation Inventory
+
+> Tag: `v0.28.0-official-health-legislation-inventory`
+
+### Added
+
+- **`src/healthLegislationInventory.ts`** — Canonical physician-relevant Turkish health legislation inventory:
+  - `HealthLegislationInventoryEntry` interface with `key`, `title`, `titleNormalized`, `category`, `relevanceLevel`, `officialSourceStatus`, `coverageStatus`, `mevzuatSourceId?`, `officialUrl?`, `relatedIssueIds`, `relatedTopicClusters`, `searchTerms`, `notes`
+  - `HealthLegislationAccessStatus`: `verified | candidate | gap | deferred`
+  - `HealthLegislationRelevanceLevel`: `core | supporting | specialized`
+  - `HealthLegislationCategory`: 14 categories (`physician_practice`, `patient_rights`, `professional_ethics`, `data_privacy`, `private_health_facility`, `emergency_services`, `occupational_health`, `organ_tissue`, `reproductive_medicine`, `home_health`, `complementary_medicine`, `diagnostics`, `discipline`, `insurance`)
+  - `HealthLegislationInventoryReport` interface
+  - `HEALTH_LEGISLATION_INVENTORY` — 21-entry inventory:
+    - **5 verified** (active in adapter registry): Hasta Hakları Yönetmeliği, Tıbbi Deontoloji Nizamnamesi, Tababet Kanunu, Sağlık Hizmetleri Temel Kanunu, KVKK
+    - **3 gap** (known since v0.22.0; official ID unconfirmed): Özel Hastaneler Yönetmeliği, Ayakta Teşhis Yönetmeliği, Sağlık Meslek Mensupları Görev Tanımları Yönetmeliği
+    - **9 candidate** (sourceId research needed): Acil Sağlık, Aile Hekimliği Kanunu, İş Sağlığı ve Güvenliği Kanunu, İşyeri Hekimi Yönetmeliği, Kişisel Sağlık Verileri Yönetmeliği, Organ Nakli Kanunu, ÜYTE Yönetmeliği, GETAT Yönetmeliği, Disiplin Yönetmeliği
+    - **4 deferred**: Ambulans, Yataklı Tedavi, Hekim Sigortası, Radyoloji
+  - `VERIFIED_MEVZUAT_SOURCE_IDS` — read-only set of confirmed sourceIds
+  - `buildInventoryReport()` — pure function producing coverage/gap summary
+  - Design constraints enforced: no non-gov.tr URL may be `verified`; no `candidate`/`gap` entry activates in adapter registry
+
+- **`src/benchmark/benchmarkRunner.ts`** additions:
+  - `BenchmarkReport.officialLegislationCoverage` extended with v0.28.0 inventory fields (backward compatible — all v0.22.0 fields preserved):
+    - `inventoryTotalCount`, `coreInventoryCount`, `verifiedOfficialSourceCount`, `candidateOfficialSourceCount`, `gapCount`, `deferredCount`, `coveredByActiveHintsCount`, `uncoveredCoreCount`, `inventoryByCategory`, `inventoryByAccessStatus`
+  - `buildOfficialLegislationCoverage` now calls `buildInventoryReport()` and derives gap list from inventory instead of hardcoded constant
+  - Markdown report gains **Official Health Legislation Inventory** section
+
+- **`tests/healthLegislationInventory.test.ts`** — 27 unit tests:
+  - All required fields present on every entry
+  - All keys unique
+  - Verified entries have mevzuatSourceId and mevzuat.gov.tr officialUrl
+  - Non-verified entries have no officialUrl
+  - Gap entries have no mevzuatSourceId
+  - v0.22.0 known gaps present with gap status
+  - No candidate/gap entry has coverageStatus=covered
+  - VERIFIED_MEVZUAT_SOURCE_IDS membership correct
+  - buildInventoryReport counts consistent
+  - coverageWarnings correctness, no INTEGRITY ERROR
+
+### No Breaking Changes
+
+- All v0.22.0 `officialLegislationCoverage` fields retained with identical semantics
+- No active adapter registry entries added (only verified entries may be active)
+- No gov.tr-external URLs accepted as verified
+- No output contract, router, or sufficiency rule changes
+
+---
+
 ## [0.27.0] — 2026-05-24 — Cross-Source Provenance, Duplicate Merge, Adapter-Native ContentStatus
 
 > Tag: `v0.27.0-cross-source-provenance`

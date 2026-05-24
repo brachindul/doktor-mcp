@@ -8,6 +8,8 @@ import type { RerankResult } from "../health/precedentRerank.js";
 import { inferIssueProfileFromQuestion } from "../health/precedentRelevance.js";
 import { auditPack } from "../packAudit.js";
 import { healthLegislationHints } from "../sources/legislation/healthMappings.js";
+import { buildInventoryReport } from "../healthLegislationInventory.js";
+import type { HealthLegislationCategory, HealthLegislationAccessStatus } from "../healthLegislationInventory.js";
 import { routeMedicalIssue } from "../medicalIssueRouter.js";
 import type { MedicalIssueId, MedicalIssueRouterResult } from "../medicalIssueRouter.js";
 import { evaluateSourceSufficiency } from "../sourceSufficiency.js";
@@ -243,8 +245,9 @@ export interface BenchmarkReport {
     multiIssueQuestionCount: number;
     primaryIssueDistribution: Record<string, number>;
   };
-  // Official legislation coverage summary (v0.22.0)
+  // Official legislation coverage summary (v0.22.0, extended v0.28.0)
   officialLegislationCoverage: {
+    // ── v0.22.0 fields (preserved, backward-compatible) ──
     coveredOfficialLegislationCount: number;
     coveredLegislationTitles: string[];
     knownUncoveredLegislation: string[];
@@ -253,6 +256,17 @@ export interface BenchmarkReport {
     topicClusterCount: number;
     unofficialLegislationSourceCount: number;
     coverageWarnings: string[];
+    // ── v0.28.0 inventory fields ──
+    inventoryTotalCount: number;
+    coreInventoryCount: number;
+    verifiedOfficialSourceCount: number;
+    candidateOfficialSourceCount: number;
+    gapCount: number;
+    deferredCount: number;
+    coveredByActiveHintsCount: number;
+    uncoveredCoreCount: number;
+    inventoryByCategory: Partial<Record<HealthLegislationCategory, number>>;
+    inventoryByAccessStatus: Record<HealthLegislationAccessStatus, number>;
   };
   // Contract check aggregate (v0.21.0)
   contractPassedCount: number;
@@ -714,11 +728,9 @@ function evaluateThrownBenchmarkItem(input: {
 
 // Known gaps — legislation that would be valuable but whose mevzuat.gov.tr
 // internal IDs are not yet confirmed (so they are not added to the registry).
-const KNOWN_UNCOVERED_LEGISLATION = [
-  "Ozel Hastaneler Yonetmeligi",
-  "Ayakta Teshis ve Tedavi Yapilan Ozel Saglik Kuruluslari Hakkinda Yonetmelik",
-  "Saglik Meslek Mensuplarinın Is ve Gorev Tanimlarına Dair Yonetmelik"
-] as const;
+// v0.28.0: gap entries now live in healthLegislationInventory.ts.
+// This const is kept as a fallback reference for the markdown report label.
+const KNOWN_UNCOVERED_LEGISLATION_KEYS = ["ozel-hastaneler-yonetmeligi", "ayakta-teshis-ozel-saglik", "saglik-meslek-is-gorev-tanimlari"] as const;
 
 function buildSufficiencyMetrics(results: BenchmarkItemResult[]): BenchmarkReport["sourceSufficiencyMetrics"] {
   const dist: Record<SourceSufficiencyLevel, number> = { sufficient: 0, partial: 0, insufficient: 0 };
@@ -772,41 +784,52 @@ function buildRouterMetrics(results: BenchmarkItemResult[]): BenchmarkReport["ro
 }
 
 function buildOfficialLegislationCoverage(results: BenchmarkItemResult[]): BenchmarkReport["officialLegislationCoverage"] {
-  // Collect unique sourceIds registered in healthLegislationHints
+  // ── v0.22.0 fields ─────────────────────────────────────────────────────────
   const registeredSourceIds = [...new Set(healthLegislationHints.map((h) => h.sourceId))];
   const coveredTitles = [...new Set(healthLegislationHints.map((h) => h.title))];
   const topicClustersRegistered = [...new Set(healthLegislationHints.map((h) => h.topicCluster))];
 
-  // Count legislation entries in benchmark results whose sourceTrace contains non-gov.tr URLs
   let unofficialCount = 0;
   for (const result of results) {
-    if (result.unofficialSourceDetected) {
-      unofficialCount++;
-    }
+    if (result.unofficialSourceDetected) unofficialCount++;
   }
 
-  const coverageWarnings: string[] = [];
-  if (KNOWN_UNCOVERED_LEGISLATION.length > 0) {
-    coverageWarnings.push(
-      `${KNOWN_UNCOVERED_LEGISLATION.length} mevzuat(lar) kapsam dışı: mevzuat.gov.tr dahili ID doğrulanamadı — ` +
-      KNOWN_UNCOVERED_LEGISLATION.join(", ")
-    );
-  }
+  // ── v0.28.0 inventory ──────────────────────────────────────────────────────
+  const inventory = buildInventoryReport();
+
+  // Gap titles for the legacy coverageWarnings field
+  const gapTitles = inventory.gapEntries.map((e) => e.titleNormalized);
+
+  const coverageWarnings: string[] = [...inventory.coverageWarnings];
   if (unofficialCount > 0) {
     coverageWarnings.push(
       `${unofficialCount} soruda resmi olmayan mevzuat kaynağı tespit edildi (contract check: unofficialSourceDetected).`
     );
   }
 
+  void KNOWN_UNCOVERED_LEGISLATION_KEYS; // retained for reference; inventory now owns gap list
+
   return {
+    // ── v0.22.0 (preserved) ──
     coveredOfficialLegislationCount: registeredSourceIds.length,
     coveredLegislationTitles: coveredTitles,
-    knownUncoveredLegislation: [...KNOWN_UNCOVERED_LEGISLATION],
-    missingKnownHealthLegislationCount: KNOWN_UNCOVERED_LEGISLATION.length,
+    knownUncoveredLegislation: gapTitles,
+    missingKnownHealthLegislationCount: inventory.gapCount,
     topicClustersRegistered,
     topicClusterCount: topicClustersRegistered.length,
     unofficialLegislationSourceCount: unofficialCount,
-    coverageWarnings
+    coverageWarnings,
+    // ── v0.28.0 inventory ──
+    inventoryTotalCount: inventory.inventoryTotalCount,
+    coreInventoryCount: inventory.coreInventoryCount,
+    verifiedOfficialSourceCount: inventory.verifiedOfficialSourceCount,
+    candidateOfficialSourceCount: inventory.candidateOfficialSourceCount,
+    gapCount: inventory.gapCount,
+    deferredCount: inventory.deferredCount,
+    coveredByActiveHintsCount: inventory.coveredByActiveHintsCount,
+    uncoveredCoreCount: inventory.uncoveredCoreCount,
+    inventoryByCategory: inventory.inventoryByCategory,
+    inventoryByAccessStatus: inventory.inventoryByAccessStatus
   };
 }
 
@@ -1496,6 +1519,19 @@ ${report.liveReliabilityGate.gateFailures.length > 0
 ${report.liveReliabilityGate.gateObservations.length > 0
   ? `**Soft Observations:**\n${report.liveReliabilityGate.gateObservations.map((o) => `- ⚠️ ${o}`).join("\n")}`
   : "**Soft Observations:** none."}
+
+## Official Health Legislation Inventory (v0.28.0)
+
+- **Inventory Total**: ${report.officialLegislationCoverage.inventoryTotalCount}
+- **Core**: ${report.officialLegislationCoverage.coreInventoryCount}
+- **Verified (active)**: ${report.officialLegislationCoverage.verifiedOfficialSourceCount} | **Covered by Active Hints**: ${report.officialLegislationCoverage.coveredByActiveHintsCount}
+- **Candidate**: ${report.officialLegislationCoverage.candidateOfficialSourceCount}
+- **Gap**: ${report.officialLegislationCoverage.gapCount}
+- **Deferred**: ${report.officialLegislationCoverage.deferredCount}
+- **Uncovered Core**: ${report.officialLegislationCoverage.uncoveredCoreCount}
+- **By Access Status**: ${Object.entries(report.officialLegislationCoverage.inventoryByAccessStatus).map(([k, v]) => `${k}: ${v}`).join(" | ")}
+- **By Category**: ${Object.entries(report.officialLegislationCoverage.inventoryByCategory).map(([k, v]) => `${k}: ${v}`).join(", ")}
+${report.officialLegislationCoverage.coverageWarnings.length > 0 ? "\n**Coverage Warnings:**\n" + report.officialLegislationCoverage.coverageWarnings.map((w) => `- ⚠️ ${w}`).join("\n") : ""}
 
 ## Cross-Source Provenance Metrics (v0.27.0)
 
