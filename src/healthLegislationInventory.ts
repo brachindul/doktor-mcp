@@ -283,16 +283,18 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     category: "physician_practice",
     relevanceLevel: "supporting",
     officialSourceRequired: true,
-    officialSourceStatus: "candidate",
+    officialSourceStatus: "verified",
+    mevzuatSourceId: "mevzuat:1.5.5258",
+    officialUrl: "https://www.mevzuat.gov.tr/mevzuatmetin/1.5.5258.pdf",
     legislationNumber: "5258",
     relatedIssueIds: ["professional_scope_of_practice"],
     relatedTopicClusters: ["professional_scope_of_practice"],
     searchTerms: ["aile hekimi", "aile hekimliği", "5258"],
-    coverageStatus: "candidate",
+    coverageStatus: "covered",
     notes: [
       "Kanun 5258 — governs family medicine practice.",
       "Relevant primarily for primary care physician questions.",
-      "Candidate for active coverage once sourceId confirmed."
+      "v0.29.0: sourceId mevzuat:1.5.5258 confirmed via live mevzuat.gov.tr search (score 1.000)."
     ]
   },
 
@@ -303,16 +305,18 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     category: "occupational_health",
     relevanceLevel: "supporting",
     officialSourceRequired: true,
-    officialSourceStatus: "candidate",
+    officialSourceStatus: "verified",
+    mevzuatSourceId: "mevzuat:1.5.6331",
+    officialUrl: "https://www.mevzuat.gov.tr/mevzuatmetin/1.5.6331.pdf",
     legislationNumber: "6331",
     relatedIssueIds: ["occupational_health"],
-    relatedTopicClusters: [],
+    relatedTopicClusters: ["professional_scope_of_practice"],
     searchTerms: ["iş sağlığı", "6331", "işyeri hekimi"],
-    coverageStatus: "candidate",
+    coverageStatus: "covered",
     notes: [
       "Kanun 6331 — governs workplace health and safety.",
       "Relevant for workplace physician duty questions.",
-      "Candidate for active coverage once sourceId confirmed."
+      "v0.29.0: sourceId mevzuat:1.5.6331 confirmed via live mevzuat.gov.tr search (score 1.000)."
     ]
   },
 
@@ -361,16 +365,19 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     category: "organ_tissue",
     relevanceLevel: "specialized",
     officialSourceRequired: true,
-    officialSourceStatus: "candidate",
+    officialSourceStatus: "verified",
+    mevzuatSourceId: "mevzuat:1.5.2238",
+    officialUrl: "https://www.mevzuat.gov.tr/mevzuatmetin/1.5.2238.pdf",
     legislationNumber: "2238",
-    relatedIssueIds: ["organ_tissue"],
-    relatedTopicClusters: [],
+    relatedIssueIds: ["organ_tissue", "informed_consent"],
+    relatedTopicClusters: ["informed_consent", "medical_intervention"],
     searchTerms: ["organ nakli", "2238", "doku nakli"],
-    coverageStatus: "candidate",
+    coverageStatus: "covered",
     notes: [
       "Kanun 2238 — governs organ/tissue donation and transplant.",
       "Specialized — relevant for transplant surgeon and ICU questions.",
-      "Candidate for active coverage once sourceId confirmed."
+      "v0.29.0: sourceId mevzuat:1.5.2238 confirmed via live mevzuat.gov.tr search (score 1.000).",
+      "Arrangement=5 as returned by live search (mevzuat.gov.tr canonical classification)."
     ]
   },
 
@@ -381,15 +388,17 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     category: "reproductive_medicine",
     relevanceLevel: "specialized",
     officialSourceRequired: true,
-    officialSourceStatus: "candidate",
-    relatedIssueIds: ["reproductive_medicine"],
-    relatedTopicClusters: [],
+    officialSourceStatus: "verified",
+    mevzuatSourceId: "mevzuat:7.5.20085",
+    officialUrl: "https://www.mevzuat.gov.tr/mevzuatmetin/7.5.20085.pdf",
+    relatedIssueIds: ["reproductive_medicine", "informed_consent"],
+    relatedTopicClusters: ["informed_consent", "medical_intervention"],
     searchTerms: ["tüp bebek", "IVF", "üremeye yardımcı", "ÜYTE"],
-    coverageStatus: "candidate",
+    coverageStatus: "covered",
     notes: [
       "Governs assisted reproductive technology centers and procedures.",
       "Specialized — relevant for reproductive medicine physician questions.",
-      "Candidate for active coverage once sourceId confirmed."
+      "v0.29.0: sourceId mevzuat:7.5.20085 confirmed via live mevzuat.gov.tr search (score 1.000)."
     ]
   },
 
@@ -400,14 +409,16 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     category: "complementary_medicine",
     relevanceLevel: "specialized",
     officialSourceRequired: true,
-    officialSourceStatus: "candidate",
+    officialSourceStatus: "verified",
+    mevzuatSourceId: "mevzuat:7.5.45117",
+    officialUrl: "https://www.mevzuat.gov.tr/mevzuatmetin/7.5.45117.pdf",
     relatedIssueIds: ["professional_scope_of_practice"],
     relatedTopicClusters: ["professional_scope_of_practice"],
     searchTerms: ["GETAT", "geleneksel tıp", "tamamlayıcı tıp", "akupunktur"],
-    coverageStatus: "candidate",
+    coverageStatus: "covered",
     notes: [
       "Governs GETAT practices — relevant for scope-of-practice questions.",
-      "Candidate for active coverage once sourceId confirmed."
+      "v0.29.0: sourceId mevzuat:7.5.45117 confirmed via live mevzuat.gov.tr search (score 1.000)."
     ]
   },
 

@@ -1,6 +1,6 @@
 {
   "name": "physician-legal-mcp",
-  "version": "0.28.0",
+  "version": "0.29.0",
   "description": "Source-grounded MCP skeleton for physician legal information packs.",
   "type": "module",
   "bin": {
@@ -21,6 +21,7 @@
     "benchmark:doctor-questions:live": "tsx src/benchmark/benchmarkRunnerCli.ts --sourceMode live",
     "benchmark:doctor-questions:live-smoke": "tsx src/benchmark/benchmarkRunnerCli.ts --sourceMode live --limit 5",
     "benchmark:doctor-questions:performance": "tsx src/benchmark/performanceBenchmarkCli.ts",
+    "verify:health-legislation": "tsx src/verifyHealthLegislationCli.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },

@@ -1,5 +1,8 @@
 import type { HealthLegislationHint } from "./liveTypes.js";
 
+// ── v0.29.0 newly verified legislation ───────────────────────────────────────
+// All sourceIds confirmed via live mevzuat.gov.tr search (score 1.000).
+
 const patientRights = {
   query: "Hasta Haklari Yonetmeligi",
   title: "Hasta Haklari Yonetmeligi",
@@ -33,6 +36,51 @@ const healthServices = {
   sourceId: "mevzuat:1.5.3359",
   legislationNumber: "3359",
   legislationType: "1",
+  legislationArrangement: "5"
+} as const;
+
+const aileHekimligi = {
+  query: "Aile Hekimliği Kanunu",
+  title: "Aile Hekimligi Kanunu",
+  sourceId: "mevzuat:1.5.5258",
+  legislationNumber: "5258",
+  legislationType: "1",
+  legislationArrangement: "5"
+} as const;
+
+const isSagligiGuvenligi = {
+  query: "İş Sağlığı ve Güvenliği Kanunu",
+  title: "Is Sagligi ve Guvenligi Kanunu",
+  sourceId: "mevzuat:1.5.6331",
+  legislationNumber: "6331",
+  legislationType: "1",
+  legislationArrangement: "5"
+} as const;
+
+const organDokuNakli = {
+  query: "organ nakli 2238",
+  title: "Organ ve Doku Nakli Kanunu",
+  sourceId: "mevzuat:1.5.2238",
+  legislationNumber: "2238",
+  legislationType: "1",
+  legislationArrangement: "5"
+} as const;
+
+const uyteTedavi = {
+  query: "üremeye yardımcı tedavi",
+  title: "Uremeye Yardimci Tedavi Yonetmeligi",
+  sourceId: "mevzuat:7.5.20085",
+  legislationNumber: "20085",
+  legislationType: "7",
+  legislationArrangement: "5"
+} as const;
+
+const getat = {
+  query: "GETAT geleneksel tamamlayıcı tıp",
+  title: "Geleneksel ve Tamamlayici Tip Uygulamalari Yonetmeligi",
+  sourceId: "mevzuat:7.5.45117",
+  legislationNumber: "45117",
+  legislationType: "7",
   legislationArrangement: "5"
 } as const;
 
@@ -323,5 +371,112 @@ export const healthLegislationHints: HealthLegislationHint[] = [
     ],
     articleNumbers: ["1"],
     dimensions: ["professional_ethics"]
+  },
+
+  // ── v0.29.0: newly verified legislation (sourceIds confirmed via live search) ─────
+
+  // Aile Hekimliği Kanunu (5258) — family medicine scope of practice
+  {
+    ...aileHekimligi,
+    topicCluster: "professional_scope_of_practice",
+    legislationRole: "supporting_general",
+    healthLawPriority: 60,
+    selectionReason:
+      "Aile Hekimliği Kanunu md.3 ve md.8: birinci basamak hekim görevleri ve uygulama kapsamı.",
+    terms: [
+      "aile hekimi", "aile hekimliği", "birinci basamak", "pratisyen hekim"
+    ],
+    articleNumbers: ["3", "8"],
+    dimensions: ["professional_ethics", "disciplinary_administrative"]
+  },
+
+  // İş Sağlığı ve Güvenliği Kanunu (6331) — occupational medicine scope
+  {
+    ...isSagligiGuvenligi,
+    topicCluster: "professional_scope_of_practice",
+    legislationRole: "supporting_general",
+    healthLawPriority: 65,
+    selectionReason:
+      "İSG Kanunu md.8: işyeri hekiminin görev, yetki ve sorumlulukları; mesleki bağımsızlık güvencesi.",
+    terms: [
+      "işyeri hekimi", "is yeri hekimi", "iş sağlığı", "is sagligi", "6331",
+      "işyeri sağlık", "mesleki bağımsızlık"
+    ],
+    articleNumbers: ["8", "9"],
+    dimensions: ["professional_ethics", "disciplinary_administrative"]
+  },
+
+  // Organ ve Doku Nakli Kanunu (2238) — organ donation consent
+  {
+    ...organDokuNakli,
+    topicCluster: "informed_consent",
+    legislationRole: "supporting_general",
+    healthLawPriority: 70,
+    selectionReason:
+      "Organ Nakli Kanunu md.6 ve md.14: organ bağışında rıza şartları ve donörün aydınlatılması.",
+    terms: [
+      "organ nakli", "organ bağışı", "doku nakli", "2238", "donör rızası", "beyin ölümü"
+    ],
+    articleNumbers: ["6", "14"],
+    dimensions: ["patient_rights", "professional_ethics"]
+  },
+
+  {
+    ...organDokuNakli,
+    topicCluster: "medical_intervention",
+    legislationRole: "supporting_general",
+    healthLawPriority: 75,
+    selectionReason:
+      "Organ Nakli Kanunu md.9: nakil operasyonunda hekim yetkileri ve müdahale sınırları.",
+    terms: [
+      "organ nakli operasyonu", "nakil cerrahisi", "doku alinmasi", "doku alınması"
+    ],
+    articleNumbers: ["9"],
+    dimensions: ["professional_ethics", "civil_compensation"]
+  },
+
+  // ÜYTE Yönetmeliği (mevzuat:7.5.20085) — ART consent and procedure rules
+  {
+    ...uyteTedavi,
+    topicCluster: "informed_consent",
+    legislationRole: "supporting_general",
+    healthLawPriority: 80,
+    selectionReason:
+      "ÜYTE Yönetmeliği: yardımcı üreme teknolojisi prosedürlerinde detaylı aydınlatma ve rıza zorunluluğu.",
+    terms: [
+      "tüp bebek", "IVF", "üremeye yardımcı", "ÜYTE", "embriyo", "yumurta bağışı"
+    ],
+    articleNumbers: ["10", "11"],
+    dimensions: ["patient_rights", "professional_ethics"]
+  },
+
+  {
+    ...uyteTedavi,
+    topicCluster: "medical_intervention",
+    legislationRole: "supporting_general",
+    healthLawPriority: 85,
+    selectionReason:
+      "ÜYTE Yönetmeliği: yardımcı üreme merkezlerinde tıbbi müdahale standartları.",
+    terms: [
+      "tüp bebek prosedürü", "IVF işlemi", "üremeye yardımcı tedavi merkezi"
+    ],
+    articleNumbers: ["5", "12"],
+    dimensions: ["professional_ethics"]
+  },
+
+  // GETAT Yönetmeliği (mevzuat:7.5.45117) — complementary/traditional medicine scope
+  {
+    ...getat,
+    topicCluster: "professional_scope_of_practice",
+    legislationRole: "supporting_general",
+    healthLawPriority: 90,
+    selectionReason:
+      "GETAT Yönetmeliği: geleneksel ve tamamlayıcı tıp uygulamalarında hekim yetki sınırları.",
+    terms: [
+      "GETAT", "geleneksel tıp", "tamamlayıcı tıp", "akupunktur", "fitoterapi",
+      "ozon terapi", "hipnoterapi", "geleneksel ve tamamlayıcı"
+    ],
+    articleNumbers: ["5", "7"],
+    dimensions: ["professional_ethics", "disciplinary_administrative"]
   }
 ];

@@ -1,5 +1,86 @@
 # Changelog
 
+## [0.29.0] — 2026-05-24 — Official Legislation Access Verifier
+
+> Tag: `v0.29.0-official-legislation-access-verifier`
+
+### Added
+
+- **`src/healthLegislationAccessVerifier.ts`** — Live mevzuat.gov.tr access verifier:
+  - `normalizeTitleForMatch(title)` — Turkish char→ASCII normalization for case-insensitive title comparison
+  - `scoreTitleMatch(invTitle, searchResultTitle)` — F1 word-overlap score (0–1); threshold 0.75
+  - `isGovTrUrl(url)` — rejects any non-`.gov.tr` source URL
+  - `verifyInventoryEntry(entry, adapter)` — per-entry verification with accept/reject logic:
+    - Accepts only if score ≥ 0.75 AND URL is on mevzuat.gov.tr AND no ambiguity (second-best within 0.10 margin)
+    - Status: `verified | rejected_no_match | rejected_ambiguous | rejected_non_gov_tr | rejected_low_score | search_error`
+  - `buildAccessVerificationReport(entries, adapter)` — aggregate report with 500ms inter-request delay
+  - `LegislationSearchAdapter` interface — mockable in unit tests (no network in tests)
+
+- **`src/verifyHealthLegislationCli.ts`** — CLI that runs verifier against all candidate+gap entries and writes JSON report to `exports/health-legislation-verification/report.json`
+
+- **`tests/healthLegislationAccessVerifier.test.ts`** — 38 unit tests (no network):
+  - `normalizeTitleForMatch` — Turkish char conversion, whitespace collapse
+  - `titleWords` — stop word filtering, short-word exclusion
+  - `scoreTitleMatch` — identical titles, suffix variation, unrelated titles, ambiguity discrimination
+  - `isGovTrUrl` — accept mevzuat.gov.tr, reject non-gov.tr
+  - `verifyInventoryEntry` — verified, no_match, low_score, ambiguous, non_gov_tr, search_error
+  - `buildAccessVerificationReport` — aggregate counts and entry lists
+  - Integration guards: non-gov.tr can never produce verified; verified always has `mevzuat:` prefix; verified officialUrl always on mevzuat.gov.tr
+
+### Verified (5 new — sourceIds confirmed via live mevzuat.gov.tr search, score 1.000 each)
+
+| Entry | sourceId | Official title |
+|---|---|---|
+| `aile-hekimligi-kanunu` | `mevzuat:1.5.5258` | AİLE HEKİMLİĞİ KANUNU |
+| `is-sagligi-guvenligi-kanunu` | `mevzuat:1.5.6331` | İŞ SAĞLIĞI VE GÜVENLİĞİ KANUNU |
+| `organ-doku-nakli-kanunu` | `mevzuat:1.5.2238` | ORGAN VE DOKU ALINMASI, SAKLANMASI, AŞILANMASI VE NAKLİ HAKKINDA KANUN |
+| `uyeye-yardimci-tedavi-yonetmeligi` | `mevzuat:7.5.20085` | ÜREMEYE YARDIMCI TEDAVİ UYGULAMALARI VE MERKEZLERİ HAKKINDA YÖNETMELİK |
+| `geleneksel-tamamlayici-tip-yonetmeligi` | `mevzuat:7.5.45117` | GELENEKSEL VE TAMAMLAYICI TIP UYGULAMALARI YÖNETMELİĞİ |
+
+### Rejected (7 — remain candidate/gap, reason documented in verifier report)
+
+| Entry | Status | Reject reason |
+|---|---|---|
+| `ozel-hastaneler-yonetmeligi` | gap | Low score (0.095) — search returned unrelated legislation |
+| `ayakta-teshis-ozel-saglik` | gap | Low score (0.333) — search returned radiation services regulation |
+| `saglik-meslek-is-gorev-tanimlari` | gap | Low score (0.100) — search returned debt restructuring law |
+| `acil-saglik-hizmetleri-yonetmeligi` | candidate | Low score (0.286) — search returned Postal Services Law |
+| `isyeri-hekimi-yonetmeligi` | candidate | Low score (0.214) — search returned social security law |
+| `kisisel-saglik-verileri-yonetmeligi` | candidate | Low score (0.167) — search returned unrelated law |
+| `saglik-bakanligi-disiplin-yonetmeligi` | candidate | Low score (0.111) — search returned police discipline law |
+
+### Updated
+
+- **`src/healthLegislationInventory.ts`** — 5 entries promoted from candidate to verified; `coverageStatus` set to `covered`; `mevzuatSourceId` and `officialUrl` added
+- **`src/sources/legislation/healthMappings.ts`** — 7 new `HealthLegislationHint` entries for the 5 newly verified legislation (using existing topic clusters: `professional_scope_of_practice`, `informed_consent`, `medical_intervention`):
+  - Aile Hekimliği Kanunu → `professional_scope_of_practice`
+  - İSG Kanunu → `professional_scope_of_practice`
+  - Organ Nakli Kanunu → `informed_consent`, `medical_intervention`
+  - ÜYTE Yönetmeliği → `informed_consent`, `medical_intervention`
+  - GETAT Yönetmeliği → `professional_scope_of_practice`
+
+### Coverage changes (before → after)
+
+| Metric | v0.28.0 | v0.29.0 |
+|---|---|---|
+| `verifiedOfficialSourceCount` | 5 | **10** |
+| `coveredOfficialLegislationCount` | 5 | **10** |
+| `coveredByActiveHintsCount` | 5 | **10** |
+| `candidateOfficialSourceCount` | 9 | **4** |
+| `gapCount` | 3 | 3 (unchanged) |
+| `uncoveredCoreCount` | 4 | 4 (unchanged — new entries not core) |
+| `unofficialLegislationSourceCount` | 0 | **0** |
+| `topicClusterCount` | 16 | 16 (no new clusters) |
+
+### Constraints upheld
+
+- No gov.tr-external source accepted as verified
+- No output contract / source sufficiency relaxation
+- No new topic cluster added to `HealthLegislationHint` type
+- local-yargi: not imported, not vendored
+
+---
+
 ## [0.28.0] — 2026-05-24 — Official Health Legislation Inventory
 
 > Tag: `v0.28.0-official-health-legislation-inventory`
