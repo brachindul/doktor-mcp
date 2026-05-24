@@ -1,5 +1,48 @@
 # Changelog
 
+## [0.26.0] — 2026-05-24 — Live Reliability Gate
+
+> Tag: `v0.26.0-live-reliability-gate`
+
+### Added
+
+- **`src/live/reliabilityGate.ts`** — Pure utility module; no adapters, no network calls, no circular dependencies.
+  - `ReliabilityGateInput` — flat struct accepted from benchmark runner (avoids circular import)
+  - `SourceSufficiencyRecord` — per-query sufficiency record with `query`, `precedentCount`, `legislationCount`, `sufficient`
+  - `LiveReliabilityGate` — output interface with all gate fields including `gatePassed`, `gateFailures`, `gateObservations`
+  - `buildLiveReliabilityGate(input)` — evaluates hard failures and soft observations:
+    - **Hard failures** (set `gatePassed = false`): `MOCK_FALLBACK`, `CONTRACT_FAIL`, `UNOFFICIAL_SOURCE`, `INELIGIBLE_PRECEDENT`
+    - **Soft observations** (informational, gate still passes): `TIMEOUT`, `RATE_LIMIT`, `INSUFFICIENT_SUFFICIENCY`
+
+- **`src/contracts/legal.ts`** additions:
+  - `ContentStatus` type: `"full_text" | "html_markdown" | "pdf_link_only" | "metadata_only" | "unavailable"` (with JSDoc)
+  - `CourtDecision.contentStatus?: ContentStatus` — describes content richness available for a decision
+  - `CourtDecision.quoteUsable?: boolean` — whether the decision text may be quoted in output
+
+- **`src/benchmark/benchmarkRunner.ts`** additions:
+  - `VerifiedPrecedentAuditEntry` gains `contentStatus: ContentStatus | null` and `quoteUsable: boolean`
+  - `buildVerifiedPrecedentAudit` derives `contentStatus` from `fullTextAvailable` + `reasoningDetected` and `quoteUsable` from `eligibilityStatus === "precedent_usable"`
+  - `BenchmarkReport` gains `liveReliabilityGate: LiveReliabilityGate`
+  - `buildLiveReliabilityGateFromResults` helper wires report data → `ReliabilityGateInput` → `buildLiveReliabilityGate`
+  - Markdown report gains **Live Reliability Gate** section showing gate result, hard failures, and soft observations
+
+- **`package.json`**: `benchmark:doctor-questions:live-smoke` script — runs live benchmark with `--limit 5` for quick pre-release validation
+
+- **`tests/reliabilityGate.test.ts`** — 11 pure unit tests:
+  - gate passes with clean input
+  - each of the 4 hard failures individually trips `gatePassed = false`
+  - multiple hard failures accumulate correctly
+  - `TIMEOUT`, `RATE_LIMIT` observations do not trip gate
+  - `INSUFFICIENT_SUFFICIENCY` observation counts insufficient records
+  - scalar fields pass through correctly
+
+### No Breaking Changes
+
+- `CourtDecision.contentStatus` and `quoteUsable` are optional — existing adapters and tests unaffected
+- `liveReliabilityGate` is additive to `BenchmarkReport`; existing consumers that don't read it are unaffected
+
+---
+
 ## [0.25.0] — 2026-05-23 — Live Timeout / Retry Hardening
 
 > Tag: `v0.25.0-live-timeout-retry-hardening`

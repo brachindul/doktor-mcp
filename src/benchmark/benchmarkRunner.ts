@@ -1,6 +1,8 @@
 import { PhysicianLegalInformationService } from "../app/service.js";
-import type { DoctorLegalInformationPack, PrecedentStatus } from "../contracts/legal.js";
+import type { DoctorLegalInformationPack, PrecedentStatus, ContentStatus } from "../contracts/legal.js";
 import type { QueryAttemptTelemetry, SourceReliabilityMetrics, IssueProfileReliabilityMetrics } from "../contracts/queryTelemetry.js";
+import { buildLiveReliabilityGate } from "../live/reliabilityGate.js";
+import type { LiveReliabilityGate } from "../live/reliabilityGate.js";
 import { buildSessionSummary } from "../contracts/queryTelemetry.js";
 import type { RerankResult } from "../health/precedentRerank.js";
 import { inferIssueProfileFromQuestion } from "../health/precedentRelevance.js";
@@ -159,6 +161,8 @@ export interface VerifiedPrecedentAuditEntry {
   sourceTraceFullTextUrl: string | null;
   selectedAsVerifiedReason: string | null;
   exclusionReason: string | null;
+  contentStatus: ContentStatus | null;
+  quoteUsable: boolean;
   errors: string[];
   warnings: string[];
 }
@@ -278,6 +282,8 @@ export interface BenchmarkReport {
     totalBackoffMs: number;
     timedOutSources: string[];
   };
+  // Live reliability gate (v0.26.0)
+  liveReliabilityGate: LiveReliabilityGate;
   results: BenchmarkItemResult[];
 }
 
@@ -799,6 +805,47 @@ function buildLiveTimeoutMetrics(results: BenchmarkItemResult[]): BenchmarkRepor
   return { timeoutCount, rateLimitCount, transientFailureCount, totalRetries, totalBackoffMs, timedOutSources };
 }
 
+function buildLiveReliabilityGateFromResults(results: BenchmarkItemResult[], sourceMode: "live" | "mock"): LiveReliabilityGate {
+  const liveResults = results.filter((r) => r.sourceMode === "live");
+  const timeoutMetrics = buildLiveTimeoutMetrics(results);
+
+  const ineligibleUsedCount = results.reduce((sum, r) =>
+    sum + (r.precedents.metadataOnlyUsedAsPrecedent || r.precedents.proceduralOnlyUsedAsPrecedent || r.precedents.noReasoningUsedAsPrecedent ? 1 : 0), 0);
+
+  const allTelemetry = results.flatMap((r) => r.queryTelemetry);
+  const cacheHitCount = allTelemetry.filter((t) => t.servedFromCache).length;
+  const cacheMissCount = allTelemetry.filter((t) => !t.servedFromCache && t.networkRequestMade).length;
+  const networkRequestMadeCount = allTelemetry.filter((t) => t.networkRequestMade).length;
+
+  const sourceSufficiencyDistribution = results.map((r) => ({
+    query: r.question,
+    precedentCount: r.precedents.verifiedHighCourtPrecedentsCount,
+    legislationCount: r.legislation.selectedCount,
+    sufficient: r.sourceSufficiencyLevel === "sufficient"
+  }));
+
+  return buildLiveReliabilityGate({
+    totalLiveQuestions: sourceMode === "live" ? results.length : liveResults.length,
+    livePassedCount: results.filter((r) => r.passed).length,
+    liveFailedCount: results.filter((r) => !r.passed).length,
+    mockFallbackDetected: results.some((r) => r.usedMockSourceInLiveMode),
+    contractFailedCount: results.filter((r) => !r.contractPassed).length,
+    contractUnofficialSourceCount: results.filter((r) => r.unofficialSourceDetected).length,
+    ineligibleUsedCount,
+    timeoutCount: timeoutMetrics.timeoutCount,
+    rateLimitCount: timeoutMetrics.rateLimitCount,
+    sourceUnavailableCount: results.reduce((sum, r) => sum + r.legislation.sourceUnavailable.length + r.precedents.sourceUnavailableBreakdown.length, 0),
+    transientFailureCount: timeoutMetrics.transientFailureCount,
+    totalRetries: timeoutMetrics.totalRetries,
+    totalBackoffMs: timeoutMetrics.totalBackoffMs,
+    cacheHitCount,
+    cacheMissCount,
+    networkRequestMadeCount,
+    verifiedPrecedentCount: results.reduce((sum, r) => sum + r.precedents.verifiedHighCourtPrecedentsCount, 0),
+    sourceSufficiencyDistribution
+  });
+}
+
 function buildBenchmarkReport(input: {
   startedAt: string;
   completedAt: string;
@@ -902,6 +949,7 @@ function buildBenchmarkReport(input: {
     contractUnsafeAdviceCount: input.results.filter((r) => r.unsafeAdviceDetected).length,
     ...buildQueryAggregateMetrics(input.results, verifiedAuditEntries),
     liveTimeoutMetrics: buildLiveTimeoutMetrics(input.results),
+    liveReliabilityGate: buildLiveReliabilityGateFromResults(input.results, input.sourceMode),
     results: input.results
   };
 }
@@ -1124,6 +1172,17 @@ function buildVerifiedPrecedentAudit(
     if ((healthLawRelevanceScore ?? 0) < 1) warnings.push("health-law relevance score is weak or missing.");
 
     const numbers = extractMeritsAndDecision(entry.meritsAndDecisionNumber);
+
+    // Derive contentStatus from fullTextAvailable + reasoningDetected
+    const contentStatus: ContentStatus | null = fullTextAvailable && reasoningDetected
+      ? "full_text"
+      : fullTextAvailable
+        ? "html_markdown"
+        : entry.fullTextAvailable === false
+          ? "metadata_only"
+          : null;
+    const quoteUsable = status === "precedent_usable";
+
     return {
       court: court ?? null,
       chamber: entry.chamber ?? inferChamber(entry.courtAndChamber),
@@ -1149,6 +1208,8 @@ function buildVerifiedPrecedentAudit(
       sourceTraceFullTextUrl: trace?.searchRequest?.url ?? null,
       selectedAsVerifiedReason: entry.selectedAsVerifiedReason ?? null,
       exclusionReason: entry.exclusionReasons?.[0] ?? null,
+      contentStatus,
+      quoteUsable,
       errors,
       warnings
     };
@@ -1332,6 +1393,24 @@ function generateMarkdownReport(report: BenchmarkReport): string {
 ## Mock Fallback Control
 
 ${report.mockFallbackDetected ? "- Live mode mock fallback was detected and treated as a hard regression.\n" : "- No mock fallback detected in live-mode benchmark evidence.\n"}
+
+## Live Reliability Gate (v0.26.0)
+
+- **Gate Passed**: \`${report.liveReliabilityGate.gatePassed}\`
+- **Total Live Questions**: ${report.liveReliabilityGate.totalLiveQuestions}
+- **Passed**: ${report.liveReliabilityGate.livePassedCount} | **Failed**: ${report.liveReliabilityGate.liveFailedCount}
+- **Verified Precedents**: ${report.liveReliabilityGate.verifiedPrecedentCount}
+- **Timeouts**: ${report.liveReliabilityGate.timeoutCount} | **Rate Limits**: ${report.liveReliabilityGate.rateLimitCount} | **Transient Failures**: ${report.liveReliabilityGate.transientFailureCount}
+- **Total Retries**: ${report.liveReliabilityGate.totalRetries} | **Total Backoff**: ${report.liveReliabilityGate.totalBackoffMs} ms
+- **Cache Hits**: ${report.liveReliabilityGate.cacheHitCount} | **Cache Misses**: ${report.liveReliabilityGate.cacheMissCount} | **Network Requests**: ${report.liveReliabilityGate.networkRequestMadeCount}
+
+${report.liveReliabilityGate.gateFailures.length > 0
+  ? `**Hard Failures:**\n${report.liveReliabilityGate.gateFailures.map((f) => `- ❌ ${f}`).join("\n")}`
+  : "**Hard Failures:** none — gate passed."}
+
+${report.liveReliabilityGate.gateObservations.length > 0
+  ? `**Soft Observations:**\n${report.liveReliabilityGate.gateObservations.map((o) => `- ⚠️ ${o}`).join("\n")}`
+  : "**Soft Observations:** none."}
 
 ## Query Effectiveness
 

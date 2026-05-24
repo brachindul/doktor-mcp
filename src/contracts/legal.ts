@@ -18,6 +18,23 @@ export type PrecedentStatus =
   | "metadata_only"
   | "no_reasoning";
 
+/**
+ * Describes the richness of content available for a court decision.
+ * Used by `CourtDecision.contentStatus` and `VerifiedPrecedentAuditEntry.contentStatus`.
+ *
+ * - `full_text`      : Full legal text retrieved and reasoning detected.
+ * - `html_markdown`  : Full text retrieved but converted from HTML; reasoning may be partial.
+ * - `pdf_link_only`  : Only a PDF URL was found; no text was extracted.
+ * - `metadata_only`  : Only metadata (court, date, number) available; no full text.
+ * - `unavailable`    : Source could not be reached or content could not be parsed.
+ */
+export type ContentStatus =
+  | "full_text"
+  | "html_markdown"
+  | "pdf_link_only"
+  | "metadata_only"
+  | "unavailable";
+
 export interface SourceEvidence {
   source: SourceKind;
   documentId: string;
@@ -68,6 +85,8 @@ export interface CourtDecision {
   relevanceNote?: string;
   topicTags: string[];
   fullText?: string;
+  contentStatus?: ContentStatus;
+  quoteUsable?: boolean;
   evidence: SourceEvidence;
   decisionSourceTrace?: DecisionSourceTrace;
 }
