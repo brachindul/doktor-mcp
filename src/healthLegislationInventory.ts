@@ -89,6 +89,20 @@ export interface HealthLegislationInventoryEntry {
    * MUST be validated by title match before activation; never used as standalone verified signal.
    */
   candidateLegacySourceId?: string;
+
+  // ── v0.32.0 direct-access enhancement fields ──────────────────────────────
+  /** Content marker terms for direct PDF verification — checks if these appear in document text */
+  markerTerms?: string[];
+  /** Terms that indicate a wrong document — if ANY present, reject regardless of title score */
+  negativeMarkerTerms?: string[];
+  /** Explicit known-wrong sourceId patterns to reject immediately */
+  knownWrongMatches?: string[];
+  /**
+   * Unconfirmed candidate official PDF URL lead.
+   * Used for direct URL probe before relying on search API.
+   * MUST be gov.tr; never used as standalone verified signal.
+   */
+  candidateOfficialUrlLead?: string;
 }
 
 export interface HealthLegislationInventoryReport {
@@ -228,15 +242,33 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     searchTerms: ["özel hastane", "özel sağlık kuruluşu"],
     coverageStatus: "gap",
     expectedLegislationType: "yonetmelik",
+    expectedRgDate: "2014-03-27",
+    expectedRgNumber: "29092",
+    candidateLegacySourceId: "mevzuat:7.5.29092",
+    candidateOfficialUrlLead: "https://www.mevzuat.gov.tr/mevzuatmetin/7.5.29092.pdf",
     aliases: [
       "Özel Hastaneler Hakkında Yönetmelik",
-      "Özel Hastane Yönetmeliği"
+      "Özel Hastane Yönetmeliği",
+      "Özel Hastaneler Yönetmeliği Hakkında"
+    ],
+    markerTerms: [
+      "özel hastane",
+      "ruhsat",
+      "mesul müdür",
+      "sağlık kuruluşu",
+      "özel hastaneler"
+    ],
+    knownWrongMatches: [
+      "mevzuat:1.5.7191",  // Makine ve Kimya
+      "mevzuat:1.5.6001",  // Karayolları
+      "mevzuat:7.5.29134"  // Radyasyon Güvenliği
     ],
     notes: [
       "Known gap since v0.22.0 — mevzuat.gov.tr internal ID not confirmed.",
       "Do not add to active adapter registry until official sourceId verified.",
       "Governs licensing, staffing, and operation of private hospitals.",
-      "v0.30.0: exact title and aliases added to query plan."
+      "v0.30.0: exact title and aliases added to query plan.",
+      "v0.32.0: markerTerms, RG metadata, candidateLegacySourceId, knownWrongMatches added."
     ]
   },
 
@@ -253,15 +285,31 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     searchTerms: ["ayakta tedavi", "özel sağlık kuruluşu", "poliklinik"],
     coverageStatus: "gap",
     expectedLegislationType: "yonetmelik",
+    expectedRgDate: "2014-02-17",
+    expectedRgNumber: "29058",
     aliases: [
       "Ayakta Teşhis ve Tedavi Yapılan Özel Sağlık Kuruluşları Yönetmeliği",
-      "Özel Ayakta Sağlık Kuruluşları Yönetmeliği"
+      "Özel Ayakta Sağlık Kuruluşları Yönetmeliği",
+      "Ayakta Teşhis Tedavi Özel Sağlık Yönetmeliği"
+    ],
+    markerTerms: [
+      "ayakta teşhis",
+      "tedavi yapılan özel sağlık kuruluşları",
+      "tıp merkezi",
+      "poliklinik",
+      "muayenehane"
+    ],
+    knownWrongMatches: [
+      "mevzuat:1.5.7191",  // Makine ve Kimya
+      "mevzuat:7.5.29134", // Radyasyon Güvenliği
+      "mevzuat:1.5.6475"   // Posta Hizmetleri
     ],
     notes: [
       "Known gap since v0.22.0 — mevzuat.gov.tr internal ID not confirmed.",
       "Do not add to active adapter registry until official sourceId verified.",
       "Governs outpatient private clinics and polyclinics.",
-      "v0.30.0: exact title and aliases added to query plan."
+      "v0.30.0: exact title and aliases added to query plan.",
+      "v0.32.0: markerTerms, RG metadata, knownWrongMatches added."
     ]
   },
 
@@ -314,13 +362,29 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     searchTerms: ["acil sağlık", "acil servis", "acil müdahale"],
     coverageStatus: "candidate",
     expectedLegislationType: "yonetmelik",
+    expectedRgDate: "2015-04-12",
+    expectedRgNumber: "29332",
     aliases: [
-      "Acil Sağlık Hizmetleri Hakkında Yönetmelik"
+      "Acil Sağlık Hizmetleri Hakkında Yönetmelik",
+      "Acil Sağlık Hizmetleri Yönetmeliği Hakkında"
+    ],
+    markerTerms: [
+      "acil sağlık hizmetleri",
+      "acil servis",
+      "ambulans",
+      "komuta kontrol merkezi",
+      "acil müdahale"
+    ],
+    knownWrongMatches: [
+      "mevzuat:1.5.6475",  // Posta Hizmetleri
+      "mevzuat:1.5.6001",  // Karayolları
+      "mevzuat:1.5.7191"   // Makine ve Kimya
     ],
     notes: [
       "Governs emergency care delivery obligations — highly relevant for acil intervention questions.",
       "Candidate for active coverage once mevzuat.gov.tr sourceId confirmed.",
-      "v0.30.0: exact title and alias added to query plan."
+      "v0.30.0: exact title and aliases added to query plan.",
+      "v0.32.0: markerTerms, RG metadata, knownWrongMatches added."
     ]
   },
 
@@ -381,15 +445,29 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     searchTerms: ["işyeri hekimi", "iş yeri hekimi", "işyeri sağlık"],
     coverageStatus: "candidate",
     expectedLegislationType: "yonetmelik",
+    expectedRgDate: "2016-08-27",
+    expectedRgNumber: "29818",
     aliases: [
       "İşyeri Hekimi Yönetmeliği",
-      "İşyeri Hekimi Görev Yetki Sorumluluk Yönetmeliği"
+      "İşyeri Hekimi Görev Yetki Sorumluluk Yönetmeliği",
+      "İşyeri Hekimi ve Diğer Sağlık Personeli Görev Yetki Sorumluluk Yönetmeliği"
+    ],
+    markerTerms: [
+      "işyeri hekimi",
+      "diğer sağlık personeli",
+      "görev yetki sorumluluk",
+      "iş sağlığı ve güvenliği"
+    ],
+    knownWrongMatches: [
+      "mevzuat:1.5.5510",  // SGK yapılandırma
+      "mevzuat:1.5.6331"   // İSG Kanunu (6331) — different from the yönetmelik
     ],
     notes: [
       "Governs workplace physician duties, authority, and liability.",
       "Specialized — relevant for occupational health physician questions.",
       "Candidate for active coverage once sourceId confirmed.",
-      "v0.30.0: exact title and aliases added to query plan."
+      "v0.30.0: exact title and aliases added to query plan.",
+      "v0.32.0: markerTerms, RG metadata, knownWrongMatches added."
     ]
   },
 
@@ -406,15 +484,33 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     searchTerms: ["kişisel sağlık verisi", "sağlık verisi yönetmelik"],
     coverageStatus: "candidate",
     expectedLegislationType: "yonetmelik",
+    expectedRgDate: "2019-06-21",
+    expectedRgNumber: "30867",
     aliases: [
       "Kişisel Sağlık Verileri Yönetmeliği",
-      "Sağlık Verileri Hakkında Yönetmelik"
+      "Sağlık Verileri Hakkında Yönetmelik",
+      "Kişisel Sağlık Verileri Hakkında Yönetmelik"
+    ],
+    negativeMarkerTerms: [
+      "kişisel verilerin korunması kanunu",  // KVKK kanunu, not yönetmelik
+      "6698"
+    ],
+    markerTerms: [
+      "kişisel sağlık verileri",
+      "sağlık verisi",
+      "mahremiyet",
+      "veri sorumlusu",
+      "açık rıza"
+    ],
+    knownWrongMatches: [
+      "mevzuat:1.5.6698"   // KVKK kanunu — not the yönetmelik
     ],
     notes: [
       "Health-specific data regulation under KVKK framework.",
       "Should accompany KVKK in health data privacy questions.",
       "Candidate for active coverage once sourceId confirmed.",
-      "v0.30.0: exact title and aliases added to query plan."
+      "v0.30.0: exact title and aliases added to query plan.",
+      "v0.32.0: markerTerms, negativeMarkerTerms, RG metadata, knownWrongMatches added. KVKK kanunu (1.5.6698) is a known wrong match."
     ]
   },
 
@@ -495,15 +591,38 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     searchTerms: ["disiplin soruşturması", "disiplin kurulu", "Sağlık Bakanlığı disiplin"],
     coverageStatus: "candidate",
     expectedLegislationType: "yonetmelik",
+    expectedRgDate: "2004-04-26",
+    expectedRgNumber: "25450",
     aliases: [
       "Sağlık Bakanlığı Disiplin Yönetmeliği",
-      "Sağlık Bakanlığı Disiplin Amirleri Yönetmeliği"
+      "Sağlık Bakanlığı Disiplin Amirleri Yönetmeliği",
+      "Sağlık Bakanlığı Disiplin Amirleri ve Disiplin Kurulları Yönetmeliği"
+    ],
+    markerTerms: [
+      "disiplin amiri",
+      "sağlık bakanlığı",
+      "disiplin",
+      "memur",
+      "soruşturma"
+    ],
+    negativeMarkerTerms: [
+      "türk silahlı kuvvetleri",
+      "asker",
+      "tsk disiplin",
+      "polis"
+    ],
+    knownWrongMatches: [
+      "mevzuat:1.5.6413",  // TSK Disiplin Kanunu
+      "mevzuat:1.5.657",   // Devlet Memurları Kanunu (genel)
+      "mevzuat:1.5.6001"   // Karayolları
     ],
     notes: [
       "Governs Ministry of Health disciplinary proceedings against health staff.",
       "Relevant for all administrative disciplinary questions.",
       "Candidate for active coverage once sourceId confirmed.",
-      "v0.30.0: exact title and aliases added to query plan."
+      "v0.30.0: exact title and aliases added to query plan.",
+      "v0.32.0: markerTerms, negativeMarkerTerms, RG metadata, knownWrongMatches added.",
+      "Dikkat: isim/güncellik değişmiş olabilir; yanlış düzenlemeyi verified yapma."
     ]
   },
 

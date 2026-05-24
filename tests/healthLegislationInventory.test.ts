@@ -158,6 +158,21 @@ describe("buildInventoryReport", () => {
     expect(report.uncoveredCoreCount).toBe(expectedUncoveredCore);
   });
 
+  it("has at least 11 verified entries (v0.31 base + new if any)", () => {
+    expect(report.verifiedOfficialSourceCount).toBeGreaterThanOrEqual(11);
+  });
+
+  it("v0.32.0: enriched entries have markerTerms or knownWrongMatches", () => {
+    const gapCandidate = HEALTH_LEGISLATION_INVENTORY.filter(
+      (e) => e.officialSourceStatus === "gap" || e.officialSourceStatus === "candidate"
+    );
+    const enriched = gapCandidate.filter(
+      (e) => (e.markerTerms && e.markerTerms.length > 0) || (e.knownWrongMatches && e.knownWrongMatches.length > 0)
+    );
+    // At least some entries should have these v0.32 fields
+    expect(enriched.length).toBeGreaterThan(0);
+  });
+
   it("inventory counts sum to inventoryTotalCount", () => {
     const total = report.verifiedOfficialSourceCount + report.candidateOfficialSourceCount +
                   report.gapCount + report.deferredCount;

@@ -1,14 +1,17 @@
 /**
- * Official Health Legislation Access Verifier (v0.30.0)
+ * Official Health Legislation Access Verifier (v0.32.0)
  *
  * Searches mevzuat.gov.tr for each candidate/gap inventory entry using a
  * multi-variant query plan (exact title, aliases, RG number, legacy sourceId
  * probe, keyword terms) and scores results via F1 word-overlap + metadata
  * signals to determine if an official sourceId can be confirmed.
  *
- * Design rules:
- * - Conservative: only accept via Path A (title/alias score ≥ 0.75) or
- *   Path B (candidateLegacySourceId exact match + title/alias score ≥ 0.50).
+ * Design rules (v0.32.0):
+ * - Path C (direct sourceId/PDF fetch) tried FIRST if candidateLegacySourceId set.
+ * - Path A (title/alias score ≥ 0.75) and Path B (sourceId probe + ≥ 0.50) retained.
+ * - Marker terms from entry-level markerTerms used for content verification.
+ * - negativeMarkerTerms: if ANY term appears in document text, reject as wrong document.
+ * - knownWrongMatches: explicit list of (sourceId, titlePattern) pairs to reject immediately.
  * - Ambiguity guard: reject if second-best is within AMBIGUITY_MARGIN of best.
  * - gov.tr guard: reject any result whose URL is not on mevzuat.gov.tr.
  * - No risk levels, urgent actions, or definitive legal opinions produced here.
@@ -36,6 +39,21 @@ const SOURCE_ID_PROBE_TITLE_THRESHOLD = 0.50;
  * the result is ambiguous and we conservatively reject.
  */
 const AMBIGUITY_MARGIN = 0.10;
+
+/** Minimum marker score to accept a direct-fetched document. */
+const MIN_MARKER_SCORE = 0.30;
+
+/** Known wrong legislation patterns to reject immediately (v0.32.0). */
+const KNOWN_WRONG_MATCHES: Array<{ sourceIdPattern: string; titlePattern: string; reason: string }> = [
+  { sourceIdPattern: "mevzuat:1.5.7191", titlePattern: "Makine", reason: "Makine ve Kimya Endüstrisi Kanunu — not health regulation" },
+  { sourceIdPattern: "mevzuat:1.5.6001", titlePattern: "Karayolları", reason: "Karayolları Hizmetleri Kanunu — not health regulation" },
+  { sourceIdPattern: "mevzuat:1.5.6475", titlePattern: "Posta", reason: "Posta Hizmetleri Kanunu — not health regulation" },
+  { sourceIdPattern: "mevzuat:1.5.6698", titlePattern: "Kişisel Verilerin", reason: "KVKK kanunu — only supporting context, not target yönetmelik" },
+  { sourceIdPattern: "mevzuat:1.5.6413", titlePattern: "Türk Silahlı", reason: "TSK Disiplin Kanunu — not health discipline regulation" },
+  { sourceIdPattern: "mevzuat:1.5.5510", titlePattern: "Sosyal Sigortalar", reason: "SGK yapılandırma kanunu — not health regulation" },
+  { sourceIdPattern: "mevzuat:7.5.29134", titlePattern: "Radyasyon", reason: "Radyasyon Güvenliği Yönetmeliği — not health facility regulation" },
+  { sourceIdPattern: "mevzuat:1.5.657", titlePattern: "Devlet Memurları", reason: "Devlet Memurları Kanunu — general civil service, not health-specific discipline" },
+];
 
 /** Short Turkish function words excluded from overlap scoring. */
 const STOP_WORDS = new Set([
@@ -133,6 +151,9 @@ export interface CompositeMatchScore {
   titleScore: number;
   aliasScore: number;
   metadataScore: number;
+  markerScore: number;
+  rgScore: number;
+  typeScore: number;
   sourceIdProbeBonus: number;
   /** max(titleScore, aliasScore) + metadataScore */
   finalScore: number;
@@ -182,6 +203,30 @@ export interface HealthLegislationVerificationAttempt {
   directFetchMarkerScore?: number;
   /** Length of the fetched document text in chars */
   directFetchTextLength?: number;
+
+  // ── v0.32.0 expanded diagnostics fields ───────────────────────────────────
+  /** Whether direct sourceId was attempted as first strategy */
+  directSourceIdAttempted?: boolean;
+  /** The official URL used for direct fetch */
+  directFetchOfficialUrl?: string;
+  /** Marker score computed from entry-level markerTerms (0-1) */
+  markerScore?: number;
+  /** RG date match score (1 if matches expectedRgDate, 0 otherwise) */
+  rgScore?: number;
+  /** Legislation type match score (1 if matches expectedLegislationType, 0 otherwise) */
+  typeScore?: number;
+  /** Whether a known wrong match pattern was hit */
+  knownWrongMatchHit?: boolean;
+  /** Description of why a known wrong match was rejected */
+  knownWrongMatchReason?: string;
+  /** Free-text reason for wrong match rejection */
+  wrongMatchReason?: string;
+  /** Final human-readable decision explanation */
+  finalDecision?: string;
+  /** Whether a negative marker term was found in the document */
+  negativeMarkerHit?: boolean;
+  /** Which negative marker term was found */
+  negativeMarkerTerm?: string;
 }
 
 export interface HealthLegislationVerificationReport {
@@ -256,6 +301,63 @@ export function isGovTrUrl(url: string): boolean {
   } catch {
     return false;
   }
+}
+
+// ──────────────────────────────────────────────────────────────
+// Known wrong match guard (v0.32.0)
+// ──────────────────────────────────────────────────────────────
+
+export interface WrongMatchCheckResult {
+  isWrongMatch: boolean;
+  matchedSourceIdPattern?: string;
+  matchedTitlePattern?: string;
+  reason?: string;
+}
+
+/**
+ * Check if a search result matches a known wrong legislation pattern.
+ * Returns { isWrongMatch: true } with details if it does.
+ */
+export function checkKnownWrongMatch(
+  result: { sourceId: string; title: string }
+): WrongMatchCheckResult {
+  const normTitle = normalizeTitleForMatch(result.title);
+  for (const wm of KNOWN_WRONG_MATCHES) {
+    if (result.sourceId.startsWith(wm.sourceIdPattern)) {
+      return {
+        isWrongMatch: true,
+        matchedSourceIdPattern: wm.sourceIdPattern,
+        matchedTitlePattern: wm.titlePattern,
+        reason: wm.reason
+      };
+    }
+    if (normTitle.includes(normalizeTitleForMatch(wm.titlePattern))) {
+      return {
+        isWrongMatch: true,
+        matchedSourceIdPattern: wm.sourceIdPattern,
+        matchedTitlePattern: wm.titlePattern,
+        reason: wm.reason
+      };
+    }
+  }
+  return { isWrongMatch: false };
+}
+
+/**
+ * Check if any negative marker term appears in document text.
+ */
+export function checkNegativeMarkers(
+  text: string,
+  negativeTerms: string[]
+): { hit: boolean; term?: string } {
+  const textLower = text.toLocaleLowerCase("tr-TR");
+  for (const term of negativeTerms) {
+    const termLower = term.toLocaleLowerCase("tr-TR");
+    if (textLower.includes(termLower)) {
+      return { hit: true, term };
+    }
+  }
+  return { hit: false };
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -382,9 +484,24 @@ export function computeCompositeScore(
 
   // Small type-match bonus (does not cross the threshold on its own)
   let metadataScore = 0;
+  let typeScore = 0;
   if (entry.expectedLegislationType) {
     const inferred = inferLegislationType(result.sourceId);
-    if (inferred === entry.expectedLegislationType) metadataScore = 0.05;
+    if (inferred === entry.expectedLegislationType) {
+      metadataScore = 0.05;
+      typeScore = 1;
+    }
+  }
+
+  // Marker score: proportion of entry markerTerms found in result title
+  const markerScore = (entry.markerTerms ?? []).length > 0
+    ? computeMarkerOverlap(result.title, entry.markerTerms!)
+    : 0;
+
+  // RG score: metadata score based on RG number match in sourceId or title
+  let rgScore = 0;
+  if (entry.expectedRgNumber && (result.legislationNumber === entry.expectedRgNumber || result.title.includes(entry.expectedRgNumber))) {
+    rgScore = 1;
   }
 
   const bestTitleOrAlias = Math.max(titleScore, aliasScore);
@@ -407,6 +524,9 @@ export function computeCompositeScore(
     titleScore,
     aliasScore,
     metadataScore,
+    markerScore,
+    rgScore,
+    typeScore,
     sourceIdProbeBonus,
     finalScore,
     probePathEligible
@@ -469,6 +589,14 @@ export function extractRgFromDocText(text: string): { date: string; number: stri
 }
 
 /**
+ * Compute RG score based on expected RG date match with extracted document text.
+ */
+function computeRgScore(entry: HealthLegislationInventoryEntry, rgDate: string): number {
+  if (!entry.expectedRgDate || !rgDate) return 0;
+  return entry.expectedRgDate === rgDate ? 1 : 0;
+}
+
+/**
  * Verify an inventory entry by directly fetching the official document
  * through its candidateLegacySourceId. This is Path C — it bypasses the
  * mevzuat.gov.tr search API entirely and fetches the PDF directly.
@@ -487,6 +615,26 @@ export async function verifyBySourceIdDirect(
     entryStatus: entry.officialSourceStatus as "candidate" | "gap"
   };
 
+  // ── known wrong match check on the sourceId itself
+  const wrongCheck = checkKnownWrongMatch({ sourceId: entry.candidateLegacySourceId, title: entry.title });
+  if (wrongCheck.isWrongMatch) {
+    return {
+      ...base,
+      status: "rejected_wrong_document",
+      allCandidates: [],
+      searchTermsAttempted: [entry.candidateLegacySourceId],
+      attemptedQueries: [],
+      sourceIdProbeUsed: false,
+      topCandidates: [],
+      directFetchAttempted: false,
+      directSourceIdAttempted: true,
+      knownWrongMatchHit: true,
+      knownWrongMatchReason: wrongCheck.reason,
+      wrongMatchReason: `Known wrong match: ${wrongCheck.reason}`,
+      rejectReason: `Known wrong match: ${wrongCheck.reason}`
+    };
+  }
+
   const doc = await adapter.fetchOfficialDocument(entry.candidateLegacySourceId);
   if (!isLiveDocument(doc)) {
     const isTimeout = doc.message?.includes("timed out") ?? false;
@@ -499,6 +647,7 @@ export async function verifyBySourceIdDirect(
       sourceIdProbeUsed: false,
       topCandidates: [],
       directFetchAttempted: true,
+      directSourceIdAttempted: true,
       directFetchTimedOut: isTimeout,
       directFetchStatus: isTimeout ? "timeout" : "fetch_failed",
       rejectReason: doc.message
@@ -517,12 +666,27 @@ export async function verifyBySourceIdDirect(
   );
   const bestTitleOrAlias = Math.max(titleScore, aliasScore);
 
-  // Compute marker overlap score
-  const markerTerms = [...entry.searchTerms, ...DEFAULT_MARKER_TERMS];
-  const markerScore = computeMarkerOverlap(doc.text, markerTerms);
+  // Compute marker overlap score using entry-level markerTerms
+  const entryMarkerTerms = entry.markerTerms ?? [];
+  const effectiveMarkerTerms = entryMarkerTerms.length > 0
+    ? [...entryMarkerTerms, ...DEFAULT_MARKER_TERMS]
+    : [...entry.searchTerms, ...DEFAULT_MARKER_TERMS];
+  const markerScore = computeMarkerOverlap(doc.text, effectiveMarkerTerms);
 
   // Extract RG info from document text
   const rgInfo = extractRgFromDocText(doc.text);
+  const rgScore = computeRgScore(entry, rgInfo.date);
+  const typeScore = entry.expectedLegislationType ? 1 : 0;
+
+  // Check negative marker terms
+  const negCheck = entry.negativeMarkerTerms
+    ? checkNegativeMarkers(doc.text, entry.negativeMarkerTerms)
+    : { hit: false };
+
+  // Build the official URL
+  const officialUrl = entry.candidateLegacySourceId.startsWith("mevzuat:")
+    ? `https://www.mevzuat.gov.tr/mevzuatmetin/${entry.candidateLegacySourceId.replace("mevzuat:", "").replace(/\./g, ".")}.pdf`
+    : "";
 
   // Check empty document
   if (textLength < 100) {
@@ -535,28 +699,64 @@ export async function verifyBySourceIdDirect(
       sourceIdProbeUsed: false,
       topCandidates: [],
       directFetchAttempted: true,
+      directSourceIdAttempted: true,
       directFetchTimedOut: false,
       directFetchStatus: "empty_document",
       directFetchTitle: docTitle,
+      directFetchOfficialUrl: officialUrl,
       directFetchRgDate: rgInfo.date,
       directFetchRgNumber: rgInfo.number,
       directFetchMarkerScore: markerScore,
       directFetchTextLength: textLength,
+      markerScore,
+      rgScore,
+      typeScore,
       rejectReason: `Document text too short (${textLength} chars) to be a valid regulation.`
     };
   }
 
-  // Build the official URL
-  const officialUrl = entry.candidateLegacySourceId.startsWith("mevzuat:")
-    ? `https://www.mevzuat.gov.tr/mevzuatmetin/${entry.candidateLegacySourceId.replace("mevzuat:", "").replace(/\./g, ".")}.pdf`
-    : "";
+  // Negative marker guard
+  if (negCheck.hit) {
+    return {
+      ...base,
+      status: "rejected_wrong_document",
+      allCandidates: [],
+      searchTermsAttempted: [entry.candidateLegacySourceId],
+      attemptedQueries: [],
+      sourceIdProbeUsed: false,
+      topCandidates: [{
+        title: docTitle,
+        sourceId: entry.candidateLegacySourceId,
+        score: bestTitleOrAlias
+      }],
+      directFetchAttempted: true,
+      directSourceIdAttempted: true,
+      directFetchTimedOut: false,
+      directFetchStatus: "negative_marker_hit",
+      directFetchTitle: docTitle,
+      directFetchOfficialUrl: officialUrl,
+      directFetchRgDate: rgInfo.date,
+      directFetchRgNumber: rgInfo.number,
+      directFetchMarkerScore: markerScore,
+      directFetchTextLength: textLength,
+      markerScore,
+      rgScore,
+      typeScore,
+      negativeMarkerHit: true,
+      negativeMarkerTerm: negCheck.term,
+      wrongMatchReason: `Negative marker "${negCheck.term}" found in document — indicates wrong regulation.`,
+      rejectReason: `Negative marker "${negCheck.term}" found in document — not the expected regulation.`
+    };
+  }
 
   // Verification criteria for direct sourceId path:
   // 1. Title match >= 0.50 (moderate confidence)
   // 2. Marker overlap >= 0.30 (content confirms the topic)
   // 3. Document non-empty (already checked)
+  // 4. No negative marker hit (already checked)
+  // 5. No known wrong match (already checked)
   // No non-gov.tr check needed — the fetch URL is gov.tr by construction
-  if (bestTitleOrAlias >= 0.50 && markerScore >= 0.30) {
+  if (bestTitleOrAlias >= 0.50 && markerScore >= MIN_MARKER_SCORE) {
     return {
       ...base,
       status: "verified_via_source_id_direct",
@@ -581,9 +781,11 @@ export async function verifyBySourceIdDirect(
         score: bestTitleOrAlias
       }],
       directFetchAttempted: true,
+      directSourceIdAttempted: true,
       directFetchTimedOut: false,
       directFetchStatus: "success",
       directFetchTitle: docTitle,
+      directFetchOfficialUrl: officialUrl,
       directFetchRgDate: rgInfo.date,
       directFetchRgNumber: rgInfo.number,
       directFetchMarkerScore: markerScore,
@@ -592,7 +794,11 @@ export async function verifyBySourceIdDirect(
       officialUrl,
       titleScore,
       aliasScore,
-      metadataScore: 0
+      markerScore,
+      rgScore,
+      typeScore,
+      metadataScore: 0,
+      finalDecision: `Direct sourceId fetch verified: title match ${bestTitleOrAlias.toFixed(3)}, marker score ${markerScore.toFixed(3)}, RG ${rgInfo.date || "—"}.`
     };
   }
 
@@ -610,13 +816,19 @@ export async function verifyBySourceIdDirect(
       score: bestTitleOrAlias
     }],
     directFetchAttempted: true,
+    directSourceIdAttempted: true,
     directFetchTimedOut: false,
     directFetchStatus: "title_mismatch",
     directFetchTitle: docTitle,
+    directFetchOfficialUrl: officialUrl,
     directFetchRgDate: rgInfo.date,
     directFetchRgNumber: rgInfo.number,
     directFetchMarkerScore: markerScore,
     directFetchTextLength: textLength,
+    markerScore,
+    rgScore,
+    typeScore,
+    wrongMatchReason: `Direct title match ${bestTitleOrAlias.toFixed(3)} < 0.50 threshold.`,
     rejectReason: `Direct title match ${bestTitleOrAlias.toFixed(3)} < 0.50 threshold (titleScore: ${titleScore.toFixed(3)}, aliasScore: ${aliasScore.toFixed(3)}). Marker score: ${markerScore.toFixed(3)}. Doc docTitle: "${docTitle.slice(0, 120)}..."`
   };
 }
@@ -641,8 +853,12 @@ interface CandidateEntry {
 /**
  * Verify a single inventory entry against mevzuat.gov.tr.
  *
- * Executes all query plan variants in order, aggregates results,
- * then applies conservative acceptance rules.
+ * Strategy (v0.32.0):
+ * 1. Run multi-variant query plan, aggregate results.
+ * 2. Apply known wrong match guard on each result (filter out).
+ * 3. Apply Path A (title/alias ≥ 0.75) and Path B (sourceId probe + ≥ 0.50) rules.
+ * 4. If search fails or no match, try Path C (direct sourceId/PDF fetch) as fallback.
+ * 5. Apply gov.tr guard, ambiguity guard.
  */
 export async function verifyInventoryEntry(
   entry: HealthLegislationInventoryEntry,
@@ -654,59 +870,53 @@ export async function verifyInventoryEntry(
     entryStatus: entry.officialSourceStatus as "candidate" | "gap"
   };
 
+  // ── Path C (direct-first): try direct sourceId fetch BEFORE search API
+  // If the entry has a candidateLegacySourceId, attempt direct PDF fetch first.
+  // Verified results and definitive rejections (known wrong, negative marker,
+  // title mismatch, empty document) are returned immediately. Transient errors
+  // (timeout, fetch_failed) fall through to the search API as a fallback,
+  // with diagnostics propagated.
+  let directFetchDiagnostics: Record<string, unknown> | null = null;
+
+  if (entry.candidateLegacySourceId && adapter.fetchOfficialDocument) {
+    const directResult = await verifyBySourceIdDirect(entry, adapter);
+    if (directResult) {
+      if (directResult.status === "verified_via_source_id_direct") return directResult;
+      if (directResult.status === "rejected_wrong_document") return directResult;
+      if (directResult.status === "rejected_source_id_title_mismatch") return directResult;
+      if (directResult.status === "rejected_source_id_empty_document") return directResult;
+      // Transient failure — store diagnostics for fallback
+      directFetchDiagnostics = {
+        directFetchAttempted: directResult.directFetchAttempted,
+        directSourceIdAttempted: directResult.directSourceIdAttempted,
+        directFetchTimedOut: directResult.directFetchTimedOut,
+        directFetchStatus: directResult.directFetchStatus
+      };
+    }
+  }
+
   const queryPlan = buildQueryPlan(entry);
   const searchTermsAttempted: string[] = [];
   const candidateMap = new Map<string, CandidateEntry>();
 
+  let searchError: string | null = null;
+
   for (const variant of queryPlan.variants) {
     searchTermsAttempted.push(variant.query);
 
-    const results = await adapter.searchOfficialLegislation(variant.query);
-    if (!Array.isArray(results)) {
-      // Path C: on search error, try direct sourceId fetch if available (v0.31.0)
-      if (entry.candidateLegacySourceId && adapter.fetchOfficialDocument) {
-        const directResult = await verifyBySourceIdDirect(entry, adapter);
-        if (directResult && directResult.status === "verified_via_source_id_direct") {
-          return directResult;
-        }
-        if (directResult) {
-          return {
-            ...base,
-            status: "search_error",
-            allCandidates: [],
-            searchTermsAttempted,
-            attemptedQueries: queryPlan.variants,
-            sourceIdProbeUsed: false,
-            topCandidates: [],
-            rejectReason: `Search failed for query "${variant.query}" (kind: ${variant.kind}): ${results.message}`,
-            directFetchAttempted: directResult.directFetchAttempted,
-            directFetchTimedOut: directResult.directFetchTimedOut,
-            directFetchStatus: directResult.directFetchStatus,
-            directFetchTitle: directResult.directFetchTitle,
-            directFetchRgDate: directResult.directFetchRgDate,
-            directFetchRgNumber: directResult.directFetchRgNumber,
-            directFetchMarkerScore: directResult.directFetchMarkerScore,
-            directFetchTextLength: directResult.directFetchTextLength
-          };
-        }
-      }
-      return {
-        ...base,
-        status: "search_error",
-        allCandidates: [],
-        searchTermsAttempted,
-        attemptedQueries: queryPlan.variants,
-        sourceIdProbeUsed: false,
-        topCandidates: [],
-        rejectReason: `Search failed for query "${variant.query}" (kind: ${variant.kind}): ${results.message}`
-      };
+    const rawResults = await adapter.searchOfficialLegislation(variant.query);
+    if (!Array.isArray(rawResults)) {
+      searchError = rawResults?.message ?? "unknown error";
+      continue;
     }
 
-    for (const result of results) {
+    for (const result of rawResults) {
+      const wrongCheck = checkKnownWrongMatch(result);
+      if (wrongCheck.isWrongMatch) continue;
+
       const composite = computeCompositeScore(entry, result, variant);
       const existing = candidateMap.get(result.sourceId);
 
-      // Keep the candidate entry with the best finalScore (or probePathEligible if scores tie)
       const isBetter = !existing ||
         composite.finalScore > existing.bestScore.finalScore ||
         (!existing.bestScore.probePathEligible && composite.probePathEligible);
@@ -717,7 +927,6 @@ export async function verifyInventoryEntry(
     }
   }
 
-  // Sort: probe-eligible first among ties, then by finalScore
   const sorted = [...candidateMap.values()].sort((a, b) => {
     if (a.bestScore.probePathEligible !== b.bestScore.probePathEligible) {
       return a.bestScore.probePathEligible ? -1 : 1;
@@ -741,35 +950,21 @@ export async function verifyInventoryEntry(
     title: c.title, sourceId: c.sourceId, score: c.titleMatchScore
   }));
 
-  // ── No results at all ────────────────────────────────────────
+  if (sorted.length === 0 && searchError !== null) {
+    return {
+      ...base,
+      status: "search_error",
+      allCandidates: [],
+      searchTermsAttempted,
+      attemptedQueries: queryPlan.variants,
+      sourceIdProbeUsed: false,
+      topCandidates: [],
+      rejectReason: `Search failed: ${searchError}`,
+      ...(directFetchDiagnostics ?? {})
+    };
+  }
+
   if (sorted.length === 0) {
-    // Path C: on no results, try direct sourceId fetch if available (v0.31.0)
-    if (entry.candidateLegacySourceId && adapter.fetchOfficialDocument) {
-      const directResult = await verifyBySourceIdDirect(entry, adapter);
-      if (directResult && directResult.status === "verified_via_source_id_direct") {
-        return directResult;
-      }
-      if (directResult) {
-        return {
-          ...base,
-          status: "rejected_no_match",
-          allCandidates: [],
-          searchTermsAttempted,
-          attemptedQueries: queryPlan.variants,
-          sourceIdProbeUsed: false,
-          topCandidates: [],
-          rejectReason: "No results returned from any search variant.",
-          directFetchAttempted: directResult.directFetchAttempted,
-          directFetchTimedOut: directResult.directFetchTimedOut,
-          directFetchStatus: directResult.directFetchStatus,
-          directFetchTitle: directResult.directFetchTitle,
-          directFetchRgDate: directResult.directFetchRgDate,
-          directFetchRgNumber: directResult.directFetchRgNumber,
-          directFetchMarkerScore: directResult.directFetchMarkerScore,
-          directFetchTextLength: directResult.directFetchTextLength
-        };
-      }
-    }
     return {
       ...base,
       status: "rejected_no_match",
@@ -778,7 +973,8 @@ export async function verifyInventoryEntry(
       attemptedQueries: queryPlan.variants,
       sourceIdProbeUsed: false,
       topCandidates: [],
-      rejectReason: "No results returned from any search variant."
+      rejectReason: "No results returned from any search variant. All known wrong matches filtered.",
+      ...(directFetchDiagnostics ?? {})
     };
   }
 
@@ -786,7 +982,6 @@ export async function verifyInventoryEntry(
   const second = sorted[1];
   const bestScore = best.bestScore;
 
-  // Shared accept helper
   const buildVerified = (status: "verified" | "verified_via_source_id_probe") => {
     const officialUrl =
       `https://www.mevzuat.gov.tr/mevzuatmetin/` +
@@ -801,15 +996,18 @@ export async function verifyInventoryEntry(
       bestQueryKind: best.bestVariant.kind,
       titleScore: bestScore.titleScore,
       aliasScore: bestScore.aliasScore,
+      markerScore: bestScore.markerScore,
+      rgScore: bestScore.rgScore,
+      typeScore: bestScore.typeScore,
       metadataScore: bestScore.metadataScore,
       sourceIdProbeUsed: bestScore.probePathEligible,
       topCandidates,
       mevzuatSourceId: best.result.sourceId,
-      officialUrl
+      officialUrl,
+      finalDecision: `Search verified via ${status === "verified" ? "Path A" : "Path B"}: title/alias score ${bestScore.finalScore.toFixed(3)} ≥ ${status === "verified" ? "0.75" : "0.50"} threshold.`
     };
   };
 
-  // Shared reject helper
   const buildRejected = (
     status: HealthLegislationVerificationStatus,
     rejectReason: string
@@ -823,21 +1021,27 @@ export async function verifyInventoryEntry(
     bestQueryKind: best.bestVariant.kind,
     titleScore: bestScore.titleScore,
     aliasScore: bestScore.aliasScore,
+    markerScore: bestScore.markerScore,
+    rgScore: bestScore.rgScore,
+    typeScore: bestScore.typeScore,
     metadataScore: bestScore.metadataScore,
     sourceIdProbeUsed: bestScore.probePathEligible,
     topCandidates,
-    rejectReason
+    rejectReason,
+    ...(directFetchDiagnostics ?? {}),
+    knownWrongMatchHit: topCandidates.some(c =>
+      KNOWN_WRONG_MATCHES.some(wm =>
+        c.sourceId.startsWith(wm.sourceIdPattern)
+      )
+    )
   });
 
-  // ── Ambiguity guard (shared for both paths) ───────────────────
   const checkAmbiguous = (pathBestScore: number) => {
     if (!second) return false;
-    // For probe path, only the non-probe second is a concern
     const secondScore = second.bestScore.finalScore;
     return pathBestScore - secondScore < AMBIGUITY_MARGIN;
   };
 
-  // ── Path A: strong title/alias score ─────────────────────────
   if (bestScore.finalScore >= ACCEPT_THRESHOLD) {
     if (checkAmbiguous(bestScore.finalScore)) {
       return buildRejected(
@@ -852,7 +1056,6 @@ export async function verifyInventoryEntry(
     return buildVerified("verified");
   }
 
-  // ── Path B: sourceId probe + moderate title ───────────────────
   if (bestScore.probePathEligible) {
     if (checkAmbiguous(bestScore.finalScore)) {
       return buildRejected(
@@ -866,7 +1069,6 @@ export async function verifyInventoryEntry(
     return buildVerified("verified_via_source_id_probe");
   }
 
-  // ── Wrong document type ───────────────────────────────────────
   if (
     entry.expectedLegislationType !== undefined &&
     inferLegislationType(best.result.sourceId) !== null &&
@@ -879,42 +1081,12 @@ export async function verifyInventoryEntry(
     );
   }
 
-  // ── Low score ─────────────────────────────────────────────────
-  const searchRejected = buildRejected(
+  return buildRejected(
     "rejected_low_score",
     `Best score ${bestScore.finalScore.toFixed(3)} < threshold ${ACCEPT_THRESHOLD} ` +
     `(titleScore: ${bestScore.titleScore.toFixed(3)}, aliasScore: ${bestScore.aliasScore.toFixed(3)}). ` +
     `Best: "${best.result.title}"`
   );
-
-  // ── Path C: direct sourceId document fetch (v0.31.0) ──────────
-  // If search failed or rejected, and the entry has a candidateLegacySourceId,
-  // try direct document fetch as a final fallback.
-  if (entry.candidateLegacySourceId && adapter.fetchOfficialDocument) {
-    const directResult = await verifyBySourceIdDirect(entry, adapter);
-    if (directResult && directResult.status === "verified_via_source_id_direct") {
-      return directResult;
-    }
-    // If direct fetch gave a more informative result, merge its fields
-    if (directResult) {
-      return {
-        ...searchRejected,
-        ...directResult,
-        // Keep search-based status as the primary, but include direct-fetch diagnostics
-        status: searchRejected.status,
-        directFetchAttempted: directResult.directFetchAttempted,
-        directFetchTimedOut: directResult.directFetchTimedOut,
-        directFetchStatus: directResult.directFetchStatus,
-        directFetchTitle: directResult.directFetchTitle,
-        directFetchRgDate: directResult.directFetchRgDate,
-        directFetchRgNumber: directResult.directFetchRgNumber,
-        directFetchMarkerScore: directResult.directFetchMarkerScore,
-        directFetchTextLength: directResult.directFetchTextLength
-      };
-    }
-  }
-
-  return searchRejected;
 }
 
 // ──────────────────────────────────────────────────────────────

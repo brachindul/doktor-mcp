@@ -12,6 +12,8 @@ import {
   extractDocTitle,
   computeMarkerOverlap,
   extractRgFromDocText,
+  checkKnownWrongMatch,
+  checkNegativeMarkers,
   type LegislationSearchAdapter,
   type HealthLegislationVerificationAttempt
 } from "../src/healthLegislationAccessVerifier.js";
@@ -1130,5 +1132,268 @@ describe("verifyBySourceIdDirect", () => {
       const text = "SAĞLIK YÖNETMELİĞİ";
       expect(computeMarkerOverlap(text, [])).toBe(0);
     });
+  });
+});
+
+// ─── v0.32.0: checkKnownWrongMatch ────────────────────────────────────────────
+
+describe("checkKnownWrongMatch", () => {
+  it("rejects Makine ve Kimya Endüstrisi Kanunu", () => {
+    const result = checkKnownWrongMatch({
+      sourceId: "mevzuat:1.5.7191",
+      title: "Makine ve Kimya Endüstrisi Kanunu"
+    });
+    expect(result.isWrongMatch).toBe(true);
+    expect(result.reason).toContain("Makine");
+  });
+
+  it("rejects KVKK kanunu (1.5.6698)", () => {
+    const result = checkKnownWrongMatch({
+      sourceId: "mevzuat:1.5.6698",
+      title: "Kişisel Verilerin Korunması Kanunu"
+    });
+    expect(result.isWrongMatch).toBe(true);
+    expect(result.reason).toContain("KVKK");
+  });
+
+  it("rejects TSK Disiplin Kanunu", () => {
+    const result = checkKnownWrongMatch({
+      sourceId: "mevzuat:1.5.6413",
+      title: "Türk Silahlı Kuvvetleri Disiplin Kanunu"
+    });
+    expect(result.isWrongMatch).toBe(true);
+    expect(result.reason).toContain("TSK");
+  });
+
+  it("rejects SGK yapılandırma kanunu", () => {
+    const result = checkKnownWrongMatch({
+      sourceId: "mevzuat:1.5.5510",
+      title: "Sosyal Sigortalar ve Genel Sağlık Sigortası Kanunu"
+    });
+    expect(result.isWrongMatch).toBe(true);
+    expect(result.reason).toContain("SGK");
+  });
+
+  it("returns false for mevzuat.gov.tr health regulation", () => {
+    const result = checkKnownWrongMatch({
+      sourceId: "mevzuat:7.5.19696",
+      title: "Sağlık Meslek Mensupları İş ve Görev Tanımları Yönetmeliği"
+    });
+    expect(result.isWrongMatch).toBe(false);
+  });
+
+  it("matches by title pattern when sourceId is unknown", () => {
+    const result = checkKnownWrongMatch({
+      sourceId: "mevzuat:1.5.99999", // unknown sourceId
+      title: "Posta Hizmetleri Kanunu" // title matches Posta pattern
+    });
+    expect(result.isWrongMatch).toBe(true);
+    expect(result.reason).toContain("Posta");
+  });
+});
+
+// ─── v0.32.0: checkNegativeMarkers ────────────────────────────────────────────
+
+describe("checkNegativeMarkers", () => {
+  it("returns hit=true when negative term found", () => {
+    const result = checkNegativeMarkers(
+      "Bu yönetmelik TSK Disiplin Kanunu kapsamındadır.",
+      ["tsk disiplin", "asker"]
+    );
+    expect(result.hit).toBe(true);
+    expect(result.term).toBe("tsk disiplin");
+  });
+
+  it("returns hit=false when no negative term found", () => {
+    const result = checkNegativeMarkers(
+      "Bu yönetmelik sağlık hizmetleri kapsamındadır.",
+      ["tsk", "asker", "polis"]
+    );
+    expect(result.hit).toBe(false);
+  });
+
+  it("returns hit=false for empty negative terms", () => {
+    const result = checkNegativeMarkers("Test metni", []);
+    expect(result.hit).toBe(false);
+  });
+});
+
+// ─── v0.32.0: Direct-first strategy ──────────────────────────────────────────
+
+describe("verifyInventoryEntry — direct-first strategy", () => {
+  it("tries direct sourceId first and returns verified if successful", async () => {
+    const entry = makeEntry({
+      key: "test-direct-first",
+      title: "Test Yönetmeliği",
+      candidateLegacySourceId: "mevzuat:7.5.99999",
+      searchTerms: ["test"],
+      markerTerms: ["test", "yönetmelik", "sağlık"],
+      officialSourceStatus: "candidate",
+      coverageStatus: "candidate"
+    });
+
+    const adapter: LegislationSearchAdapter = {
+      searchOfficialLegislation: vi.fn(), // should NOT be called if direct succeeds
+      fetchOfficialDocument: vi.fn().mockResolvedValue(makeDocResult({
+        title: "Test Yönetmeliği",
+        text: "TEST YÖNETMELİĞİ\n\nMadde 1 – Bu yönetmelik test amaçlıdır.\nSağlık test yönetmelik sağlık bakanlığı.\nGörev tanımları bu yönetmelikte düzenlenmiştir.\nMadde 2 – Bu yönetmelik tüm sağlık kurumlarını kapsar."
+      }))
+    };
+
+    const result = await verifyInventoryEntry(entry, adapter);
+    expect(result.status).toBe("verified_via_source_id_direct");
+    // search should NOT be called since direct succeeded
+    expect(adapter.searchOfficialLegislation).not.toHaveBeenCalled();
+  });
+
+  it("falls back to search API when direct fetch fails with timeout", async () => {
+    const entry = makeEntry({
+      key: "test-direct-fallback",
+      title: "Test Yönetmeliği",
+      candidateLegacySourceId: "mevzuat:7.5.99999",
+      searchTerms: ["test"]
+    });
+
+    const adapter: LegislationSearchAdapter = {
+      searchOfficialLegislation: vi.fn()
+        .mockResolvedValue([makeSearchResult({
+          sourceId: "mevzuat:7.5.12345",
+          title: "Test Yönetmeliği"  // exact title match → verified
+        })]),
+      fetchOfficialDocument: vi.fn().mockResolvedValue({
+        status: "unavailable" as const,
+        message: "Official source request timed out after 30000ms."
+      })
+    };
+
+    const result = await verifyInventoryEntry(entry, adapter);
+    // Should fall through to search API and verify
+    expect(result.status).toBe("verified");
+    expect(adapter.searchOfficialLegislation).toHaveBeenCalled();
+  });
+
+  it("known wrong match sourceId is rejected by direct-first", async () => {
+    const entry = makeEntry({
+      key: "test-known-wrong",
+      title: "Test Yönetmeliği",
+      candidateLegacySourceId: "mevzuat:1.5.6698", // KVKK — known wrong
+      searchTerms: ["test"]
+    });
+
+    const adapter: LegislationSearchAdapter = {
+      searchOfficialLegislation: vi.fn(),
+      fetchOfficialDocument: vi.fn() // should not be called
+    };
+
+    const result = await verifyInventoryEntry(entry, adapter);
+    expect(result.status).toBe("rejected_wrong_document");
+    expect(result.knownWrongMatchHit).toBe(true);
+    expect(adapter.fetchOfficialDocument).not.toHaveBeenCalled();
+  });
+});
+
+// ─── v0.32.0: computeCompositeScore with markerTerms ─────────────────────────
+
+describe("computeCompositeScore — markerScore", () => {
+  it("includes markerScore from entry-level markerTerms", () => {
+    const entry = makeEntry({
+      title: "Özel Hastaneler Yönetmeliği",
+      markerTerms: ["özel hastane", "ruhsat", "mesul müdür"]
+    });
+    const result = makeSearchResult({
+      title: "Özel Hastaneler Yönetmeliği" // contains "özel" but not all marker terms
+    });
+    const variant = { query: "Özel Hastaneler Yönetmeliği", kind: "exact_title" as const, weight: 1.0 };
+    const score = computeCompositeScore(entry, result, variant);
+    expect(score.titleScore).toBeCloseTo(1.0, 5);
+    expect(score.markerScore).toBeDefined();
+    // markerScore will be > 0 because "özel" is in title
+    expect(score.markerScore).toBeGreaterThan(0);
+  });
+
+  it("returns markerScore 0 when no markerTerms defined", () => {
+    const entry = makeEntry({
+      title: "Test Yönetmeliği"
+    });
+    const result = makeSearchResult({ title: "Test Yönetmeliği" });
+    const variant = { query: "Test Yönetmeliği", kind: "exact_title" as const, weight: 1.0 };
+    const score = computeCompositeScore(entry, result, variant);
+    expect(score.markerScore).toBe(0);
+  });
+});
+
+// ─── v0.32.0: Known wrong match filter in search results ─────────────────────
+
+describe("verifyInventoryEntry — known wrong match filtering", () => {
+  it("filters out known wrong matches from search results", async () => {
+    const entry = makeEntry({
+      key: "test-filtered",
+      title: "Özel Hastaneler Yönetmeliği",
+      searchTerms: ["özel hastane"]
+    });
+
+    // Return both a known wrong match and a valid one
+    const adapter = makeAdapter([
+      makeSearchResult({
+        sourceId: "mevzuat:1.5.7191",  // Makine ve Kimya — known wrong
+        title: "Makine ve Kimya Endüstrisi Kanunu",
+        documentUrl: "https://www.mevzuat.gov.tr/mevzuatmetin/1.5.7191.pdf",
+        sourceUrl: "https://www.mevzuat.gov.tr/mevzuat?MevzuatNo=7191"
+      })
+    ]);
+
+    const result = await verifyInventoryEntry(entry, adapter);
+    // The only result is a known wrong match, so it should be filtered out
+    expect(result.status).toBe("rejected_no_match");
+  });
+
+  it("filters known wrong match when mixed with valid results", async () => {
+    const entry = makeEntry({
+      key: "test-mixed",
+      title: "Özel Hastaneler Yönetmeliği",
+      searchTerms: ["özel hastane"]
+    });
+
+    const adapter: LegislationSearchAdapter = {
+      searchOfficialLegislation: vi.fn().mockResolvedValue([
+        makeSearchResult({
+          sourceId: "mevzuat:1.5.7191",  // known wrong
+          title: "Makine ve Kimya Endüstrisi Kanunu"
+        }),
+        makeSearchResult({
+          sourceId: "mevzuat:7.5.99999",  // valid sourceId
+          title: "Özel Hastaneler Yönetmeliği"  // exact title match
+        })
+      ])
+    };
+
+    const result = await verifyInventoryEntry(entry, adapter);
+    // Should verify via the valid result
+    expect(result.status).toBe("verified");
+    expect(result.mevzuatSourceId).toBe("mevzuat:7.5.99999");
+  });
+});
+
+// ─── v0.32.0: Expanded diagnostics fields ────────────────────────────────────
+
+describe("verifyInventoryEntry — expanded diagnostics", () => {
+  it("populates markerScore, rgScore, typeScore on verified entry", async () => {
+    const entry = makeEntry({
+      key: "test-diagnostics",
+      title: "Test Yönetmeliği",
+      expectedLegislationType: "yonetmelik",
+      expectedRgNumber: "12345",
+      markerTerms: ["test", "yönetmelik"],
+      searchTerms: ["test"]
+    });
+    const adapter = makeAdapter([makeSearchResult({
+      legislationType: "7",
+      legislationNumber: "12345"
+    })]);
+    const result = await verifyInventoryEntry(entry, adapter);
+
+    expect(result.status).toBe("verified");
+    expect(result.typeScore).toBe(1);  // type 7 = yonetmelik
+    expect(result.markerScore).toBeGreaterThanOrEqual(0);
   });
 });

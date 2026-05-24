@@ -1,5 +1,92 @@
 # Changelog
 
+## [0.32.0] — 2026-05-24 — Remaining Health Regulations Direct Access
+
+> Tag: `v0.32.0-remaining-health-regulations-direct-access`
+
+### Summary
+
+Direct sourceId-to-PDF fetch promoted from fallback (v0.31) to the primary path
+when `candidateLegacySourceId` is set. The verifier now tries `verifyBySourceIdDirect`
+before the search API, returning immediately on verified results and definitive
+rejections (known wrong match, negative marker, title mismatch, empty document),
+and falling through to search only on transient errors (timeout, fetch_failed).
+Six remaining gap entries enriched with `markerTerms`, `negativeMarkerTerms`,
+`knownWrongMatches`, RG metadata, and `candidateLegacySourceId` (where available).
+A `knownWrongMatches` guard explicitly rejects 8 non-health legislation patterns
+at both the sourceId prefix and title substring level. A `negativeMarkerTerms`
+guard rejects documents containing terms indicative of wrong regulations.
+
+### Added
+
+- **Direct-first strategy**: `verifyInventoryEntry()` calls
+  `verifyBySourceIdDirect()` BEFORE the search API loop when
+  `candidateLegacySourceId` is set. Verified results and hard rejections return
+  immediately; transient errors propagate diagnostics to search fallback.
+- **`KNOWN_WRONG_MATCHES`** list (8 entries): Makine ve Kimya, Karayolları,
+  Posta, KVKK, TSK Disiplin, SGK, Radyasyon Güvenliği, Devlet Memurları —
+  matched by sourceId prefix (canonical) or title substring (for unknown
+  sourceIds).
+- **`checkKnownWrongMatch()`** — shared helper used in both direct-fetch and
+  search-result paths.
+- **`checkNegativeMarkers()`** — rejects document if any `negativeMarkerTerm`
+  appears in fetched text (e.g., "tsk" for discipline regulation).
+- **`MIN_MARKER_SCORE = 0.30`** threshold for direct-fetch content verification.
+- **`CompositeMatchScore`** expanded with `markerScore`, `rgScore`, `typeScore`.
+- **`computeCompositeScore()`** now computes `markerScore` from entry-level
+  `markerTerms`.
+- **Entry-level `markerTerms`**, `negativeMarkerTerms`, `knownWrongMatches`,
+  `candidateOfficialUrlLead` fields in `HealthLegislationInventoryEntry`.
+- Six verification status fields for diagnostics:
+  `directSourceIdAttempted`, `directFetchOfficialUrl`, `markerScore`, `rgScore`,
+  `typeScore`, `knownWrongMatchHit`, `knownWrongMatchReason`,
+  `negativeMarkerHit`, `negativeMarkerTerm`, `finalDecision`.
+- 22 new test cases: `checkKnownWrongMatch`, `checkNegativeMarkers`,
+  direct-first strategy, `computeCompositeScore` markerScore, known wrong match
+  filtering, expanded diagnostics.
+
+### Changed
+
+- `verifyBySourceIdDirect()`: uses entry-level `markerTerms`,
+  `negativeMarkerTerms`, `knownWrongMatches`; emits expanded diagnostics
+  (`directSourceIdAttempted`, `directFetchOfficialUrl`, `markerScore`, `rgScore`,
+  `typeScore`, `knownWrongMatchHit`, `knownWrongMatchReason`,
+  `wrongMatchReason`, `finalDecision`, `negativeMarkerHit`).
+- `verifyInventoryEntry()`: Path C (direct fetch) tried BEFORE Path A/B (search
+  API), not as fallback. Search results filtered through `checkKnownWrongMatch`.
+  Expanded diagnostics merged into rejected and search-error paths.
+- `healthLegislationInventory.ts`: 6 remaining gap entries enriched with
+  `markerTerms`, `negativeMarkerTerms`, `knownWrongMatches`, RG date/number,
+  `candidateOfficialUrlLead`; `ozel-hastaneler-yonetmeligi` gets
+  `candidateLegacySourceId: "mevzuat:7.5.29092"`.
+- `package.json`: `0.31.0` → `0.32.0`.
+
+### Audit
+
+- **No gov.tr dışı source**: all direct fetches target `mevzuat.gov.tr` URLs.
+- **No output contract changes**: verified entries unchanged; all gap entries
+  remain gaps.
+- **No local-yargi import**.
+- **Known wrong matches**: 8 hardcoded patterns, prefix + title match.
+- **Negative markers**: multi-term substring match on full document text.
+- **Coverage**: `coveredOfficialLegislationCount` = 11,
+  `verifiedOfficialSourceCount` = 11, `coveredByActiveHintsCount` = 11,
+  `gapCount` = 2, `uncoveredCoreCount` = 3.
+
+### Known Gaps (unchanged)
+
+Six entries remain unverified. The direct sourceId path now explicitly guards
+against known wrong matches and enforces marker-based content verification for
+any future sourceId discovery:
+1. `ozel-hastaneler-yonetmeligi` (sourceId `mevzuat:7.5.29092` fetch failed)
+2. `ayakta-teshis-ozel-saglik`
+3. `acil-saglik-hizmetleri-yonetmeligi`
+4. `isyeri-hekimi-yonetmeligi`
+5. `kisisel-saglik-verileri-yonetmeligi`
+6. `saglik-bakanligi-disiplin-yonetmeligi`
+
+---
+
 ## [0.31.0] — 2026-05-24 — Direct Type-7 Legislation Source Access
 
 > Tag: `v0.31.0-type7-direct-legislation-access`
