@@ -14,6 +14,7 @@ import {
 } from "../bedesten/bedestenApi.js";
 import { extractLegalReasoning, extractOutcome } from "../precedentUtils.js";
 import { HttpClient, BedestenRateLimitError, BedestenParseError, BedestenNetworkError } from "../../core/httpClient.js";
+import { policyForSource } from "../../live/requestPolicy.js";
 import { PrecedentCache } from "../precedentCache.js";
 import type { AdapterRequestTelemetry } from "../../contracts/queryTelemetry.js";
 import { defaultAdapterRequestTelemetry } from "../../contracts/queryTelemetry.js";
@@ -23,6 +24,8 @@ const MAX_RESULTS_PER_QUERY = 5;
 
 export interface LiveYargitayAdapterOptions {
   httpClient?: HttpClient;
+  /** Separate HttpClient for full-text document fetches (bedesten-fulltext 20s policy). */
+  httpClientFullText?: HttpClient;
   fetchImpl?: typeof fetch;
   now?: () => Date;
   wait?: (ms: number) => Promise<void>;
@@ -31,16 +34,27 @@ export interface LiveYargitayAdapterOptions {
 
 export class LiveYargitayAdapter implements PrecedentSourceAdapter {
   private readonly httpClient: HttpClient;
+  /** Separate client for getDocumentContent (bedesten-fulltext: 20s timeout). */
+  private readonly httpClientFullText: HttpClient;
   private readonly now: () => Date;
   private readonly cache: PrecedentCache;
   /** Telemetry from the most recent searchAndNormalize call. */
   public lastRequestTelemetry: AdapterRequestTelemetry = defaultAdapterRequestTelemetry();
 
   constructor(options: LiveYargitayAdapterOptions = {}) {
+    const fetchImpl = options.fetchImpl ?? fetch;
+    const sleep = options.wait;
     this.httpClient = options.httpClient ?? new HttpClient({
       baseUrl: BEDESTEN_BASE_URL,
-      fetchImpl: options.fetchImpl ?? fetch,
-      sleep: options.wait
+      fetchImpl,
+      sleep,
+      timeoutMs: policyForSource("bedesten-search").timeoutMs
+    });
+    this.httpClientFullText = options.httpClientFullText ?? new HttpClient({
+      baseUrl: BEDESTEN_BASE_URL,
+      fetchImpl,
+      sleep,
+      timeoutMs: policyForSource("bedesten-fulltext").timeoutMs
     });
     this.now = options.now ?? (() => new Date());
     this.cache = options.cache ?? PrecedentCache.disabled();
@@ -80,11 +94,12 @@ export class LiveYargitayAdapter implements PrecedentSourceAdapter {
         headers: BEDESTEN_PUBLIC_HEADERS
       });
     } catch (error) {
-      const telemetry = (error as { telemetry?: { retryCount: number; backoffMs: number; httpStatus: number | null; contentType: string | null } }).telemetry;
+      const telemetry = (error as { telemetry?: { retryCount: number; backoffMs: number; httpStatus: number | null; contentType: string | null; timedOut: boolean } }).telemetry;
       this.lastRequestTelemetry = {
         ...this.lastRequestTelemetry,
         retryCount: telemetry?.retryCount ?? 0,
         backoffMs: telemetry?.backoffMs ?? 0,
+        timedOut: telemetry?.timedOut ?? false,
         retryAfterMs: error instanceof BedestenRateLimitError ? error.retryAfterMs : null
       };
       const errTrace = { ...emptyTrace, error: error instanceof Error ? error.message : String(error), ...(telemetry ?? {}) };
@@ -139,7 +154,7 @@ export class LiveYargitayAdapter implements PrecedentSourceAdapter {
       let fullTextRetrievalMethod: string | null = null;
 
       try {
-        const docData = await this.httpClient.postJson<unknown>("/emsal-karar/getDocumentContent", buildBedestenDocumentBody(searchResult.documentId), {
+        const docData = await this.httpClientFullText.postJson<unknown>("/emsal-karar/getDocumentContent", buildBedestenDocumentBody(searchResult.documentId), {
           headers: BEDESTEN_PUBLIC_HEADERS
         });
         const doc = normalizeBedestenDocumentResponse(searchResult.documentId, docData);

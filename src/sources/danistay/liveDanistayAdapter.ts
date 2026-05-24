@@ -9,6 +9,7 @@ import { extractLegalReasoning, extractOutcome } from "../precedentUtils.js";
 import { PrecedentCache } from "../precedentCache.js";
 import type { AdapterRequestTelemetry } from "../../contracts/queryTelemetry.js";
 import { defaultAdapterRequestTelemetry } from "../../contracts/queryTelemetry.js";
+import { withTimeout, policyForSource, classifyLiveError } from "../../live/requestPolicy.js";
 
 const BASE_URL = "https://karararama.danistay.gov.tr";
 const SEARCH_URL = `${BASE_URL}/aramalist`;
@@ -31,6 +32,7 @@ export class LiveDanistayAdapter implements PrecedentSourceAdapter {
   /** Internal retry counter, reset per searchAndNormalize call. */
   private _retryCount = 0;
   private _totalBackoffMs = 0;
+  private _timedOut = false;
 
   constructor(options: LiveDanistayAdapterOptions = {}) {
     this.fetchImpl = options.fetchImpl ?? fetch;
@@ -49,6 +51,7 @@ export class LiveDanistayAdapter implements PrecedentSourceAdapter {
     this.lastRequestTelemetry = defaultAdapterRequestTelemetry();
     this._retryCount = 0;
     this._totalBackoffMs = 0;
+    this._timedOut = false;
 
     // Cache lookup
     const cacheLookup = await this.cache.getWithMeta<LiveDanistayResult>("danistay", query, MAX_RESULTS_PER_QUERY);
@@ -82,6 +85,13 @@ export class LiveDanistayAdapter implements PrecedentSourceAdapter {
 
     if (isUnavailable(response)) {
       const err = response as LiveDanistayUnavailable;
+      // Update telemetry before early return so timedOut is propagated
+      this.lastRequestTelemetry = {
+        ...this.lastRequestTelemetry,
+        retryCount: this._retryCount,
+        backoffMs: this._totalBackoffMs,
+        timedOut: this._timedOut
+      };
       return { ...err, sourceTrace: [{ ...emptyTrace, error: err.message }] };
     }
 
@@ -123,6 +133,10 @@ export class LiveDanistayAdapter implements PrecedentSourceAdapter {
 
     const decisions: CourtDecision[] = [];
     const sourceTraces: DecisionSourceTrace[] = [];
+
+    // Capture timedOut state from the search phase; fullText fetches are best-effort
+    // and their timeout state should not pollute the primary search telemetry.
+    const searchPhaseTimedOut = this._timedOut;
 
     for (const item of items.slice(0, MAX_RESULTS_PER_QUERY)) {
       const documentId = item.id ? String(item.id).trim() : "";
@@ -196,6 +210,9 @@ export class LiveDanistayAdapter implements PrecedentSourceAdapter {
       sourceTraces.push(trace);
     }
 
+    // Restore search-phase timedOut; fullText timeouts are swallowed and non-critical.
+    this._timedOut = searchPhaseTimedOut;
+
     const result: LiveDanistayResult = {
       status: "ok",
       source: DANISTAY_SOURCE,
@@ -210,7 +227,8 @@ export class LiveDanistayAdapter implements PrecedentSourceAdapter {
     this.lastRequestTelemetry = {
       ...this.lastRequestTelemetry,
       retryCount: this._retryCount,
-      backoffMs: this._totalBackoffMs
+      backoffMs: this._totalBackoffMs,
+      timedOut: this._timedOut
     };
 
     // Write to cache for warm runs
@@ -237,9 +255,10 @@ export class LiveDanistayAdapter implements PrecedentSourceAdapter {
   }
 
   private async fetchWithRetry(url: string, init: RequestInit): Promise<Response | LiveDanistayUnavailable> {
-    const attempts = [0, 250, 750];
+    const policy = policyForSource("danistay-search");
+    const delays = [0, 250, 750];
 
-    for (const delay of attempts) {
+    for (const delay of delays) {
       if (delay > 0) {
         this._retryCount += 1;
         this._totalBackoffMs += delay;
@@ -247,10 +266,10 @@ export class LiveDanistayAdapter implements PrecedentSourceAdapter {
       }
 
       try {
-        const response = await this.fetchImpl(url, init);
+        const response = await withTimeout(this.fetchImpl, url, init, policy.timeoutMs);
         if (response.ok) return response;
-        if ((response.status === 403 || response.status === 429) && delay !== attempts.at(-1)) continue;
-        if (response.status >= 500 && delay !== attempts.at(-1)) continue;
+        if ((response.status === 403 || response.status === 429) && delay !== delays.at(-1)) continue;
+        if (response.status >= 500 && delay !== delays.at(-1)) continue;
 
         if (response.status === 403 || response.status === 429) {
           return unavailable("source_blocked", `Danıştay source returned HTTP ${response.status}.`, true, "Retry after the source cools down.");
@@ -262,13 +281,13 @@ export class LiveDanistayAdapter implements PrecedentSourceAdapter {
           "Retry the request or verify the endpoint."
         );
       } catch (error) {
-        if (delay !== attempts.at(-1)) continue;
-        return unavailable(
-          "source_error",
-          `Danıştay request failed: ${error instanceof Error ? error.message : String(error)}`,
-          true,
-          "Retry after checking network access."
-        );
+        const kind = classifyLiveError(error);
+        if (kind === "timeout") this._timedOut = true;
+        if (delay !== delays.at(-1)) continue;
+        const message = kind === "timeout"
+          ? `Danıştay request timed out after ${policy.timeoutMs}ms.`
+          : `Danıştay request failed: ${error instanceof Error ? error.message : String(error)}`;
+        return unavailable("source_error", message, true, "Retry after checking network access.");
       }
     }
 

@@ -412,3 +412,52 @@ describe("executeWithRetry", () => {
     expect(okResult.lastError).toBeNull();
   });
 });
+
+// ─── Source policy call-site contracts ────────────────────────────────────────
+// These tests lock in the per-source timeout/retry values that live adapters rely
+// on at their call sites. A failing test here means a policy was accidentally changed.
+
+describe("Source policy call-site contracts", () => {
+  it("bedesten-search: 12 s timeout covers JSON search requests", () => {
+    expect(policyForSource("bedesten-search").timeoutMs).toBe(12_000);
+    expect(policyForSource("bedesten-search").maxRetries).toBe(2);
+  });
+
+  it("bedesten-fulltext: 20 s timeout covers full-text document fetches (longer than search)", () => {
+    const fullText = policyForSource("bedesten-fulltext");
+    expect(fullText.timeoutMs).toBe(20_000);
+    expect(fullText.maxRetries).toBe(1);
+    // Must be strictly greater than bedesten-search so fulltext never times out earlier
+    expect(fullText.timeoutMs).toBeGreaterThan(policyForSource("bedesten-search").timeoutMs);
+  });
+
+  it("danistay-search: 15 s timeout covers search and getDokuman requests", () => {
+    expect(policyForSource("danistay-search").timeoutMs).toBe(15_000);
+    expect(policyForSource("danistay-search").maxRetries).toBe(2);
+  });
+
+  it("mevzuat-search: 8 s timeout covers legislation search JSON requests", () => {
+    expect(policyForSource("mevzuat-search").timeoutMs).toBe(8_000);
+    expect(policyForSource("mevzuat-search").maxRetries).toBe(2);
+  });
+
+  it("mevzuat-pdf: 30 s timeout covers PDF downloads (longest allowed)", () => {
+    const pdf = policyForSource("mevzuat-pdf");
+    expect(pdf.timeoutMs).toBe(30_000);
+    expect(pdf.maxRetries).toBe(1);
+    // Must be strictly greater than mevzuat-search so PDF never times out before search
+    expect(pdf.timeoutMs).toBeGreaterThan(policyForSource("mevzuat-search").timeoutMs);
+  });
+
+  it("no known source exceeds 30 s — ensures tests and benchmarks don't hang", () => {
+    const MAX_ALLOWED_MS = 30_000;
+    for (const [name, policy] of Object.entries(SOURCE_POLICIES)) {
+      expect(policy.timeoutMs, `${name}.timeoutMs`).toBeLessThanOrEqual(MAX_ALLOWED_MS);
+    }
+  });
+
+  it("DEFAULT_POLICY is in the acceptable timeout range (10–20 s)", () => {
+    expect(DEFAULT_POLICY.timeoutMs).toBeGreaterThanOrEqual(10_000);
+    expect(DEFAULT_POLICY.timeoutMs).toBeLessThanOrEqual(20_000);
+  });
+});

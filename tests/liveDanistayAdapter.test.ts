@@ -199,4 +199,45 @@ describe("LiveDanistayAdapter", () => {
     expect(result.decisions[0]?.court).toBe("danistay");
     expect(result.decisions[0]?.id).toMatch(/^danistay:/);
   });
+
+  // ─── Timeout telemetry (v0.25.0) ─────────────────────────────────────────────
+
+  it("sets lastRequestTelemetry.timedOut=false on successful search", async () => {
+    const fetchImpl = makeFetch({ data: { data: [mockDecisionRow()] } }, REASONED_FULL_TEXT);
+    const adapter = new LiveDanistayAdapter({ fetchImpl, now: () => new Date(MOCK_RETRIEVED_AT), wait: async () => undefined });
+    const result = await adapter.searchAndNormalize("hizmet kusuru");
+    expect(result.status).toBe("ok");
+    expect(adapter.lastRequestTelemetry.timedOut).toBe(false);
+  });
+
+  it("sets lastRequestTelemetry.timedOut=true when search fetch throws AbortError", async () => {
+    const abortErr = Object.assign(new Error("The operation was aborted."), { name: "AbortError" });
+    const fetchImpl = vi.fn(() => Promise.reject(abortErr));
+    const adapter = new LiveDanistayAdapter({ fetchImpl, now: () => new Date(MOCK_RETRIEVED_AT), wait: async () => undefined });
+    const result = await adapter.searchAndNormalize("hizmet kusuru");
+    expect(adapter.lastRequestTelemetry.timedOut).toBe(true);
+    expect(result.status).toBe("unavailable");
+  });
+
+  it("timedOut stays false when only fullText fetch fails (non-critical)", async () => {
+    // Search succeeds, but fullText fetch throws AbortError
+    let callCount = 0;
+    const fetchImpl = vi.fn(async (url: string) => {
+      callCount++;
+      if (String(url).includes("aramalist")) {
+        return new Response(JSON.stringify({ data: { data: [mockDecisionRow()], recordsFiltered: 1 } }), {
+          status: 200,
+          headers: { "content-type": "application/json" }
+        });
+      }
+      // getDokuman throws — this should be swallowed, not timedOut
+      throw Object.assign(new Error("getDokuman timeout"), { name: "AbortError" });
+    });
+    const adapter = new LiveDanistayAdapter({ fetchImpl, now: () => new Date(MOCK_RETRIEVED_AT), wait: async () => undefined });
+    const result = await adapter.searchAndNormalize("hizmet kusuru");
+    // Search succeeded, so timedOut should remain false
+    expect(result.status).toBe("ok");
+    expect(adapter.lastRequestTelemetry.timedOut).toBe(false);
+    expect(callCount).toBeGreaterThan(1); // search + getDokuman were called
+  });
 });

@@ -12,9 +12,12 @@ import {
   type BedestenCourtType
 } from "./bedestenApi.js";
 import { HttpClient, BedestenRateLimitError } from "../../core/httpClient.js";
+import { policyForSource } from "../../live/requestPolicy.js";
 
 export interface LiveBedestenAdapterOptions {
   httpClient?: HttpClient;
+  /** Separate HttpClient for full-text document fetches (bedesten-fulltext 20s policy). */
+  httpClientFullText?: HttpClient;
   fetchImpl?: typeof fetch;
   now?: () => Date;
   wait?: (ms: number) => Promise<void>;
@@ -24,15 +27,26 @@ export interface LiveBedestenAdapterOptions {
 
 export class LiveBedestenAdapter implements PrecedentSourceAdapter {
   private readonly httpClient: HttpClient;
+  /** Separate client for getDocumentContent (bedesten-fulltext: 20s timeout). */
+  private readonly httpClientFullText: HttpClient;
   private readonly now: () => Date;
   private readonly courtTypes: BedestenCourtType[];
   private readonly sourceName: "bedesten" | "yargitay" | "danistay";
 
   constructor(options: LiveBedestenAdapterOptions = {}) {
+    const fetchImpl = options.fetchImpl ?? fetch;
+    const sleep = options.wait;
     this.httpClient = options.httpClient ?? new HttpClient({
       baseUrl: BEDESTEN_BASE_URL,
-      fetchImpl: options.fetchImpl ?? fetch,
-      sleep: options.wait
+      fetchImpl,
+      sleep,
+      timeoutMs: policyForSource("bedesten-search").timeoutMs
+    });
+    this.httpClientFullText = options.httpClientFullText ?? new HttpClient({
+      baseUrl: BEDESTEN_BASE_URL,
+      fetchImpl,
+      sleep,
+      timeoutMs: policyForSource("bedesten-fulltext").timeoutMs
     });
     this.now = options.now ?? (() => new Date());
     this.courtTypes = options.courtTypes ?? ["YARGITAYKARARI", "DANISTAYKARAR", "YERELHUKUK", "ISTINAFHUKUK", "KYB"];
@@ -87,7 +101,7 @@ export class LiveBedestenAdapter implements PrecedentSourceAdapter {
       let fullTextRetrievalMethod: string | null = null;
 
       try {
-        const docData = await this.httpClient.postJson<unknown>("/emsal-karar/getDocumentContent", buildBedestenDocumentBody(searchResult.documentId), {
+        const docData = await this.httpClientFullText.postJson<unknown>("/emsal-karar/getDocumentContent", buildBedestenDocumentBody(searchResult.documentId), {
           headers: BEDESTEN_PUBLIC_HEADERS
         });
         const doc = normalizeBedestenDocumentResponse(searchResult.documentId, docData);

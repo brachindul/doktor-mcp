@@ -195,6 +195,24 @@ describe("LiveYargitayAdapter", () => {
     if (result.status !== "ok") return;
     expect(result.decisions.length).toBeGreaterThan(0);
   });
+
+  // ─── Timeout telemetry (v0.25.0) ─────────────────────────────────────────────
+
+  it("sets lastRequestTelemetry.timedOut=false on successful search", async () => {
+    const fetchImpl = makeFetch({ data: { items: [mockDecisionRow()] } }, REASONED_FULL_TEXT);
+    const adapter = new LiveYargitayAdapter({ fetchImpl, now: () => new Date(MOCK_RETRIEVED_AT), wait: async () => undefined });
+    await adapter.searchAndNormalize("aydınlatılmış rıza");
+    expect(adapter.lastRequestTelemetry.timedOut).toBe(false);
+  });
+
+  it("sets lastRequestTelemetry.timedOut=true when fetch throws AbortError", async () => {
+    const abortErr = Object.assign(new Error("The operation was aborted."), { name: "AbortError" });
+    const fetchImpl = vi.fn(() => Promise.reject(abortErr));
+    const adapter = new LiveYargitayAdapter({ fetchImpl, now: () => new Date(MOCK_RETRIEVED_AT), wait: async () => undefined });
+    const result = await adapter.searchAndNormalize("rıza");
+    expect(adapter.lastRequestTelemetry.timedOut).toBe(true);
+    expect(result.status).toBe("unavailable");
+  });
 });
 
 describe("prepare_doctor_legal_information_pack live precedent integration", () => {
