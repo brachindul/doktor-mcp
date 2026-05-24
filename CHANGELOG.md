@@ -1,5 +1,69 @@
 # Changelog
 
+## [0.35.0] — 2026-05-24 — RG Lead SourceId Resolver
+
+> Tag: `v0.35.0-rg-lead-sourceid-resolver`
+
+### Summary
+
+Muhafazakâr RG lead sourceId resolver for the 5 `needs_manual_review` health
+legislation entries whose only discovery signal is a Resmi Gazete number. The
+resolver generates RG-number-based and title-combined query variants, searches
+mevzuat.gov.tr for candidate sourceId/PDF leads, and routes them through the
+existing verifier. No unsafe active coverage activation: verified promotion
+requires the same verifier approval as v0.34.0. RG-only lead alone never
+becomes active coverage.
+
+### Added
+
+- **`src/healthLegislationRgResolver.ts`** — new module with:
+  - `RgLeadResolutionStatus`, `RgLeadResolutionCandidate`,
+    `RgLeadPerEntryResult`, `HealthLegislationRgResolutionResult` types
+  - `filterRgOnlyLeads()` — filters inventory entries with `expectedRgNumber`
+    but no confirmed `mevzuatSourceId`
+  - `buildRgQueryVariants()` — generates 5 query variant types: RG number alone,
+    RG + short title, RG + alias, full title, full title + RG
+  - `resolveRgEntry()` — per-entry resolver: search, score, candidate extraction,
+    verifier handoff
+  - `buildRgResolutionReport()` — multi-entry report builder
+  - gov.tr guard on all candidates; non-gov.tr results ignored
+  - RG-only lead never promoted without verifier approval
+- **`src/resolveHealthLegislationRgLeadsCli.ts`** — CLI entry point:
+  `npm run resolve:health-legislation-rg-leads`
+  - Writes structured report to `exports/health-legislation-rg-resolution/report.json`
+- **27 test cases** in `tests/healthLegislationRgResolver.test.ts` covering:
+  - `filterRgOnlyLeads` filtering logic
+  - `resolveRgEntry` with no RG, empty search, non-gov.tr ignored
+  - RG+title match candidate finding
+  - Verifier handoff: verified, rejected, candidate-only
+  - Real inventory fixtures for all 5 RG-only entries
+  - Kişisel Sağlık Verileri and Acil Sağlık correct mock verification
+  - Wrong document rejection
+  - RG-only never becomes active coverage without verifier
+  - No non-gov.tr sourceId leakage
+  - JSON report parseable
+
+### Changed
+
+- `package.json`: version `0.34.0` → `0.35.0`
+- `package-lock.json`: version `0.31.0` → `0.35.0`
+
+### Design invariants
+
+- **RG lead ≠ verified**: RG number alone is a discovery signal, not a sourceId.
+- **Verifier gate**: every candidate must pass `verifyBySourceIdDirect()`.
+- **gov.tr mandatory**: non-gov.tr search results are silently ignored.
+- **No coverage change**: active coverage unchanged — all 5 entries remain
+  `needs_manual_review` unless verifier confirms.
+- **No local-yargi import**: patterns reimplemented independently.
+- **No risk levels, urgent actions, or legal opinions**.
+
+### Coverage unchanged
+
+`coveredOfficialLegislationCount`: 11 (unchanged).
+`verifiedOfficialSourceCount`: 11 (unchanged).
+`unofficialLegislationSourceCount`: 0 (unchanged).
+
 ## [0.34.0] — 2026-05-24 — Official Source Lead Verification
 
 > Tag: `v0.34.0-official-source-lead-verification`
