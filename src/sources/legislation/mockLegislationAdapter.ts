@@ -6,14 +6,24 @@ const ethicsPriorityMap: Record<string, number> = {
   "Tibbi Deontoloji Nizamnamesi": 10,
   "Tababet ve Suabati Sanatlarinin Tarzi Icrasina Dair Kanun": 20,
   "Hasta Haklari Yonetmeligi": 40,
-  "Kisisel Verilerin Korunmasi Kanunu": 90
+  "Kisisel Verilerin Korunmasi Kanunu": 90,
+  "Sağlık Meslek Mensupları ile Sağlık Hizmetlerinde Çalışan Diğer Meslek Mensuplarının İş ve Görev Tanımlarına Dair Yönetmelik": 5,
+  "Is Sagligi ve Guvenligi Kanunu": 65,
+  "Organ ve Doku Nakli Kanunu": 70,
+  "Uremeye Yardimci Tedavi Yonetmeligi": 80,
+  "Geleneksel ve Tamamlayici Tip Uygulamalari Yonetmeligi": 90
 };
 
 const standardPriorityMap: Record<string, number> = {
   "Hasta Haklari Yonetmeligi": 10,
   "Kisisel Verilerin Korunmasi Kanunu": 20,
   "Tibbi Deontoloji Nizamnamesi": 40,
-  "Tababet ve Suabati Sanatlarinin Tarzi Icrasina Dair Kanun": 50
+  "Tababet ve Suabati Sanatlarinin Tarzi Icrasina Dair Kanun": 50,
+  "Sağlık Meslek Mensupları ile Sağlık Hizmetlerinde Çalışan Diğer Meslek Mensuplarının İş ve Görev Tanımlarına Dair Yönetmelik": 5,
+  "Is Sagligi ve Guvenligi Kanunu": 65,
+  "Organ ve Doku Nakli Kanunu": 70,
+  "Uremeye Yardimci Tedavi Yonetmeligi": 80,
+  "Geleneksel ve Tamamlayici Tip Uygulamalari Yonetmeligi": 90
 };
 
 export class MockLegislationAdapter implements LegislationSourceAdapter {

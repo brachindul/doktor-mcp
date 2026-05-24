@@ -324,6 +324,45 @@ export function evaluateSourceSufficiency(
     );
   }
 
+  // ── 6b. Coverage Gap Visibility for Unverified Core Regulations ────────────
+  const hasOzelHastaneler = relevantLegislation.some((item) =>
+    str(item.legislationName).toLowerCase().includes("özel hastaneler") ||
+    str(item.legislationName).toLowerCase().includes("ozel hastaneler")
+  );
+  if (!hasOzelHastaneler && routedIssueIds.includes("private_health_facility")) {
+    reasons.push("Özel Hastaneler Yönetmeliği doğrulanmış resmi mevzuat veri setinde aktif kapsamda değil (coverage gap).");
+  }
+
+  const hasAyaktaTeshis = relevantLegislation.some((item) =>
+    str(item.legislationName).toLowerCase().includes("ayakta teşhis") ||
+    str(item.legislationName).toLowerCase().includes("ayakta teshis")
+  );
+  if (!hasAyaktaTeshis && routedIssueIds.includes("private_health_facility")) {
+    reasons.push("Ayakta Teşhis ve Tedavi Yapılan Özel Sağlık Kuruluşları Yönetmeliği doğrulanmış resmi mevzuat veri setinde aktif kapsamda değil (coverage gap).");
+  }
+
+  const hasKisiselSaglikVerileri = relevantLegislation.some((item) =>
+    str(item.legislationName).toLowerCase().includes("kişisel sağlık verileri") ||
+    str(item.legislationName).toLowerCase().includes("kisisel saglik verileri")
+  );
+  if (!hasKisiselSaglikVerileri && (routedIssueIds.includes("privacy_kvkk") || routedIssueIds.includes("medical_records"))) {
+    reasons.push("Kişisel Sağlık Verileri Hakkında Yönetmelik doğrulanmış resmi mevzuat veri setinde aktif kapsamda değil (coverage gap).");
+  }
+
+  const hasAcilSaglik = relevantLegislation.some((item) =>
+    str(item.legislationName).toLowerCase().includes("acil sağlık") ||
+    str(item.legislationName).toLowerCase().includes("acil saglik")
+  );
+  if (!hasAcilSaglik && routedIssueIds.includes("emergency_care")) {
+    reasons.push("Acil Sağlık Hizmetleri Yönetmeliği doğrulanmış resmi mevzuat veri setinde aktif kapsamda değil (coverage gap).");
+  }
+
+  const hasCoverageGap =
+    (!hasOzelHastaneler && routedIssueIds.includes("private_health_facility")) ||
+    (!hasAyaktaTeshis && routedIssueIds.includes("private_health_facility")) ||
+    (!hasKisiselSaglikVerileri && (routedIssueIds.includes("privacy_kvkk") || routedIssueIds.includes("medical_records"))) ||
+    (!hasAcilSaglik && routedIssueIds.includes("emergency_care"));
+
   // ── 7. Unofficial / mock source ─────────────────────────────────────────────
 
   if (unofficialSourceDetected) {
@@ -377,7 +416,8 @@ export function evaluateSourceSufficiency(
     !unofficialSourceDetected &&
     !usedMockSourceInLiveMode &&
     contractPassed &&
-    !isUnclearOrMixed(primaryIssueId);
+    !isUnclearOrMixed(primaryIssueId) &&
+    !hasCoverageGap;
 
   let level: SourceSufficiencyLevel;
   if (hasHardBlocker) {

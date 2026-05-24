@@ -1,5 +1,53 @@
 # Changelog
 
+## [0.37.0] — 2026-05-25 — Real-World Physician Research Pack Beta
+
+> Tag: `v0.37.0-real-world-physician-research-pack-beta`
+
+### Summary
+
+Beta verification layer that evaluates the quality of generated legal research packs against 21 highly realistic, real-world physician scenarios. This release establishes a dedicated Beta Readiness Gate utility, incorporates coverage gap visibility for the remaining unverified health legislations, and preserves all strict source ground rules without relaxing any quality checks.
+
+### Added
+
+- **`src/benchmark/realWorldPhysicianQuestions.ts`** — new benchmark dataset containing 21 highly representative real-world physician questions covering core medico-legal topics:
+  - Informed consent lack, malpractice vs complication, patient records access and corrections, privacy sharing and social media, ER consent exceptions, referral delay, private hospital obligations, tıp merkezi sterilisation issues, scope of practice limits, team denetimi / auxiliary nurse errors, occupational physician independent reporting, organ transplant donors, ART IVF consent, GETAT alternative medicine limits, patient rights complaints, state physician disciplinary investigations, criminal/civil/tazminat assessments, adli vaka Defin reporting, and Kişisel Sağlık Verileri gaps.
+- **`src/physicianPackBetaGate.ts`** — new Beta Readiness Gate utility:
+  - `BetaReadinessReport` and `evaluateBetaReadiness` to grade completed benchmark reports.
+  - Hard failure checks: unofficial non-gov.tr URL leakage, mock fallback in live mode, contract failures, unsafe definitive advice, and `quoteUnusable` precedent leakage.
+  - Soft observations: partial/insufficient source sufficiency, timeouts, missing high court precedents, specific coverage gaps, and low confidence routing.
+  - Scoring algorithm starting at 100 with deductions for timeouts, partial sufficiency, and low router confidence; score is capped at max 50 on hard fail.
+  - Grades: `ready` (score >= 85 and no failures), `limited` (score < 85 and no failures), and `not_ready` (any hard failure).
+- **`src/benchmark/realWorldBenchmarkRunnerCli.ts`** — new CLI runner script:
+  - Command: `npm run benchmark:physician-real-world`.
+  - Runs the benchmark runner generically using our new 21-question dataset.
+  - Outputs structured reports to `exports/physician-real-world-benchmark/report.json` and `exports/physician-real-world-benchmark/report.md` (which appends a beautiful markdown summary of the Beta Readiness report).
+- **`package.json`** scripts:
+  - `"benchmark:physician-real-world"`: runs the real-world mock benchmark.
+  - `"benchmark:physician-real-world:live-smoke"`: runs live smoke test for the first 5 questions.
+
+### Changed
+
+- **`package.json` & `package-lock.json`**: bumped version `0.36.0` → `0.37.0`.
+- **`src/benchmark/benchmarkRunner.ts`**:
+  - Generic questions input: `runBenchmark` now takes optional `questions?: BenchmarkQuestion[]` options list, keeping perfect backward-compatibility for existing consumer scripts and test cases.
+- **`src/sourceSufficiency.ts`**:
+  - Coverage gap visibility: added explicit checks for unverified core regulations corresponding to routed issue IDs:
+    - `Özel Hastaneler Yönetmeliği` gap mapped to `private_health_facility`.
+    - `Ayakta Teşhis ve Tedavi Yapılan Özel Sağlık Kuruluşları Yönetmeliği` gap mapped to outpatient/clinic/private facility.
+    - `Kişisel Sağlık Verileri Hakkında Yönetmelik` gap mapped to `privacy_kvkk` or `medical_records`.
+    - `Acil Sağlık Hizmetleri Yönetmeliği` gap mapped to `emergency_care`.
+  - Downgrades the sufficiency level from `sufficient` to `partial` and raises clear, explicit diagnostic warnings/reasons.
+
+### Design Invariants Preserved
+
+- **No non-gov.tr sources**: gov.tr verified source rules remain strictly enforced.
+- **No mock fallbacks in live mode**: fallback to mock is a hard gate failure.
+- **No MVP bounds relaxation**: risk levels, definitive legal opinion, immediate actions, and dilekçe templates are strictly blocked.
+- **No local-yargi vendor or import sızıntısı**.
+
+---
+
 ## [0.36.0] — 2026-05-24 — Official Gazette Document Verifier
 
 > Tag: `v0.36.0-official-gazette-document-verifier`

@@ -72,6 +72,51 @@ export const mockLegislationProvisions: LegislationProvision[] = [
       "Özel ve kamu sağlık kuruluşlarının denetim yükümlülüğü ve mesleki faaliyet çerçevesine ilişkin sorularda kullanılır.",
     dimensions: ["professional_ethics", "disciplinary_administrative"],
     evidence: evidence("legislation", "leg-healthservices-9", true)
+  },
+  {
+    documentId: "leg-saglikmeslek-5",
+    legislationName: "Sağlık Meslek Mensupları ile Sağlık Hizmetlerinde Çalışan Diğer Meslek Mensuplarının İş ve Görev Tanımlarına Dair Yönetmelik",
+    articleNumber: "5",
+    verbatimText: "Sağlık meslek mensupları, görevlerini kendi görev tanımları ve yetki sınırları çerçevesinde yürütürler.",
+    connection: "Görev tanımları ve yetki sınırları yönetmelikle belirlenmiştir.",
+    dimensions: ["professional_ethics", "disciplinary_administrative"],
+    evidence: evidence("legislation", "leg-saglikmeslek-5", true)
+  },
+  {
+    documentId: "leg-isg-8",
+    legislationName: "Is Sagligi ve Guvenligi Kanunu",
+    articleNumber: "8",
+    verbatimText: "İşyeri hekimi, mesleki bağımsızlık ilkesine uygun olarak görev yapar.",
+    connection: "İşyeri hekimlerinin yetki ve bağımsızlığı kanunla korunmaktadır.",
+    dimensions: ["professional_ethics", "disciplinary_administrative"],
+    evidence: evidence("legislation", "leg-isg-8", true)
+  },
+  {
+    documentId: "leg-organ-6",
+    legislationName: "Organ ve Doku Nakli Kanunu",
+    articleNumber: "6",
+    verbatimText: "Organ nakli için donörün yazılı rızası şarttır.",
+    connection: "Organ bağışı rıza ve onam kuralları kanunla düzenlenir.",
+    dimensions: ["patient_rights", "professional_ethics"],
+    evidence: evidence("legislation", "leg-organ-6", true)
+  },
+  {
+    documentId: "leg-uyte-10",
+    legislationName: "Uremeye Yardimci Tedavi Yonetmeligi",
+    articleNumber: "10",
+    verbatimText: "Üremeye yardımcı tedavi uygulamalarında eşlerin birlikte rızası aranır.",
+    connection: "Tüp bebek ve ÜYTE tedavilerinde rıza standartları yönetmelikle belirlenmiştir.",
+    dimensions: ["patient_rights", "professional_ethics"],
+    evidence: evidence("legislation", "leg-uyte-10", true)
+  },
+  {
+    documentId: "leg-getat-5",
+    legislationName: "Geleneksel ve Tamamlayici Tip Uygulamalari Yonetmeligi",
+    articleNumber: "5",
+    verbatimText: "Geleneksel ve tamamlayıcı tıp uygulamaları yetkili hekimler tarafından yürütülür.",
+    connection: "GETAT yetki sınırları yönetmelikle çerçevelenmiştir.",
+    dimensions: ["professional_ethics", "disciplinary_administrative"],
+    evidence: evidence("legislation", "leg-getat-5", true)
   }
 ];
 

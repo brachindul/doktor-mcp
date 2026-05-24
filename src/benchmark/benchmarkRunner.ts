@@ -324,10 +324,12 @@ export async function runBenchmark(options: {
   limit?: number;
   outDir: string;
   service?: PhysicianLegalInformationService;
+  questions?: BenchmarkQuestion[];
 }): Promise<BenchmarkReport> {
-  const { sourceMode, limit, outDir } = options;
+  const { sourceMode, limit, outDir, questions } = options;
   const service = options.service ?? new PhysicianLegalInformationService();
-  const questionsToRun = typeof limit === "number" ? doctorQuestions.slice(0, limit) : doctorQuestions;
+  const dataset = questions ?? doctorQuestions;
+  const questionsToRun = typeof limit === "number" ? dataset.slice(0, limit) : dataset;
   const startedAtMs = Date.now();
   const startedAt = new Date(startedAtMs).toISOString();
 
@@ -1463,7 +1465,7 @@ function buildQueryAggregateMetrics(
   };
 }
 
-function generateMarkdownReport(report: BenchmarkReport): string {
+export function generateMarkdownReport(report: BenchmarkReport): string {
   let md = `# Physician Question ${report.sourceMode === "live" ? "Live " : ""}Benchmark Report
 
 - **Started**: \`${report.startedAt}\`
