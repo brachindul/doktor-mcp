@@ -42,6 +42,8 @@ export interface ReliabilityGateInput {
   networkRequestMadeCount: number;
   verifiedPrecedentCount: number;
   sourceSufficiencyDistribution: SourceSufficiencyRecord[];
+  /** Decisions where quoteUsable=false leaked into verifiedHighCourtPrecedents (v0.27.0). */
+  quoteUnusableInVerifiedCount: number;
 }
 
 export interface LiveReliabilityGate {
@@ -60,6 +62,8 @@ export interface LiveReliabilityGate {
   networkRequestMadeCount: number;
   verifiedPrecedentCount: number;
   sourceSufficiencyDistribution: SourceSufficiencyRecord[];
+  /** Decisions where quoteUsable=false leaked into verifiedHighCourtPrecedents (v0.27.0). */
+  quoteUnusableInVerifiedCount: number;
   gatePassed: boolean;
   gateFailures: string[];
   gateObservations: string[];
@@ -81,6 +85,9 @@ export function buildLiveReliabilityGate(input: ReliabilityGateInput): LiveRelia
   }
   if (input.ineligibleUsedCount > 0) {
     gateFailures.push(`INELIGIBLE_PRECEDENT: ${input.ineligibleUsedCount} ineligible decision(s) (metadata_only / procedural_only / no_reasoning) appeared in verifiedHighCourtPrecedents.`);
+  }
+  if (input.quoteUnusableInVerifiedCount > 0) {
+    gateFailures.push(`QUOTE_UNUSABLE_VERIFIED: ${input.quoteUnusableInVerifiedCount} decision(s) with quoteUsable=false appeared in verifiedHighCourtPrecedents.`);
   }
 
   // Soft observations
@@ -111,6 +118,7 @@ export function buildLiveReliabilityGate(input: ReliabilityGateInput): LiveRelia
     networkRequestMadeCount: input.networkRequestMadeCount,
     verifiedPrecedentCount: input.verifiedPrecedentCount,
     sourceSufficiencyDistribution: input.sourceSufficiencyDistribution,
+    quoteUnusableInVerifiedCount: input.quoteUnusableInVerifiedCount,
     gatePassed: gateFailures.length === 0,
     gateFailures,
     gateObservations

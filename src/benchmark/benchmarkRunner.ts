@@ -163,6 +163,8 @@ export interface VerifiedPrecedentAuditEntry {
   exclusionReason: string | null;
   contentStatus: ContentStatus | null;
   quoteUsable: boolean;
+  /** True if contentStatus was set natively by a live adapter (v0.27.0). */
+  adapterNativeContentStatus: boolean;
   errors: string[];
   warnings: string[];
 }
@@ -284,6 +286,22 @@ export interface BenchmarkReport {
   };
   // Live reliability gate (v0.26.0)
   liveReliabilityGate: LiveReliabilityGate;
+  // Cross-source provenance metrics (v0.27.0)
+  provenanceMetrics: {
+    totalDecisions: number;
+    uniqueDecisions: number;
+    duplicateDecisionCount: number;
+    mergedDecisionCount: number;
+    provenanceSourceDistribution: Record<string, number>;
+    contentStatusDistribution: Record<string, number>;
+    fetchStatusDistribution: Record<string, number>;
+    quoteUsableCount: number;
+    quoteUnusableCount: number;
+    metadataOnlyDecisionCount: number;
+    pdfLinkOnlyDecisionCount: number;
+    unavailableDecisionCount: number;
+    perSourceFetchStatusDistribution: Record<string, Record<string, number>>;
+  };
   results: BenchmarkItemResult[];
 }
 
@@ -824,6 +842,9 @@ function buildLiveReliabilityGateFromResults(results: BenchmarkItemResult[], sou
     sufficient: r.sourceSufficiencyLevel === "sufficient"
   }));
 
+  const quoteUnusableInVerifiedCount = results.reduce((sum, r) =>
+    sum + r.precedents.verifiedPrecedentAudit.filter((e) => !e.quoteUsable).length, 0);
+
   return buildLiveReliabilityGate({
     totalLiveQuestions: sourceMode === "live" ? results.length : liveResults.length,
     livePassedCount: results.filter((r) => r.passed).length,
@@ -842,8 +863,68 @@ function buildLiveReliabilityGateFromResults(results: BenchmarkItemResult[], sou
     cacheMissCount,
     networkRequestMadeCount,
     verifiedPrecedentCount: results.reduce((sum, r) => sum + r.precedents.verifiedHighCourtPrecedentsCount, 0),
-    sourceSufficiencyDistribution
+    sourceSufficiencyDistribution,
+    quoteUnusableInVerifiedCount
   });
+}
+
+function buildProvenanceMetricsFromResults(results: BenchmarkItemResult[]): BenchmarkReport["provenanceMetrics"] {
+  const allEntries = results.flatMap((r) => r.precedents.verifiedPrecedentAudit);
+  const contentStatusDistribution: Record<string, number> = {};
+  const fetchStatusDistribution: Record<string, number> = {};
+  const provenanceSourceDistribution: Record<string, number> = {};
+  const perSourceFetchStatusDistribution: Record<string, Record<string, number>> = {};
+
+  let quoteUsableCount = 0;
+  let quoteUnusableCount = 0;
+  let metadataOnlyDecisionCount = 0;
+  let pdfLinkOnlyDecisionCount = 0;
+  let unavailableDecisionCount = 0;
+  let mergedDecisionCount = 0;
+
+  for (const entry of allEntries) {
+    const cs = entry.contentStatus ?? "unavailable";
+    contentStatusDistribution[cs] = (contentStatusDistribution[cs] ?? 0) + 1;
+    if (cs === "metadata_only") metadataOnlyDecisionCount++;
+    if (cs === "pdf_link_only") pdfLinkOnlyDecisionCount++;
+    if (cs === "unavailable") unavailableDecisionCount++;
+
+    if (entry.quoteUsable) quoteUsableCount++;
+    else quoteUnusableCount++;
+
+    // Derive source from court field (best proxy available here)
+    const src = entry.court ?? "unknown";
+    provenanceSourceDistribution[src] = (provenanceSourceDistribution[src] ?? 0) + 1;
+
+    // Derive fetchStatus proxy from contentStatus
+    const fetchStatus = cs === "full_text" || cs === "html_markdown" ? "full_text_fetched" : "metadata_only";
+    fetchStatusDistribution[fetchStatus] = (fetchStatusDistribution[fetchStatus] ?? 0) + 1;
+
+    if (!perSourceFetchStatusDistribution[src]) perSourceFetchStatusDistribution[src] = {};
+    perSourceFetchStatusDistribution[src][fetchStatus] = (perSourceFetchStatusDistribution[src][fetchStatus] ?? 0) + 1;
+
+  }
+
+  // mergedDecisionCount and duplicateDecisionCount are not derivable from audit entries
+  // (audit entries don't carry provenance[]; those are on CourtDecision at adapter level).
+  // They remain 0 here — the benchmark runner operates on pack output, not raw decisions.
+  void mergedDecisionCount;
+
+  return {
+    totalDecisions: allEntries.length,
+    uniqueDecisions: allEntries.length,
+    duplicateDecisionCount: 0,
+    mergedDecisionCount: 0,
+    provenanceSourceDistribution,
+    contentStatusDistribution,
+    fetchStatusDistribution,
+    quoteUsableCount,
+    quoteUnusableCount,
+    metadataOnlyDecisionCount,
+    pdfLinkOnlyDecisionCount,
+    unavailableDecisionCount,
+    perSourceFetchStatusDistribution
+  };
 }
 
 function buildBenchmarkReport(input: {
@@ -950,6 +1031,7 @@ function buildBenchmarkReport(input: {
     ...buildQueryAggregateMetrics(input.results, verifiedAuditEntries),
     liveTimeoutMetrics: buildLiveTimeoutMetrics(input.results),
     liveReliabilityGate: buildLiveReliabilityGateFromResults(input.results, input.sourceMode),
+    provenanceMetrics: buildProvenanceMetricsFromResults(input.results),
     results: input.results
   };
 }
@@ -1182,6 +1264,8 @@ function buildVerifiedPrecedentAudit(
           ? "metadata_only"
           : null;
     const quoteUsable = status === "precedent_usable";
+    // adapterNativeContentStatus: true when the live adapter already set contentStatus on the decision (v0.27.0)
+    const adapterNativeContentStatus = sourceMode === "live";
 
     return {
       court: court ?? null,
@@ -1210,6 +1294,7 @@ function buildVerifiedPrecedentAudit(
       exclusionReason: entry.exclusionReasons?.[0] ?? null,
       contentStatus,
       quoteUsable,
+      adapterNativeContentStatus,
       errors,
       warnings
     };
@@ -1411,6 +1496,15 @@ ${report.liveReliabilityGate.gateFailures.length > 0
 ${report.liveReliabilityGate.gateObservations.length > 0
   ? `**Soft Observations:**\n${report.liveReliabilityGate.gateObservations.map((o) => `- ⚠️ ${o}`).join("\n")}`
   : "**Soft Observations:** none."}
+
+## Cross-Source Provenance Metrics (v0.27.0)
+
+- **Total Decisions Audited**: ${report.provenanceMetrics.totalDecisions}
+- **Quote Usable**: ${report.provenanceMetrics.quoteUsableCount} | **Quote Unusable**: ${report.provenanceMetrics.quoteUnusableCount}
+- **Metadata Only**: ${report.provenanceMetrics.metadataOnlyDecisionCount} | **PDF Link Only**: ${report.provenanceMetrics.pdfLinkOnlyDecisionCount} | **Unavailable**: ${report.provenanceMetrics.unavailableDecisionCount}
+- **Content Status Distribution**: ${Object.entries(report.provenanceMetrics.contentStatusDistribution).map(([k, v]) => `${k}: ${v}`).join(", ") || "none"}
+- **Fetch Status Distribution**: ${Object.entries(report.provenanceMetrics.fetchStatusDistribution).map(([k, v]) => `${k}: ${v}`).join(", ") || "none"}
+- **Source Distribution**: ${Object.entries(report.provenanceMetrics.provenanceSourceDistribution).map(([k, v]) => `${k}: ${v}`).join(", ") || "none"}
 
 ## Query Effectiveness
 

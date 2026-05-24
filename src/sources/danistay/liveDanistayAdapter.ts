@@ -1,5 +1,6 @@
 import type { ClassifiedMedicalLegalQuestion, CourtDecision, DecisionSourceTrace } from "../../contracts/legal.js";
 import { assessDecisionEligibility } from "../../health/decisionEligibility.js";
+import { deriveContentStatus, isQuoteUsable, buildDecisionKey } from "../../live/decisionProvenance.js";
 import { pickHealthLawQuery } from "../../health/healthLawQueryExpansion.js";
 import type { PrecedentSourceAdapter } from "../types.js";
 import type { LiveDanistayResult, LiveDanistayUnavailable } from "./liveTypes.js";
@@ -206,7 +207,23 @@ export class LiveDanistayAdapter implements PrecedentSourceAdapter {
         exclusionReasons
       };
 
-      decisions.push({ ...decision, decisionSourceTrace: trace });
+      const decisionWithTrace: CourtDecision = { ...decision, decisionSourceTrace: trace };
+      const contentStatus = deriveContentStatus(decisionWithTrace);
+      const quoteUsable = isQuoteUsable(decisionWithTrace);
+      const normalizedDecisionKey = buildDecisionKey(decisionWithTrace) ?? undefined;
+      const fetchStatus = fullText !== null ? "full_text_fetched" : "metadata_only";
+      decisionWithTrace.contentStatus = contentStatus;
+      decisionWithTrace.quoteUsable = quoteUsable;
+      decisionWithTrace.normalizedDecisionKey = normalizedDecisionKey;
+      decisionWithTrace.provenance = [{
+        source: "danistay",
+        fetchStatus,
+        contentStatus,
+        quoteUsable,
+        fetchedAt: retrievedAt
+      }];
+
+      decisions.push(decisionWithTrace);
       sourceTraces.push(trace);
     }
 

@@ -35,6 +35,34 @@ export type ContentStatus =
   | "metadata_only"
   | "unavailable";
 
+/**
+ * Fetch outcome for a single decision retrieval attempt (v0.27.0).
+ */
+export type FetchStatus =
+  | "search_hit"
+  | "full_text_fetched"
+  | "metadata_only"
+  | "pdf_link_only"
+  | "unavailable"
+  | "timeout"
+  | "parse_error"
+  | "source_unavailable";
+
+/**
+ * Per-decision cross-source provenance record (v0.27.0).
+ */
+export interface DecisionSourceProvenance {
+  source: "bedesten" | "yargitay" | "danistay" | "aym" | "mock";
+  accessSource?: string;
+  fetchStatus: FetchStatus;
+  contentStatus: ContentStatus;
+  quoteUsable: boolean;
+  timedOut?: boolean;
+  retryCount?: number;
+  backoffMs?: number;
+  fetchedAt?: string;
+}
+
 export interface SourceEvidence {
   source: SourceKind;
   documentId: string;
@@ -87,6 +115,8 @@ export interface CourtDecision {
   fullText?: string;
   contentStatus?: ContentStatus;
   quoteUsable?: boolean;
+  provenance?: DecisionSourceProvenance[];
+  normalizedDecisionKey?: string;
   evidence: SourceEvidence;
   decisionSourceTrace?: DecisionSourceTrace;
 }

@@ -22,6 +22,7 @@ function baseInput(overrides: Partial<ReliabilityGateInput> = {}): ReliabilityGa
     networkRequestMadeCount: 3,
     verifiedPrecedentCount: 8,
     sourceSufficiencyDistribution: [],
+    quoteUnusableInVerifiedCount: 0,
     ...overrides
   };
 }
@@ -121,5 +122,18 @@ describe("buildLiveReliabilityGate", () => {
     expect(gate.cacheHitCount).toBe(4);
     expect(gate.totalRetries).toBe(3);
     expect(gate.totalBackoffMs).toBe(1500);
+  });
+
+  it("fails on quoteUnusableInVerifiedCount > 0 (v0.27.0)", () => {
+    const gate = buildLiveReliabilityGate(baseInput({ quoteUnusableInVerifiedCount: 2 }));
+    expect(gate.gatePassed).toBe(false);
+    expect(gate.gateFailures.some((f) => f.includes("QUOTE_UNUSABLE_VERIFIED"))).toBe(true);
+    expect(gate.gateFailures[0]).toContain("2");
+  });
+
+  it("quoteUnusableInVerifiedCount=0 does not fail gate", () => {
+    const gate = buildLiveReliabilityGate(baseInput({ quoteUnusableInVerifiedCount: 0 }));
+    expect(gate.gatePassed).toBe(true);
+    expect(gate.quoteUnusableInVerifiedCount).toBe(0);
   });
 });

@@ -1,6 +1,7 @@
 import type { ClassifiedMedicalLegalQuestion, CourtDecision, DecisionSourceTrace } from "../../contracts/legal.js";
 import { assessDecisionEligibility } from "../../health/decisionEligibility.js";
 import { pickHealthLawQuery } from "../../health/healthLawQueryExpansion.js";
+import { deriveContentStatus, isQuoteUsable, buildDecisionKey } from "../../live/decisionProvenance.js";
 import type { PrecedentSourceAdapter } from "../types.js";
 import {
   BEDESTEN_BASE_URL,
@@ -158,7 +159,23 @@ export class LiveBedestenAdapter implements PrecedentSourceAdapter {
         exclusionReasons
       };
 
-      decisions.push({ ...decision, decisionSourceTrace: trace });
+      const decisionWithTrace: CourtDecision = { ...decision, decisionSourceTrace: trace };
+      const contentStatus = deriveContentStatus(decisionWithTrace);
+      const quoteUsable = isQuoteUsable(decisionWithTrace);
+      const normalizedDecisionKey = buildDecisionKey(decisionWithTrace) ?? undefined;
+      const fetchStatus = fullText !== null ? "full_text_fetched" : "metadata_only";
+      decisionWithTrace.contentStatus = contentStatus;
+      decisionWithTrace.quoteUsable = quoteUsable;
+      decisionWithTrace.normalizedDecisionKey = normalizedDecisionKey;
+      decisionWithTrace.provenance = [{
+        source: this.sourceName,
+        fetchStatus,
+        contentStatus,
+        quoteUsable,
+        fetchedAt: retrievedAt
+      }];
+
+      decisions.push(decisionWithTrace);
     }
 
     return decisions;

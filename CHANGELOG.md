@@ -1,5 +1,49 @@
 # Changelog
 
+## [0.27.0] — 2026-05-24 — Cross-Source Provenance, Duplicate Merge, Adapter-Native ContentStatus
+
+> Tag: `v0.27.0-cross-source-provenance`
+
+### Added
+
+- **`src/live/decisionProvenance.ts`** — New module for cross-source provenance and duplicate merge:
+  - `deriveContentStatus(decision)` — derives `ContentStatus` from decision fields; respects already-set value
+  - `isQuoteUsable(decision)` — true only when contentStatus is full_text/html_markdown AND eligibilityStatus is not ineligible
+  - `buildDecisionKey(decision)` — stable dedup key; prefers `doc::<documentId>` when available, falls back to court-based composite key
+  - `chooseStrongestContentStatus(statuses)` — picks strongest from a list (full_text > html_markdown > pdf_link_only > metadata_only > unavailable)
+  - `mergeDuplicateDecisions(decisions)` — merges decisions sharing the same key; winner = strongest contentStatus; loser's provenance merged in
+  - `buildProvenanceMetrics(decisions)` — aggregate metrics over a decision list (content status, fetch status, quote usability distributions)
+  - `MergeResult`, `ProvenanceMetrics` interfaces exported
+
+- **`src/contracts/legal.ts`** additions:
+  - `FetchStatus` type — `"search_hit" | "full_text_fetched" | "metadata_only" | "pdf_link_only" | "unavailable" | "timeout" | "parse_error" | "source_unavailable"`
+  - `DecisionSourceProvenance` interface — per-decision provenance record with `source`, `fetchStatus`, `contentStatus`, `quoteUsable`, `timedOut`, `retryCount`, `backoffMs`, `fetchedAt`
+  - `CourtDecision.provenance?: DecisionSourceProvenance[]` — list of per-source provenance entries (merged when duplicates are resolved)
+  - `CourtDecision.normalizedDecisionKey?: string` — stable dedup key as set by adapters
+
+- **Adapter wiring** — all three live adapters now set `contentStatus`, `quoteUsable`, `normalizedDecisionKey`, and `provenance[0]` on each `CourtDecision`:
+  - `src/sources/bedesten/liveBedestenAdapter.ts`
+  - `src/sources/yargitay/liveYargitayAdapter.ts`
+  - `src/sources/danistay/liveDanistayAdapter.ts`
+
+- **`src/live/reliabilityGate.ts`** additions:
+  - `ReliabilityGateInput.quoteUnusableInVerifiedCount` — new field
+  - `LiveReliabilityGate.quoteUnusableInVerifiedCount` — new field
+  - Hard failure: `QUOTE_UNUSABLE_VERIFIED` — triggers when any verified precedent has `quoteUsable=false`
+
+- **`src/benchmark/benchmarkRunner.ts`** additions:
+  - `VerifiedPrecedentAuditEntry.adapterNativeContentStatus: boolean` — true when live adapter set contentStatus
+  - `BenchmarkReport.provenanceMetrics` — full provenance aggregate metrics block
+  - `buildProvenanceMetricsFromResults` helper — derives provenance distribution from audit entries
+  - `buildLiveReliabilityGateFromResults` now computes and passes `quoteUnusableInVerifiedCount`
+  - Markdown report gains **Cross-Source Provenance Metrics** section
+
+- **`tests/decisionProvenance.test.ts`** — 17 test cases covering all exported functions
+
+### Changed
+
+- `package.json` / `package-lock.json`: version bumped to `0.27.0`
+
 ## [0.26.0] — 2026-05-24 — Live Reliability Gate
 
 > Tag: `v0.26.0-live-reliability-gate`
