@@ -1,5 +1,84 @@
 # Changelog
 
+## [0.31.0] — 2026-05-24 — Direct Type-7 Legislation Source Access
+
+> Tag: `v0.31.0-type7-direct-legislation-access`
+
+### Summary
+
+Direct sourceId-to-PDF fetch path for type-7 legislation (yönetmelik). When
+mevzuat.gov.tr search API fails (timeout, no match, or error), the verifier now
+falls back to fetching the official PDF directly via the known sourceId, extracts
+the title from the first page, and validates it against the inventory entry.
+`saglik-meslek-is-gorev-tanimlari` (sourceId `mevzuat:7.5.19696`) is the first
+entry verified via this path and activated in the hint registry. All existing
+rejection criteria (title/alias score < 0.50, marker overlap < 0.30, empty
+document) are enforced.
+
+### Added
+
+- **`fetchOfficialDocument(sourceId)`** in `LiveOfficialLegislationAdapter` —
+  parses `mevzuat:<type>.<arrangement>.<number>`, constructs
+  `https://www.mevzuat.gov.tr/mevzuatmetin/<type>.<arrangement>.<number>.pdf`,
+  fetches with 30s timeout, extracts title from PDF text
+- **`verifyBySourceIdDirect()`** in `healthLegislationAccessVerifier.ts` — Path C
+  fallback that runs when primary search (Path A/B) times out or fails
+- **`extractDocTitle(pdfText)`** — reads first line of raw PDF text as document
+  title
+- **`computeMarkerOverlap(pdfText, markers)`** — computes ratio of content
+  markers found in the document body
+- **`extractRgFromDocText(pdfText)`** — extracts RG date and number from PDF
+  text metadata lines
+- Four new violation status types:
+  - `verified_via_source_id_direct`
+  - `rejected_source_id_timeout`
+  - `rejected_source_id_title_mismatch`
+  - `rejected_source_id_empty_document`
+  - `rejected_source_id_fetch_failed`
+- Seven new attempt fields for direct-fetch monitoring:
+  `directFetchAttempted`, `directFetchTimedOut`, `directFetchStatus`,
+  `directFetchTitle`, `directFetchRgDate`, `directFetchRgNumber`,
+  `directFetchMarkerScore`, `directFetchTextLength`
+- **`healthLegislationInventory.ts`**: `saglik-meslek-is-gorev-tanimlari` →
+  `officialSourceStatus: "verified"`, `coverageStatus: "covered"`,
+  `mevzuatSourceId: "mevzuat:7.5.19696"`,
+  `officialUrl: "https://www.mevzuat.gov.tr/mevzuatmetin/7.5.19696.pdf"`
+- **`healthMappings.ts`**: active `HealthLegislationHint` for
+  `professional_scope_of_practice` (primary, priority 5) and
+  `disciplinary_administrative` (supporting, priority 50)
+- 14 new test cases in `healthLegislationAccessVerifier.test.ts` for direct
+  verification (success, timeout, title mismatch, empty doc, no sourceId,
+  search-error fallback)
+
+### Changed
+
+- `verifyInventoryEntry()`: if search times out or returns no match / error,
+  attempts `verifyBySourceIdDirect()` as Path C
+- CLI report (`verifyHealthLegislationCli.ts`): shows directFetch fields in
+  all result sections (verified, rejected, search-error)
+- `package.json`: `0.30.0` → `0.31.0`
+
+### Audit
+
+- **Direct type-7 PDF fetch**: no source/output contract relaxation
+- **gov.tr only**: all direct fetches target `mevzuat.gov.tr` URLs
+- **No external vendor**: no local-yargi import
+- **Coverage**: `coveredOfficialLegislationCount` = 11,
+  `verifiedOfficialSourceCount` = 11, `coveredByActiveHintsCount` = 11,
+  `gapCount` = 2, `uncoveredCoreCount` = 3
+
+### Known Gaps (unchanged)
+
+Six entries remain rejected by search (all return kanun results for yonetmelik
+queries). Each could be manually verified via the same direct sourceId path if a
+legacy sourceId is provided:
+1. `ozel-hastaneler-yonetmeligi`
+2. `ayakta-teshis-ozel-saglik`
+3. `acil-saglik-hizmetleri-yonetmeligi`
+4. `isyeri-hekimi-yonetmeligi`
+5. `kisisel-saglik-verileri-yonetmeligi`
+6. `saglik-bakanligi-disiplin-yonetmeligi`
+
 ## [0.30.0] — 2026-05-24 — Health Legislation Query Recall
 
 > Tag: `v0.30.0-health-legislation-query-recall`

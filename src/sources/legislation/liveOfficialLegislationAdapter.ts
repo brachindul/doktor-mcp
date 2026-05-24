@@ -147,6 +147,40 @@ export class LiveOfficialLegislationAdapter implements LegislationSourceAdapter 
     };
   }
 
+  /**
+   * Fetch an official document directly by its mevzuat.gov.tr sourceId.
+   * Bypasses the search API — used for type-7 (yonetmelik) direct verification.
+   * Returns the document text and title extracted from the PDF content.
+   */
+  async fetchOfficialDocument(
+    sourceId: string
+  ): Promise<{ title: string; text: string; retrievedAt: string } | LiveLegislationUnavailable> {
+    const parts = sourceId.replace("mevzuat:", "").split(".");
+    if (parts.length !== 3) {
+      return unavailable(
+        "document_not_found",
+        `Invalid sourceId format: ${sourceId}. Expected mevzuat:<type>.<arrangement>.<number>`,
+        false,
+        "Use a valid mevzuat.gov.tr sourceId."
+      );
+    }
+    const [type, arrangement, number] = parts;
+    const searchResult: OfficialLegislationSearchResult = {
+      sourceId,
+      title: "",
+      sourceUrl: `${BASE_URL}/mevzuat?MevzuatNo=${number}&MevzuatTur=${type}&MevzuatTertip=${arrangement}`,
+      documentUrl: officialDocumentUrlForParts(type, arrangement, number),
+      legislationNumber: number,
+      legislationType: type,
+      legislationArrangement: arrangement
+    };
+    const doc = await this.getDocument(searchResult);
+    if (isUnavailable(doc)) return doc;
+    // Extract a meaningful title from the PDF text (first meaningful line)
+    const extractedTitle = extractDocumentTitle(doc.text);
+    return { title: extractedTitle || doc.title || "", text: doc.text, retrievedAt: doc.retrievedAt };
+  }
+
   async searchOfficialLegislation(query: string): Promise<OfficialLegislationSearchResult[] | LiveLegislationUnavailable> {
     const response = await this.fetchWithAdaptiveBackoff(`${BASE_URL}/anasayfa/MevzuatDatatable`, {
       method: "POST",
@@ -508,6 +542,21 @@ function withTrace(unavailableResult: LiveLegislationUnavailable, sourceTrace: L
       sourceUnavailable: [unavailableResult]
     })
   };
+}
+
+/**
+ * Extract a document title from the first ~200 chars of official PDF text.
+ * Turkish official legislation PDFs typically start with the full regulation name
+ * in uppercase on the first line. We take the first line or up to 200 chars.
+ */
+function extractDocumentTitle(text: string): string {
+  const cleaned = text.trim().replace(/^\uFEFF/, "").trim();
+  if (!cleaned) return "";
+  // First line (up to first newline or 200 chars, whichever is shorter)
+  const firstNewline = cleaned.indexOf("\n");
+  const line = firstNewline >= 0 ? cleaned.slice(0, firstNewline).trim() : cleaned.slice(0, 200).trim();
+  // Clean up: remove leading page numbers, dashes, whitespace
+  return line.replace(/^[\d\s\-–—.]+/, "").trim();
 }
 
 function sortProvisionsByHealthPriority(provisions: LegislationProvision[]) {

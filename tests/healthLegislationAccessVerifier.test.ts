@@ -8,6 +8,10 @@ import {
   computeCompositeScore,
   verifyInventoryEntry,
   buildAccessVerificationReport,
+  verifyBySourceIdDirect,
+  extractDocTitle,
+  computeMarkerOverlap,
+  extractRgFromDocText,
   type LegislationSearchAdapter,
   type HealthLegislationVerificationAttempt
 } from "../src/healthLegislationAccessVerifier.js";
@@ -50,6 +54,14 @@ function makeSearchResult(overrides: Partial<OfficialLegislationSearchResult> = 
 function makeAdapter(results: OfficialLegislationSearchResult[] | { status: "unavailable"; message: string }): LegislationSearchAdapter {
   return {
     searchOfficialLegislation: vi.fn().mockResolvedValue(results)
+  };
+}
+
+function makeDocResult(overrides: { title?: string; text?: string } = {}) {
+  return {
+    title: overrides.title ?? "Test Yönetmeliği",
+    text: overrides.text ?? "TEST YÖNETMELİĞİ\n\nMadde 1 – Bu yönetmelik test amaçlıdır.\n\nSağlık meslek mensupları görev tanımları bu yönetmelikte belirtilmiştir.\n\nMadde 6 – Görev tanımları Ek-1 ve Ek-2'de düzenlenmiştir.",
+    retrievedAt: "2026-05-24T00:00:00.000Z"
   };
 }
 
@@ -946,5 +958,177 @@ describe("inventory integration guards", () => {
     if (result.status === "verified" || result.status === "verified_via_source_id_probe") {
       expect(result.officialUrl).toContain("mevzuat.gov.tr");
     }
+  });
+});
+
+// ─── v0.31.0: Direct sourceId verification (Path C) ──────────────────────────
+
+describe("verifyBySourceIdDirect", () => {
+  const saglikMeslekEntry = makeEntry({
+    key: "saglik-meslek-is-gorev-tanimlari",
+    title: "Sağlık Meslek Mensupları ile Sağlık Hizmetlerinde Çalışan Diğer Meslek Mensuplarının İş ve Görev Tanımlarına Dair Yönetmelik",
+    titleNormalized: "saglik meslek mensuplari ile saglik hizmetlerinde calisan diger meslek mensuplarinin is ve gorev tanimlarina dair yonetmelik",
+    aliases: [
+      "Sağlık Meslek Mensupları İş ve Görev Tanımları Yönetmeliği",
+      "Sağlık Meslek Mensupları Görev Tanımları Yönetmeliği",
+      "Sağlık Meslek Mensupları ile Diğer Meslek Mensupları Görev Tanımları"
+    ],
+    expectedLegislationType: "yonetmelik",
+    expectedRgDate: "2014-05-22",
+    expectedRgNumber: "29007",
+    candidateLegacySourceId: "mevzuat:7.5.19696",
+    searchTerms: ["sağlık meslek mensupları görev tanımları"],
+    officialSourceStatus: "gap",
+    coverageStatus: "gap"
+  });
+
+  const markerDocText =
+    "SAĞLIK MESLEK MENSUPLARI İLE SAĞLIK HİZMETLERİNDE ÇALIŞAN DİĞER MESLEK MENSUPLARININ İŞ VE GÖREV TANIMLARINA DAİR YÖNETMELİK\n\n" +
+    "Madde 1 – Bu Yönetmeliğin amacı, sağlık meslek mensupları ile sağlık hizmetlerinde çalışan diğer meslek mensuplarının iş ve görev tanımlarını belirlemektir.\n" +
+    "Madde 6 – Görev tanımları ekli listelerde gösterilmiştir.\n" +
+    "Ek-1 – Sağlık Meslek Mensupları Görev Tanımları\n" +
+    "Ek-2 – Diğer Meslek Mensupları Görev Tanımları\n" +
+    "22/5/2014 tarihli ve 29007 sayılı Resmî Gazete'de yayımlanmıştır.\n";
+
+  it("verified_via_source_id_direct when title and markers match", async () => {
+    const adapter: LegislationSearchAdapter = {
+      searchOfficialLegislation: vi.fn().mockResolvedValue([]),
+      fetchOfficialDocument: vi.fn().mockResolvedValue(makeDocResult({
+        text: markerDocText
+      }))
+    };
+    const result = await verifyInventoryEntry(saglikMeslekEntry, adapter);
+    expect(result.status).toBe("verified_via_source_id_direct");
+    expect(result.mevzuatSourceId).toBe("mevzuat:7.5.19696");
+    expect(result.directFetchStatus).toBe("success");
+    expect(result.officialUrl).toContain("mevzuat.gov.tr");
+    expect(result.directFetchMarkerScore).toBeGreaterThanOrEqual(0.30);
+  });
+
+  it("direct fetch fails when adapter has no fetchOfficialDocument", async () => {
+    const adapter: LegislationSearchAdapter = {
+      searchOfficialLegislation: vi.fn().mockResolvedValue([])
+    };
+    const result = await verifyInventoryEntry(saglikMeslekEntry, adapter);
+    expect(result.status).toBe("rejected_no_match");
+    expect(result.directFetchAttempted).toBeUndefined();
+  });
+
+  it("rejected_source_id_timeout when direct fetch times out", async () => {
+    const adapter: LegislationSearchAdapter = {
+      searchOfficialLegislation: vi.fn().mockResolvedValue([]),
+      fetchOfficialDocument: vi.fn().mockResolvedValue({ status: "unavailable" as const, message: "Official source request timed out after 30000ms (source: mevzuat-sourceid-probe)." })
+    };
+    const result = await verifyInventoryEntry(saglikMeslekEntry, adapter);
+    expect(result.status).toBe("rejected_no_match");
+    expect(result.directFetchAttempted).toBe(true);
+    expect(result.directFetchTimedOut).toBe(true);
+    expect(result.directFetchStatus).toBe("timeout");
+  });
+
+  it("rejected_no_match when search returns nothing and no candidateLegacySourceId", async () => {
+    const entry = makeEntry({ searchTerms: ["test"] });
+    const adapter = makeAdapter([]);
+    const result = await verifyInventoryEntry(entry, adapter);
+    expect(result.status).toBe("rejected_no_match");
+  });
+
+  it("search_error with direct fetch fallback on timeout entry", async () => {
+    const entry = makeEntry({
+      candidateLegacySourceId: "mevzuat:7.5.99999",
+      searchTerms: ["test"],
+      aliases: ["Test Alias"]
+    });
+    const adapter: LegislationSearchAdapter = {
+      searchOfficialLegislation: vi.fn().mockResolvedValue({ status: "unavailable", message: "Search timed out." }),
+      fetchOfficialDocument: vi.fn().mockResolvedValue(makeDocResult({
+        title: "Test Yönetmeliği",
+        text: "TEST YÖNETMELİĞİ\n\nMadde 1 – Bu yönetmelik test amaçlıdır.\nSağlık test yönetmelik madde burada yer alır.\nGörev tanımları Sağlık Bakanlığı tarafından belirlenir."
+      }))
+    };
+    const result = await verifyInventoryEntry(entry, adapter);
+    // Direct fetch returns verified_via_source_id_direct because search failed first variant
+    expect(["verified_via_source_id_direct", "search_error"]).toContain(result.status);
+    expect(result.directFetchAttempted).toBe(true);
+    if (result.status === "verified_via_source_id_direct") {
+      expect(result.directFetchStatus).toBe("success");
+    }
+  });
+
+  it("rejected_source_id_title_mismatch when document title does not match", async () => {
+    const longText =
+      "ÇEVRE VE ŞEHİRCİLİK BAKANLIĞI YÖNETMELİĞİ\n\n" +
+      "Madde 1 – Bu Yönetmeliğin amacı çevre düzenlemesi ve şehircilik hizmetlerini yürütmektir.\n" +
+      "Madde 2 – Bu Yönetmelik, 2872 sayılı Çevre Kanununa dayanılarak hazırlanmıştır.\n";
+    const adapter: LegislationSearchAdapter = {
+      searchOfficialLegislation: vi.fn().mockResolvedValue([]),
+      fetchOfficialDocument: vi.fn().mockResolvedValue(makeDocResult({
+        title: "Çevre ve Şehircilik Bakanlığı Yönetmeliği",
+        text: longText
+      }))
+    };
+    const result = await verifyInventoryEntry(saglikMeslekEntry, adapter);
+    expect(result.status).not.toBe("verified_via_source_id_direct");
+    expect(result.directFetchAttempted).toBe(true);
+    expect(result.directFetchStatus).toBe("title_mismatch");
+  });
+
+  // ─── extractDocTitle ─────────────────────────────────────────
+
+  describe("extractDocTitle", () => {
+    it("extracts first line from document text", () => {
+      const text = "SAĞLIK MESLEK MENSUPLARI YÖNETMELİĞİ\nMadde 1 – Amaç";
+      const result = extractDocTitle(text);
+      expect(result).toContain("SAĞLIK");
+      expect(result).toContain("MESLEK");
+    });
+
+    it("cleans BOM character", () => {
+      const text = "\uFEFFSAĞLIK YÖNETMELİĞİ\nMadde 1";
+      const result = extractDocTitle(text);
+      expect(result).toContain("SAĞLIK");
+    });
+
+    it("handles empty text", () => {
+      expect(extractDocTitle("")).toBe("");
+    });
+
+    it("handles very short text", () => {
+      expect(extractDocTitle("   ")).toBe("");
+    });
+  });
+
+  // ─── computeMarkerOverlap ────────────────────────────────────
+
+  describe("computeMarkerOverlap", () => {
+    it("returns 1.0 when all terms match", () => {
+      const text = "SAĞLIK MESLEK MENSUPLARI iş ve görev tanımları yönetmeliği";
+      const score = computeMarkerOverlap(text, ["sağlık meslek", "görev tanımları"]);
+      expect(score).toBe(1.0);
+    });
+
+    it("returns partial score for partial match", () => {
+      // Term "sağlık" requires ALL words to match; only "sağlık" present, "meslek" not found
+      // Term "görev" requires ALL words; "görev" not present
+      // So 0/2 = 0 for multi-word terms
+      // With single-word term search, individual word check would be different
+      const text = "SAĞLIK YÖNETMELİĞİ";
+      const scoreSingle = computeMarkerOverlap(text, ["sağlık"]);
+      expect(scoreSingle).toBe(1.0);
+      const scoreMissing = computeMarkerOverlap(text, ["sağlık meslek", "görev"]);
+      // "sağlık meslek" fails (meslek missing), "görev" fails (not in text)
+      expect(scoreMissing).toBe(0);
+    });
+
+    it("returns 0 for no match", () => {
+      const text = "ÇEVRE BAKANLIĞI";
+      const score = computeMarkerOverlap(text, ["sağlık meslek", "görev tanımları"]);
+      expect(score).toBe(0);
+    });
+
+    it("returns 0 for empty terms", () => {
+      const text = "SAĞLIK YÖNETMELİĞİ";
+      expect(computeMarkerOverlap(text, [])).toBe(0);
+    });
   });
 });

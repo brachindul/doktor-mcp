@@ -61,6 +61,9 @@ async function main(): Promise<void> {
       console.log(`    probeUsed:   ${a.sourceIdProbeUsed}`);
       console.log(`    officialUrl: ${a.officialUrl}`);
       console.log(`    queries:     ${a.searchTermsAttempted.length} attempted`);
+      if (a.directFetchStatus) {
+        console.log(`    directFetch: ${a.directFetchStatus} (markerScore: ${a.directFetchMarkerScore?.toFixed(3) ?? "—"})`);
+      }
     }
     console.log();
   }
@@ -80,6 +83,9 @@ async function main(): Promise<void> {
           console.log(`      - ${c.sourceId} "${c.title}" (${c.score.toFixed(3)})`);
         }
       }
+      if (a.directFetchAttempted) {
+        console.log(`    directFetch: ${a.directFetchStatus} (markerScore: ${a.directFetchMarkerScore?.toFixed(3) ?? "—"}, title: "${(a.directFetchTitle ?? "").slice(0, 100)}")`);
+      }
     }
     console.log();
   }
@@ -88,6 +94,9 @@ async function main(): Promise<void> {
     console.log("⚠️  SEARCH ERRORS:");
     for (const a of report.searchErrorEntries) {
       console.log(`  ${a.entryKey}: ${a.rejectReason}`);
+      if (a.directFetchAttempted) {
+        console.log(`    directFetch: ${a.directFetchStatus} (markerScore: ${a.directFetchMarkerScore?.toFixed(3) ?? "—"}, title: "${(a.directFetchTitle ?? "").slice(0, 100)}")`);
+      }
     }
     console.log();
   }

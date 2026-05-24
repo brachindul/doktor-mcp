@@ -272,11 +272,17 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     category: "physician_practice",
     relevanceLevel: "core",
     officialSourceRequired: true,
-    officialSourceStatus: "gap",
+    officialSourceStatus: "verified",
+    mevzuatSourceId: "mevzuat:7.5.19696",
+    officialUrl: "https://www.mevzuat.gov.tr/mevzuatmetin/7.5.19696.pdf",
+    legislationNumber: "19696",
     relatedIssueIds: ["professional_scope_of_practice", "disciplinary_administrative", "patient_rights"],
     relatedTopicClusters: ["professional_scope_of_practice"],
-    searchTerms: ["görev tanımı", "sağlık meslek mensubu", "iş tanımı"],
-    coverageStatus: "gap",
+    searchTerms: [
+      "görev tanımı", "sağlık meslek mensubu", "iş tanımı",
+      "yetki sınırı", "branş dışı", "ekip hizmeti", "yardımcı sağlık personeli"
+    ],
+    coverageStatus: "covered",
     expectedLegislationType: "yonetmelik",
     expectedRgDate: "2014-05-22",
     expectedRgNumber: "29007",
@@ -287,10 +293,9 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
       "Sağlık Meslek Mensupları ile Diğer Meslek Mensupları Görev Tanımları"
     ],
     notes: [
-      "Known gap since v0.22.0 — mevzuat.gov.tr internal ID not confirmed.",
-      "Do not add to active adapter registry until official sourceId verified.",
-      "Defines scope of practice for physicians and allied health staff.",
-      "v0.30.0: RG 29007 (22.05.2014) lead; candidate sourceId mevzuat:7.5.19696; exact title + aliases added."
+      "v0.31.0: sourceId mevzuat:7.5.19696 confirmed via direct sourceId PDF fetch (mevzuat.gov.tr).",
+      "Title match: 0.778; markerScore: 0.750; RG 29007 (22.05.2014).",
+      "active in healthMappings.ts — professional_scope_of_practice cluster."
     ]
   },
 

@@ -84,6 +84,15 @@ const getat = {
   legislationArrangement: "5"
 } as const;
 
+const saglikMeslek = {
+  query: "Sağlık Meslek Mensupları İş ve Görev Tanımları Yönetmeliği",
+  title: "Sağlık Meslek Mensupları ile Sağlık Hizmetlerinde Çalışan Diğer Meslek Mensuplarının İş ve Görev Tanımlarına Dair Yönetmelik",
+  sourceId: "mevzuat:7.5.19696",
+  legislationNumber: "19696",
+  legislationType: "7",
+  legislationArrangement: "5"
+} as const;
+
 const kvkk = {
   query: "Kisisel Verilerin Korunmasi Kanunu",
   title: "Kisisel Verilerin Korunmasi Kanunu",
@@ -478,5 +487,38 @@ export const healthLegislationHints: HealthLegislationHint[] = [
     ],
     articleNumbers: ["5", "7"],
     dimensions: ["professional_ethics", "disciplinary_administrative"]
+  },
+
+  // ── v0.31.0: Sağlık Meslek Mensupları İş ve Görev Tanımları Yönetmeliği ──────
+  // SourceId mevzuat:7.5.19696 verified by direct PDF fetch from mevzuat.gov.tr.
+  {
+    ...saglikMeslek,
+    topicCluster: "professional_scope_of_practice",
+    legislationRole: "health_primary",
+    healthLawPriority: 5,
+    selectionReason:
+      "İş ve görev tanımları yönetmeliği: hekim yardımcı sağlık personelinin yetki sınırlarını, ekip hizmeti kurallarını ve branş dışı uygulama yasaklarını doğrudan düzenler.",
+    terms: [
+      "görev tanımı", "iş tanımı", "gorev tanimi",
+      "yetki sınırı", "yetki siniri", "branş dışı", "brans disi",
+      "ekip hizmeti", "yardımcı sağlık personeli",
+      "yardimci saglik", "gorevlendirme"
+    ],
+    articleNumbers: ["5", "6", "7", "8"],
+    dimensions: ["professional_ethics", "disciplinary_administrative"]
+  },
+  {
+    ...saglikMeslek,
+    topicCluster: "professional_ethics",
+    legislationRole: "supporting_general",
+    healthLawPriority: 50,
+    selectionReason:
+      "Görev tanımı ihlalleri disiplin sürecini tetikler; yönetmelik yetki aşımı ve usulsüz uygulama yasakları bağlamında destekleyici kaynak.",
+    terms: [
+      "yetki aşımı", "yetki asimi", "görev ihlali", "gorev ihlali",
+      "usulsüz uygulama", "usulsuz uygulama", "disiplin"
+    ],
+    articleNumbers: ["12", "13"],
+    dimensions: ["disciplinary_administrative", "professional_ethics"]
   }
 ];

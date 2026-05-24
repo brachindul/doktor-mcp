@@ -85,7 +85,6 @@ describe("HEALTH_LEGISLATION_INVENTORY entries", () => {
     );
     expect(gapKeys.has("ozel-hastaneler-yonetmeligi")).toBe(true);
     expect(gapKeys.has("ayakta-teshis-ozel-saglik")).toBe(true);
-    expect(gapKeys.has("saglik-meslek-is-gorev-tanimlari")).toBe(true);
   });
 
   it("covered entries have coverageStatus=covered and are verified", () => {
@@ -139,8 +138,8 @@ describe("buildInventoryReport", () => {
     expect(report.verifiedOfficialSourceCount).toBeGreaterThanOrEqual(5);
   });
 
-  it("has at least 3 gap entries (v0.22 known gaps)", () => {
-    expect(report.gapCount).toBeGreaterThanOrEqual(3);
+  it("has at least 2 gap entries (remaining known gaps)", () => {
+    expect(report.gapCount).toBeGreaterThanOrEqual(2);
   });
 
   it("has candidate entries", () => {
@@ -199,7 +198,6 @@ describe("buildInventoryReport", () => {
     const keys = report.gapEntries.map((e) => e.key);
     expect(keys).toContain("ozel-hastaneler-yonetmeligi");
     expect(keys).toContain("ayakta-teshis-ozel-saglik");
-    expect(keys).toContain("saglik-meslek-is-gorev-tanimlari");
   });
 
   it("core+supporting+specialized sums to total", () => {

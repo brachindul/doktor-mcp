@@ -52,6 +52,9 @@ export interface LegislationSearchAdapter {
   searchOfficialLegislation(
     query: string
   ): Promise<OfficialLegislationSearchResult[] | { status: "unavailable"; message: string }>;
+  fetchOfficialDocument?(
+    sourceId: string
+  ): Promise<{ title: string; text: string; retrievedAt: string } | { status: "unavailable"; message: string }>;
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -113,13 +116,18 @@ export interface HealthLegislationVerificationMatch {
 
 export type HealthLegislationVerificationStatus =
   | "verified"                    // Path A: title/alias ≥ 0.75
-  | "verified_via_source_id_probe" // Path B: sourceId match + title/alias ≥ 0.50
-  | "rejected_no_match"           // No search results at all
-  | "rejected_ambiguous"          // Top two results too close in score
-  | "rejected_non_gov_tr"         // Best result is on a non-gov.tr domain
-  | "rejected_low_score"          // Score below threshold
-  | "rejected_wrong_document"     // Wrong legislation type (type mismatch)
-  | "search_error";               // Adapter returned an error
+  | "verified_via_source_id_probe"  // Path B: sourceId match + title/alias ≥ 0.50
+  | "verified_via_source_id_direct" // Path C: direct document fetch from sourceId
+  | "rejected_no_match"            // No search results at all
+  | "rejected_ambiguous"           // Top two results too close in score
+  | "rejected_non_gov_tr"          // Best result is on a non-gov.tr domain
+  | "rejected_low_score"           // Score below threshold
+  | "rejected_wrong_document"      // Wrong legislation type (type mismatch)
+  | "rejected_source_id_timeout"   // Direct document fetch timed out
+  | "rejected_source_id_title_mismatch" // Direct fetch title does not match expected
+  | "rejected_source_id_empty_document" // Direct fetch returned empty/unparseable document
+  | "rejected_source_id_fetch_failed"   // Direct fetch failed (non-timeout error)
+  | "search_error";                // Adapter returned an error
 
 export interface CompositeMatchScore {
   titleScore: number;
@@ -156,6 +164,24 @@ export interface HealthLegislationVerificationAttempt {
   mevzuatSourceId?: string;
   /** Set only when status is verified or verified_via_source_id_probe */
   officialUrl?: string;
+
+  // ── v0.31.0 direct sourceId fetch fields ─────────────────────────────────
+  /** Whether direct sourceId document fetch was attempted */
+  directFetchAttempted?: boolean;
+  /** Whether the direct fetch timed out */
+  directFetchTimedOut?: boolean;
+  /** Status of the direct fetch attempt (success, timeout, title_mismatch, etc.) */
+  directFetchStatus?: string;
+  /** Title extracted from the fetched document */
+  directFetchTitle?: string;
+  /** RG date from document text (first ~500 chars scan) */
+  directFetchRgDate?: string;
+  /** RG number from document text (first ~500 chars scan) */
+  directFetchRgNumber?: string;
+  /** Content marker score (0-1): proportion of expected marker terms found in text */
+  directFetchMarkerScore?: number;
+  /** Length of the fetched document text in chars */
+  directFetchTextLength?: number;
 }
 
 export interface HealthLegislationVerificationReport {
@@ -388,6 +414,220 @@ export function computeCompositeScore(
 }
 
 // ──────────────────────────────────────────────────────────────
+// Direct sourceId verification (v0.31.0)
+// ──────────────────────────────────────────────────────────────
+
+/** Default marker terms for health legislation content verification. */
+const DEFAULT_MARKER_TERMS = [
+  "yönetmelik", "kanun", "sağlık", "hizmet", "madde"
+];
+
+/**
+ * Extract a title string from the beginning of a document text.
+ * Takes the first 200 chars, cleans non-alpha chars, returns first meaningful segment.
+ */
+export function extractDocTitle(text: string): string {
+  const cleaned = text.trim().replace(/^\uFEFF/, "").trim();
+  if (!cleaned) return "";
+  const firstNewline = cleaned.indexOf("\n");
+  const segment = firstNewline >= 0
+    ? cleaned.slice(0, firstNewline).trim()
+    : cleaned.slice(0, 200).trim();
+  return segment.replace(/^[\d\s\-–—.…:+*]+/, "").trim();
+}
+
+/**
+ * Compute a marker score: proportion of inventory entry search terms (as word sets)
+ * that appear in the document text.
+ */
+export function computeMarkerOverlap(
+  text: string,
+  terms: string[]
+): number {
+  const textLower = text.toLocaleLowerCase("tr-TR");
+  const matched = terms.filter((term) => {
+    const termLower = term.toLocaleLowerCase("tr-TR");
+    return termLower.split(/\s+/).every((word) => word.length >= 3 && textLower.includes(word));
+  });
+  return terms.length > 0 ? matched.length / terms.length : 0;
+}
+
+/**
+ * Extract RG year and number from document text (first 1500 chars).
+ * Returns { date, number } if found, empty strings otherwise.
+ */
+export function extractRgFromDocText(text: string): { date: string; number: string } {
+  const segment = text.slice(0, 1500);
+  // Pattern: RG date like "22/5/2014" or "22 Mayıs 2014" and RG number like "29007"
+  const datePattern = /(\d{1,2})\s*[/.]\s*(\d{1,2})\s*[/.]\s*(\d{4})/;
+  const dateMatch = segment.match(datePattern);
+  const date = dateMatch ? `${dateMatch[3]}-${dateMatch[2].padStart(2, "0")}-${dateMatch[1].padStart(2, "0")}` : "";
+  const numberPattern = /(\d{5,6})/;
+  const numbers = segment.match(numberPattern);
+  const number = numbers ? numbers[1] : "";
+  return { date, number };
+}
+
+/**
+ * Verify an inventory entry by directly fetching the official document
+ * through its candidateLegacySourceId. This is Path C — it bypasses the
+ * mevzuat.gov.tr search API entirely and fetches the PDF directly.
+ *
+ * Returns null if the entry has no candidateLegacySourceId.
+ */
+export async function verifyBySourceIdDirect(
+  entry: HealthLegislationInventoryEntry,
+  adapter: LegislationSearchAdapter
+): Promise<HealthLegislationVerificationAttempt | null> {
+  if (!entry.candidateLegacySourceId || !adapter.fetchOfficialDocument) return null;
+
+  const base = {
+    entryKey: entry.key,
+    entryTitle: entry.title,
+    entryStatus: entry.officialSourceStatus as "candidate" | "gap"
+  };
+
+  const doc = await adapter.fetchOfficialDocument(entry.candidateLegacySourceId);
+  if (!isLiveDocument(doc)) {
+    const isTimeout = doc.message?.includes("timed out") ?? false;
+    return {
+      ...base,
+      status: isTimeout ? "rejected_source_id_timeout" : "rejected_source_id_fetch_failed",
+      allCandidates: [],
+      searchTermsAttempted: [entry.candidateLegacySourceId],
+      attemptedQueries: [],
+      sourceIdProbeUsed: false,
+      topCandidates: [],
+      directFetchAttempted: true,
+      directFetchTimedOut: isTimeout,
+      directFetchStatus: isTimeout ? "timeout" : "fetch_failed",
+      rejectReason: doc.message
+    };
+  }
+
+  // Extract document title from PDF text
+  const docTitle = extractDocTitle(doc.text);
+  const textLength = doc.text.length;
+
+  // Score title vs expected title and aliases
+  const titleScore = scoreTitleMatch(entry.title, docTitle);
+  const aliasScore = (entry.aliases ?? []).reduce(
+    (best, alias) => Math.max(best, scoreTitleMatch(alias, docTitle)),
+    0
+  );
+  const bestTitleOrAlias = Math.max(titleScore, aliasScore);
+
+  // Compute marker overlap score
+  const markerTerms = [...entry.searchTerms, ...DEFAULT_MARKER_TERMS];
+  const markerScore = computeMarkerOverlap(doc.text, markerTerms);
+
+  // Extract RG info from document text
+  const rgInfo = extractRgFromDocText(doc.text);
+
+  // Check empty document
+  if (textLength < 100) {
+    return {
+      ...base,
+      status: "rejected_source_id_empty_document",
+      allCandidates: [],
+      searchTermsAttempted: [entry.candidateLegacySourceId],
+      attemptedQueries: [],
+      sourceIdProbeUsed: false,
+      topCandidates: [],
+      directFetchAttempted: true,
+      directFetchTimedOut: false,
+      directFetchStatus: "empty_document",
+      directFetchTitle: docTitle,
+      directFetchRgDate: rgInfo.date,
+      directFetchRgNumber: rgInfo.number,
+      directFetchMarkerScore: markerScore,
+      directFetchTextLength: textLength,
+      rejectReason: `Document text too short (${textLength} chars) to be a valid regulation.`
+    };
+  }
+
+  // Build the official URL
+  const officialUrl = entry.candidateLegacySourceId.startsWith("mevzuat:")
+    ? `https://www.mevzuat.gov.tr/mevzuatmetin/${entry.candidateLegacySourceId.replace("mevzuat:", "").replace(/\./g, ".")}.pdf`
+    : "";
+
+  // Verification criteria for direct sourceId path:
+  // 1. Title match >= 0.50 (moderate confidence)
+  // 2. Marker overlap >= 0.30 (content confirms the topic)
+  // 3. Document non-empty (already checked)
+  // No non-gov.tr check needed — the fetch URL is gov.tr by construction
+  if (bestTitleOrAlias >= 0.50 && markerScore >= 0.30) {
+    return {
+      ...base,
+      status: "verified_via_source_id_direct",
+      bestMatch: {
+        sourceId: entry.candidateLegacySourceId,
+        title: docTitle,
+        sourceUrl: `https://www.mevzuat.gov.tr/mevzuat?MevzuatNo=${entry.candidateLegacySourceId.split(".")[2]}&MevzuatTur=${entry.candidateLegacySourceId.split(".")[0].replace("mevzuat:", "")}&MevzuatTertip=${entry.candidateLegacySourceId.split(".")[1]}`,
+        documentUrl: officialUrl,
+        legislationNumber: entry.candidateLegacySourceId.split(".")[2],
+        legislationType: entry.candidateLegacySourceId.split(".")[0].replace("mevzuat:", ""),
+        legislationArrangement: entry.candidateLegacySourceId.split(".")[1],
+        titleMatchScore: bestTitleOrAlias,
+        searchTerm: entry.candidateLegacySourceId
+      },
+      allCandidates: [],
+      searchTermsAttempted: [entry.candidateLegacySourceId],
+      attemptedQueries: [],
+      sourceIdProbeUsed: true,
+      topCandidates: [{
+        title: docTitle,
+        sourceId: entry.candidateLegacySourceId,
+        score: bestTitleOrAlias
+      }],
+      directFetchAttempted: true,
+      directFetchTimedOut: false,
+      directFetchStatus: "success",
+      directFetchTitle: docTitle,
+      directFetchRgDate: rgInfo.date,
+      directFetchRgNumber: rgInfo.number,
+      directFetchMarkerScore: markerScore,
+      directFetchTextLength: textLength,
+      mevzuatSourceId: entry.candidateLegacySourceId,
+      officialUrl,
+      titleScore,
+      aliasScore,
+      metadataScore: 0
+    };
+  }
+
+  // Title mismatch — bestTitleOrAlias too low
+  return {
+    ...base,
+    status: "rejected_source_id_title_mismatch",
+    allCandidates: [],
+    searchTermsAttempted: [entry.candidateLegacySourceId],
+    attemptedQueries: [],
+    sourceIdProbeUsed: false,
+    topCandidates: [{
+      title: docTitle,
+      sourceId: entry.candidateLegacySourceId,
+      score: bestTitleOrAlias
+    }],
+    directFetchAttempted: true,
+    directFetchTimedOut: false,
+    directFetchStatus: "title_mismatch",
+    directFetchTitle: docTitle,
+    directFetchRgDate: rgInfo.date,
+    directFetchRgNumber: rgInfo.number,
+    directFetchMarkerScore: markerScore,
+    directFetchTextLength: textLength,
+    rejectReason: `Direct title match ${bestTitleOrAlias.toFixed(3)} < 0.50 threshold (titleScore: ${titleScore.toFixed(3)}, aliasScore: ${aliasScore.toFixed(3)}). Marker score: ${markerScore.toFixed(3)}. Doc docTitle: "${docTitle.slice(0, 120)}..."`
+  };
+}
+
+function isLiveDocument(
+  value: unknown
+): value is { title: string; text: string; retrievedAt: string } {
+  return typeof value === "object" && value !== null && "text" in value && "title" in value;
+}
+
+// ──────────────────────────────────────────────────────────────
 // Per-entry verification
 // ──────────────────────────────────────────────────────────────
 
@@ -423,6 +663,33 @@ export async function verifyInventoryEntry(
 
     const results = await adapter.searchOfficialLegislation(variant.query);
     if (!Array.isArray(results)) {
+      // Path C: on search error, try direct sourceId fetch if available (v0.31.0)
+      if (entry.candidateLegacySourceId && adapter.fetchOfficialDocument) {
+        const directResult = await verifyBySourceIdDirect(entry, adapter);
+        if (directResult && directResult.status === "verified_via_source_id_direct") {
+          return directResult;
+        }
+        if (directResult) {
+          return {
+            ...base,
+            status: "search_error",
+            allCandidates: [],
+            searchTermsAttempted,
+            attemptedQueries: queryPlan.variants,
+            sourceIdProbeUsed: false,
+            topCandidates: [],
+            rejectReason: `Search failed for query "${variant.query}" (kind: ${variant.kind}): ${results.message}`,
+            directFetchAttempted: directResult.directFetchAttempted,
+            directFetchTimedOut: directResult.directFetchTimedOut,
+            directFetchStatus: directResult.directFetchStatus,
+            directFetchTitle: directResult.directFetchTitle,
+            directFetchRgDate: directResult.directFetchRgDate,
+            directFetchRgNumber: directResult.directFetchRgNumber,
+            directFetchMarkerScore: directResult.directFetchMarkerScore,
+            directFetchTextLength: directResult.directFetchTextLength
+          };
+        }
+      }
       return {
         ...base,
         status: "search_error",
@@ -476,6 +743,33 @@ export async function verifyInventoryEntry(
 
   // ── No results at all ────────────────────────────────────────
   if (sorted.length === 0) {
+    // Path C: on no results, try direct sourceId fetch if available (v0.31.0)
+    if (entry.candidateLegacySourceId && adapter.fetchOfficialDocument) {
+      const directResult = await verifyBySourceIdDirect(entry, adapter);
+      if (directResult && directResult.status === "verified_via_source_id_direct") {
+        return directResult;
+      }
+      if (directResult) {
+        return {
+          ...base,
+          status: "rejected_no_match",
+          allCandidates: [],
+          searchTermsAttempted,
+          attemptedQueries: queryPlan.variants,
+          sourceIdProbeUsed: false,
+          topCandidates: [],
+          rejectReason: "No results returned from any search variant.",
+          directFetchAttempted: directResult.directFetchAttempted,
+          directFetchTimedOut: directResult.directFetchTimedOut,
+          directFetchStatus: directResult.directFetchStatus,
+          directFetchTitle: directResult.directFetchTitle,
+          directFetchRgDate: directResult.directFetchRgDate,
+          directFetchRgNumber: directResult.directFetchRgNumber,
+          directFetchMarkerScore: directResult.directFetchMarkerScore,
+          directFetchTextLength: directResult.directFetchTextLength
+        };
+      }
+    }
     return {
       ...base,
       status: "rejected_no_match",
@@ -586,12 +880,41 @@ export async function verifyInventoryEntry(
   }
 
   // ── Low score ─────────────────────────────────────────────────
-  return buildRejected(
+  const searchRejected = buildRejected(
     "rejected_low_score",
     `Best score ${bestScore.finalScore.toFixed(3)} < threshold ${ACCEPT_THRESHOLD} ` +
     `(titleScore: ${bestScore.titleScore.toFixed(3)}, aliasScore: ${bestScore.aliasScore.toFixed(3)}). ` +
     `Best: "${best.result.title}"`
   );
+
+  // ── Path C: direct sourceId document fetch (v0.31.0) ──────────
+  // If search failed or rejected, and the entry has a candidateLegacySourceId,
+  // try direct document fetch as a final fallback.
+  if (entry.candidateLegacySourceId && adapter.fetchOfficialDocument) {
+    const directResult = await verifyBySourceIdDirect(entry, adapter);
+    if (directResult && directResult.status === "verified_via_source_id_direct") {
+      return directResult;
+    }
+    // If direct fetch gave a more informative result, merge its fields
+    if (directResult) {
+      return {
+        ...searchRejected,
+        ...directResult,
+        // Keep search-based status as the primary, but include direct-fetch diagnostics
+        status: searchRejected.status,
+        directFetchAttempted: directResult.directFetchAttempted,
+        directFetchTimedOut: directResult.directFetchTimedOut,
+        directFetchStatus: directResult.directFetchStatus,
+        directFetchTitle: directResult.directFetchTitle,
+        directFetchRgDate: directResult.directFetchRgDate,
+        directFetchRgNumber: directResult.directFetchRgNumber,
+        directFetchMarkerScore: directResult.directFetchMarkerScore,
+        directFetchTextLength: directResult.directFetchTextLength
+      };
+    }
+  }
+
+  return searchRejected;
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -617,11 +940,11 @@ export async function buildAccessVerificationReport(
   }
 
   const verifiedEntries = attempts.filter(
-    (a) => a.status === "verified" || a.status === "verified_via_source_id_probe"
+    (a) => a.status === "verified" || a.status === "verified_via_source_id_probe" || a.status === "verified_via_source_id_direct"
   );
   const searchErrorEntries = attempts.filter((a) => a.status === "search_error");
   const rejectedEntries = attempts.filter(
-    (a) => a.status !== "verified" && a.status !== "verified_via_source_id_probe" && a.status !== "search_error"
+    (a) => a.status !== "verified" && a.status !== "verified_via_source_id_probe" && a.status !== "verified_via_source_id_direct" && a.status !== "search_error"
   );
 
   return {
