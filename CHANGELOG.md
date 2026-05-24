@@ -1,5 +1,72 @@
 # Changelog
 
+## [0.33.0] — 2026-05-24 — Manual Official Source Discovery
+
+> Tag: `v0.33.0-manual-official-source-discovery`
+
+### Summary
+
+Source discovery module for remaining gap/candidate health regulation entries.
+Collects and classifies available official source leads (mevzuat.gov.tr sourceId,
+Resmi Gazete, Sağlık Bakanlığı page, candidate title match) into a structured
+report. Does NOT auto-verify — verification is delegated to the existing
+`healthLegislationAccessVerifier`. This is a discovery aid release, not an active
+coverage increase release.
+
+### Added
+
+- **`healthLegislationSourceDiscovery.ts`** — core source discovery module:
+  - `OfficialSourceLead` type with `entryKey`, `leadKind`, `sourceId`,
+    `officialUrl`, `domain`, `title`, `rgDate`, `rgNumber`, `confidence`,
+    `status`, `reasons`
+  - `OfficialSourceLeadKind`: `mevzuat_source_id`, `mevzuat_pdf_url`,
+    `resmi_gazete_url`, `saglik_gov_tr_page`, `candidate_title_match`
+  - `OfficialSourceLeadStatus`: `candidate_lead`, `verified_by_existing_verifier`,
+    `rejected`, `needs_manual_review`
+  - `HealthLegislationSourceDiscoveryResult` and `SourceDiscoveryReport` types
+  - `discoverEntrySources(entry)` — per-entry lead collection with four strategies:
+    - Strategy A: mevzuat sourceId lead from `candidateLegacySourceId`
+    - Strategy B: Resmi Gazete lead from `expectedRgDate`/`expectedRgNumber`
+    - Strategy C: Sağlık Bakanlığı page lead from `candidateOfficialUrlLead`
+    - Strategy D: Candidate title match from `aliases`/`searchTerms`
+  - `buildSourceDiscoveryReport(entries)` — aggregates results into structured
+    report with counts (entriesScanned, leadsFound, officialLeadsFound,
+    nonOfficialLeadsIgnored, leadsSentToVerifier, needsManualReviewCount)
+  - `filterDiscoveryCandidates(entries)` — filters to gap + candidate entries
+- **`discoverHealthLegislationSourcesCli.ts`** — `discover:health-legislation-sources`
+- **37 test cases** in `healthLegislationSourceDiscovery.test.ts` covering
+  all four lead strategies, 6-entry contract verification, safety invariants
+
+### Changed
+
+- `package.json`: `0.32.0` → `0.33.0`, new script
+  `discover:health-legislation-sources`
+
+### Audit
+
+- **No gov.tr dışı source acceptance**: non-gov.tr leads captured in
+  `ignoredNonOfficialLeads`, never in active leads
+- **No auto-verification**: `discoverEntrySources` does not set `verifiedLead`;
+  leads marked `status: "candidate_lead"` until verifier confirms
+- **No output contract changes**: verified entries unchanged
+- **No local-yargi import**
+- **Coverage unchanged**: `coveredOfficialLegislationCount` = 11,
+  `verifiedOfficialSourceCount` = 11, `coveredByActiveHintsCount` = 11,
+  `gapCount` = 2, `unofficialLegislationSourceCount` = 0
+
+### Discovery Results
+
+| Entry | SourceId Lead | RG Lead | Needs |
+|-------|:---:|:---:|-------|
+| ozel-hastaneler | medium (7.5.29092) | medium (29092) | PDF fetch confirmation |
+| ayakta-teshis | — | medium (29058) | sourceId discovery |
+| acil-saglik | — | medium (29332) | sourceId discovery |
+| isyeri-hekimi | — | medium (29818) | sourceId discovery |
+| kisisel-saglik-verileri | — | medium (30867) | sourceId discovery |
+| saglik-bakanligi-disiplin | — | medium (25450) | sourceId discovery + title update check |
+
+---
+
 ## [0.32.0] — 2026-05-24 — Remaining Health Regulations Direct Access
 
 > Tag: `v0.32.0-remaining-health-regulations-direct-access`
