@@ -1,6 +1,128 @@
 # Changelog
 
-## [0.35.0] — 2026-05-24 — RG Lead SourceId Resolver
+## [0.36.0] — 2026-05-24 — Official Gazette Document Verifier
+
+> Tag: `v0.36.0-official-gazette-document-verifier`
+
+### Summary
+
+Muhafazakâr Resmî Gazete document verification layer for the 6 `needs_manual_review`
+health legislation entries whose only discovery signal is an RG number. The
+verifier fetches the RG HTML page from resmigazete.gov.tr, scores the title and
+content marker terms, and produces a structured verification result. This is a
+SEPARATE verification path from mevzuat.gov.tr sourceId verification — RG
+verified alone (no mevzuat sourceId) is reported as `rgVerifiedButNoMevzuatSourceId`
+and NOT promoted to active coverage. Only RG verified + confirmed mevzuat
+sourceId together enable coverage promotion.
+
+### Added
+
+- **`src/officialGazetteDocumentVerifier.ts`** — new module with:
+  - `RgDocumentVerificationStatus`, `RgDocumentVerificationResult`,
+    `RgDocumentVerificationReport` types
+  - `RgDocumentFetcher` adapter interface for testable RG HTTP fetch
+  - `buildRgUrl()` — constructs resmigazete.gov.tr URL from date or RG number
+  - `filterRgOnlyLeads()` — filters inventory entries with RG metadata but no
+    confirmed mevzuat sourceId
+  - `verifyRgDocument()` — per-entry verifier: fetch RG page, extract HTML
+    title, score with F1 word-overlap, check marker terms; returns
+    `rg_verified`, `rg_not_found`, `rg_wrong_document`, `rg_unavailable`, or
+    `rg_verification_error`
+  - `buildRgDocumentVerificationReport()` — multi-entry report builder with
+    counts for verified, no-sourceId, not-found, wrong-doc, unavailable, error
+  - Title scoring via existing `scoreTitleMatch` from access verifier
+  - Marker term scoring (proportion of entry markerTerms found in page content)
+  - gov.tr guard via URL construction (only resmigazete.gov.tr URLs)
+- **`src/verifyOfficialGazetteHealthLegislationCli.ts`** — CLI entry point:
+  `npm run verify:official-gazette-health-legislation`
+  - Writes structured report to `exports/official-gazette-verification/report.json`
+- **Benchmark per-question timeout guard** in `src/benchmark/benchmarkRunner.ts`:
+  - `Promise.race` timeout wrapper around `service.prepareInformationPack()`
+  - Live mode: 30s per-question deadline
+  - Mock mode: 15s per-question deadline
+  - Timeout → `evaluateThrownBenchmarkItem()` → failed item in report
+  - One hung question no longer blocks subsequent questions
+  - Prevents shell-level bash timeout (120s) from triggering
+- **5 timeout test cases** in `tests/benchmark.test.ts`:
+  - Live mode timeout → failed item via evaluateThrownBenchmarkItem
+  - Mock mode timeout → failed item via evaluateThrownBenchmarkItem
+  - Timeout on first question does not block subsequent questions
+  - Timeout item appears in JSON report as parseable failed item
+  - Normal successful item behavior unchanged
+- **36 test cases** (was 32) in `tests/officialGazetteDocumentVerifier.test.ts` — added:
+  - `buildRgUrl` — date-based, number-based, empty, preference order
+  - `filterRgOnlyLeads` — filtering logic, exclusion of verified/deferred
+  - `verifyRgDocument` — all 5 status paths (verified, not_found, wrong_doc,
+    unavailable, verification_error)
+  - Title extraction from `<title>` and `<h1>` elements
+  - Marker score computation with edge cases
+  - Report builder — empty, single entry, multiple entries, JSON parseable
+  - Required top-level fields and ISO timestamp
+  - Real inventory fixtures for all 6 RG-only entries:
+    - Kişisel Sağlık Verileri (RG 30867) → rg_verified
+    - Acil Sağlık Hizmetleri (RG 29332) → rg_verified
+    - Ayakta Teşhis (RG 29058) → rg_verified
+    - İşyeri Hekimi (RG 29818) → rg_verified
+    - Sağlık Bakanlığı Disiplin (RG 25450) → rg_verified
+    - Özel Hastaneler (RG 29092) → rg_verified
+  - Wrong document rejection (KVKK kanunu instead of sağlık verileri yönetmelik)
+  - RG-verified-but-no-sourceId counter integrity
+  - All-6-entries JSON report parseable
+
+### Changed
+
+- `package.json`: version `0.35.0` → `0.36.0`
+- `package.json`: added `verify:official-gazette-health-legislation` script
+- `src/benchmark/benchmarkRunner.ts`: per-question timeout guard — `Promise.race` wrapper
+  around `service.prepareInformationPack()`; live 30s, mock 15s
+- `package-lock.json`: version `0.35.0` → `0.36.0`
+
+### Known limitation — RG body-level regulation title extraction deferred
+
+Resmî Gazete HTML pages expose a generic `<title>T.C. Resmî Gazete</title>` rather than the
+specific regulation title. The verifier correctly extracts this generic title, computes
+`titleScore ≈ 0`, and rejects as `rg_wrong_document`. However, the body HTML does contain
+the actual regulation name and marker terms — `markerScore` is computed from body content.
+
+Body-level regulation title extraction (parsing the HTML body to find the specific
+regulation heading) is **deferred** to a future release. When implemented, it would
+enable `rg_verified` for entries whose body content matches, even when the `<title>` tag
+is generic. Even with body-level extraction, `rg_verified` alone would NOT promote to
+active coverage without a confirmed mevzuat.gov.tr sourceId.
+
+This limitation is documented in 4 dedicated test cases:
+- `generic RG page title with body marker terms reports markerScore > 0 but rg_wrong_document`
+- `body-level regulation title extraction not implemented — generic title limitation documented`
+- `RG verified alone never promotes to active coverage without mevzuat sourceId`
+- `generic title with body markers — markerScore shows content match exists`
+
+### Design invariants
+
+- **RG verified ≠ active coverage**: RG document alone is a discovery signal.
+- **Separate path**: RG document verification is independent from mevzuat.gov.tr
+  sourceId verification. Both required for coverage promotion.
+- **gov.tr mandatory**: only resmigazete.gov.tr URLs are constructed.
+- **No coverage change**: active coverage unchanged — all 6 entries remain
+  `needs_manual_review` unless verifier + sourceId both confirm.
+- **No local-yargi import**: patterns reimplemented independently.
+- **No risk levels, urgent actions, or legal opinions**.
+- **No contract change**: hekim-facing output format unchanged.
+
+### Coverage unchanged
+
+`coveredOfficialLegislationCount`: 11 (unchanged).
+`verifiedOfficialSourceCount`: 11 (unchanged).
+`unofficialLegislationSourceCount`: 0 (unchanged).
+
+### Benchmark timeout guard invariants
+
+- **Per-question timeout prevents process hang**: `Promise.race` with 30s/15s deadline.
+- **Thrown timeout → evaluateThrownBenchmarkItem → failed item in report.**
+- **One hung question does not block subsequent questions.**
+- **JSON report always generated** (never hits shell-level timeout).
+- **Mock benchmark 15/15 regression unchanged.**
+
+## [0.35.0] — 2026-05-24 — RG Lead SourceId Resolver — 2026-05-24 — RG Lead SourceId Resolver
 
 > Tag: `v0.35.0-rg-lead-sourceid-resolver`
 

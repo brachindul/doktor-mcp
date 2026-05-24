@@ -333,13 +333,18 @@ export async function runBenchmark(options: {
 
   const results: BenchmarkItemResult[] = [];
 
+  const PER_QUESTION_TIMEOUT_MS = sourceMode === "live" ? 30_000 : 15_000;
+
   for (const question of questionsToRun) {
     const itemStartedAt = Date.now();
+    let enrichedPack: Awaited<ReturnType<PhysicianLegalInformationService["prepareInformationPack"]>>;
     try {
-      const enrichedPack = await service.prepareInformationPack({
-        question: question.question,
-        sourceMode
-      });
+      enrichedPack = await Promise.race([
+        service.prepareInformationPack({ question: question.question, sourceMode }),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error(`Question timed out after ${PER_QUESTION_TIMEOUT_MS}ms`)), PER_QUESTION_TIMEOUT_MS)
+        )
+      ]);
       results.push(evaluateBenchmarkItem({
         question,
         pack: enrichedPack as unknown as DoctorLegalInformationPack & Record<string, unknown>,

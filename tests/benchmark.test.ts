@@ -367,6 +367,140 @@ describe("Benchmark Dataset & Runner Tests", () => {
     });
   });
 
+  describe("Per-Question Timeout Guard (v0.36.0)", () => {
+    it("live mode timeout >30s produces failed item via evaluateThrownBenchmarkItem", async () => {
+      const tempOutDir = path.join(process.cwd(), "temp-test-benchmark-timeout-live");
+
+      // Create a service whose prepareInformationPack hangs forever
+      const hangingService = new PhysicianLegalInformationService();
+      const origPrepare = hangingService.prepareInformationPack.bind(hangingService);
+      (hangingService as any).prepareInformationPack = async () => {
+        await new Promise(() => {}); // intentional — never resolves
+        return origPrepare({ question: "", sourceMode: "live" });
+      };
+
+      try {
+        const report = await runBenchmark({
+          sourceMode: "live",
+          limit: 1,
+          outDir: tempOutDir,
+          service: hangingService
+        });
+
+        expect(report.results.length).toBe(1);
+        const item = report.results[0];
+        expect(item.passed).toBe(false);
+        expect(item.regressionStatus).toBe("failed");
+        expect(item.audit.errors.some((e: string) => /timed out/i.test(e))).toBe(true);
+        expect(report.failedCount).toBeGreaterThanOrEqual(1);
+      } finally {
+        if (fs.existsSync(tempOutDir)) fs.rmSync(tempOutDir, { recursive: true, force: true });
+      }
+    }, 60_000);
+
+    it("mock mode timeout >15s produces failed item via evaluateThrownBenchmarkItem", async () => {
+      const tempOutDir = path.join(process.cwd(), "temp-test-benchmark-timeout-mock");
+
+      const hangingService = new PhysicianLegalInformationService();
+      (hangingService as any).prepareInformationPack = async () => {
+        await new Promise(() => {});
+      };
+
+      try {
+        const report = await runBenchmark({
+          sourceMode: "mock",
+          limit: 1,
+          outDir: tempOutDir,
+          service: hangingService
+        });
+
+        expect(report.results.length).toBe(1);
+        const item = report.results[0];
+        expect(item.passed).toBe(false);
+        expect(item.audit.errors.some((e: string) => /timed out/i.test(e))).toBe(true);
+      } finally {
+        if (fs.existsSync(tempOutDir)) fs.rmSync(tempOutDir, { recursive: true, force: true });
+      }
+    }, 45_000);
+
+    it("timeout on first question does not block subsequent questions", async () => {
+      const tempOutDir = path.join(process.cwd(), "temp-test-benchmark-timeout-block");
+      let callCount = 0;
+
+      const hangingService = new PhysicianLegalInformationService();
+      const origPrepare = hangingService.prepareInformationPack.bind(hangingService);
+      (hangingService as any).prepareInformationPack = async (input: any) => {
+        callCount++;
+        if (callCount === 1) {
+          await new Promise(() => {}); // first hangs
+        }
+        return origPrepare(input);
+      };
+
+      try {
+        const report = await runBenchmark({
+          sourceMode: "mock",
+          limit: 2,
+          outDir: tempOutDir,
+          service: hangingService
+        });
+
+        expect(report.results.length).toBe(2);
+        expect(report.results[0].passed).toBe(false);
+        expect(report.results[1].passed).toBe(true);
+        expect(callCount).toBeGreaterThanOrEqual(2);
+      } finally {
+        if (fs.existsSync(tempOutDir)) fs.rmSync(tempOutDir, { recursive: true, force: true });
+      }
+    }, 60_000);
+
+    it("timeout item appears in JSON report as parseable failed item", async () => {
+      const tempOutDir = path.join(process.cwd(), "temp-test-benchmark-timeout-json");
+
+      const hangingService = new PhysicianLegalInformationService();
+      (hangingService as any).prepareInformationPack = async () => {
+        await new Promise(() => {});
+      };
+
+      try {
+        const report = await runBenchmark({
+          sourceMode: "mock",
+          limit: 1,
+          outDir: tempOutDir,
+          service: hangingService
+        });
+
+        const jsonFile = path.join(tempOutDir, "doctor-benchmark-report.json");
+        expect(fs.existsSync(jsonFile)).toBe(true);
+        const parsed = JSON.parse(fs.readFileSync(jsonFile, "utf8"));
+        expect(parsed.results.length).toBe(1);
+        expect(parsed.results[0].passed).toBe(false);
+        expect(parsed.failedCount).toBe(1);
+      } finally {
+        if (fs.existsSync(tempOutDir)) fs.rmSync(tempOutDir, { recursive: true, force: true });
+      }
+    }, 45_000);
+
+    it("normal successful item behavior is unchanged by timeout guard", async () => {
+      const tempOutDir = path.join(process.cwd(), "temp-test-benchmark-timeout-normal");
+
+      try {
+        const report = await runBenchmark({
+          sourceMode: "mock",
+          limit: 1,
+          outDir: tempOutDir,
+          service: new PhysicianLegalInformationService()
+        });
+
+        expect(report.results.length).toBe(1);
+        expect(report.results[0].passed).toBe(true);
+        expect(report.results[0].regressionStatus).toBe("passed");
+      } finally {
+        if (fs.existsSync(tempOutDir)) fs.rmSync(tempOutDir, { recursive: true, force: true });
+      }
+    });
+  });
+
   describe("Specific Regression Guards", () => {
     const service = new PhysicianLegalInformationService();
 
