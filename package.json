@@ -1,6 +1,6 @@
 {
   "name": "physician-legal-mcp",
-  "version": "0.33.0",
+  "version": "0.34.0",
   "description": "Source-grounded MCP skeleton for physician legal information packs.",
   "type": "module",
   "bin": {
@@ -23,6 +23,7 @@
     "benchmark:doctor-questions:performance": "tsx src/benchmark/performanceBenchmarkCli.ts",
     "verify:health-legislation": "tsx src/verifyHealthLegislationCli.ts",
     "discover:health-legislation-sources": "tsx src/discoverHealthLegislationSourcesCli.ts",
+    "verify:discovered-health-legislation": "tsx src/verifyDiscoveredHealthLegislationCli.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },

@@ -1,9 +1,13 @@
 /**
- * Official Health Legislation Source Discovery (v0.33.0)
+ * Official Health Legislation Source Discovery & Lead Verification (v0.34.0)
  *
- * Collects and classifies official source leads for gap/candidate inventory
- * entries. Does NOT auto-verify — verification is deferred to the existing
- * healthLegislationAccessVerifier. No non-gov.tr source is accepted as verified.
+ * v0.33: Collects and classifies official source leads for gap/candidate
+ *   inventory entries. Does NOT auto-verify.
+ *
+ * v0.34: Discovered leads can be routed to the existing verifier via
+ *   verifyDiscoveredOfficialLeads(). Each lead is tested against the live
+ *   official document. Verified leads are marked as promotable; no non-gov.tr
+ *   source is accepted. No active coverage change happens automatically.
  *
  * Discovery strategies:
  *   A. mevzuat.gov.tr sourceId lead — from inventory candidateLegacySourceId
@@ -11,7 +15,13 @@
  *   C. Sağlık Bakanlığı page lead — from candidateOfficialUrlLead
  *   D. Candidate title match — from search aliases / known good matches
  *
- * Design rules (v0.33.0):
+ * Verification flow:
+ *   1. For entries with mevzuat_source_id leads → verifyBySourceIdDirect()
+ *   2. For entries with only RG leads → search mevzuat.gov.tr by RG number,
+ *      then verifyBySourceIdDirect() if a candidate sourceId is found
+ *   3. Entries with no actionable leads → needs_manual_review
+ *
+ * Design rules (v0.34.0):
  * - gov.tr dışı kaynaklar verified veya strong lead sayılmaz.
  * - Lead found ≠ verified. Active coverage requires verifier approval.
  * - No risk levels, urgent actions, or definitive legal opinions.
@@ -19,6 +29,8 @@
  */
 
 import type { HealthLegislationInventoryEntry } from "./healthLegislationInventory.js";
+import type { LegislationSearchAdapter } from "./healthLegislationAccessVerifier.js";
+import { verifyBySourceIdDirect, scoreTitleMatch } from "./healthLegislationAccessVerifier.js";
 
 // ──────────────────────────────────────────────────────────────
 // Types
@@ -330,4 +342,235 @@ export function filterDiscoveryCandidates(
       e.coverageStatus === "gap" ||
       e.coverageStatus === "candidate"
   );
+}
+
+// ──────────────────────────────────────────────────────────────
+// Lead verification bridge (v0.34.0)
+// ──────────────────────────────────────────────────────────────
+
+export interface DiscoveredLeadVerificationResult {
+  entryKey: string;
+  leadKind: OfficialSourceLeadKind | "rg_search_discovery";
+  sourceId?: string;
+  officialUrl?: string;
+  rgNumber?: string;
+  verificationStatus: "verified" | "not_verified" | "needs_manual_review" | "unverifiable";
+  verifierStatus?: string;
+  titleScore?: number;
+  markerScore?: number;
+  rgScore?: number;
+  rejectReason?: string;
+  promotedToActiveCoverage: boolean;
+}
+
+export interface LeadVerificationReport {
+  leadsAttempted: number;
+  leadsVerified: number;
+  leadsRejected: number;
+  needsManualReviewCount: number;
+  promotedToActiveCoverageCount: number;
+  results: DiscoveredLeadVerificationResult[];
+  generatedAt: string;
+}
+
+/**
+ * Verify discovered official source leads by routing them through the existing
+ * direct sourceId verifier.
+ *
+ * Flow:
+ * 1. mevzuat_source_id leads → verifyBySourceIdDirect() on the inventory entry
+ * 2. RG-only leads → search mevzuat.gov.tr by RG number, then verify if found
+ * 3. No actionable leads → needs_manual_review
+ *
+ * Lead found ≠ verified. Only entries that pass the existing verifier criteria
+ * (title/alias score, marker overlap, gov.tr source, no known wrong match)
+ * are marked as verified.
+ */
+export async function verifyDiscoveredOfficialLeads(
+  discoveryReport: SourceDiscoveryReport,
+  entries: HealthLegislationInventoryEntry[],
+  adapter: LegislationSearchAdapter
+): Promise<LeadVerificationReport> {
+  const results: DiscoveredLeadVerificationResult[] = [];
+  let verified = 0;
+  let rejected = 0;
+  let needsReview = 0;
+
+  for (const entryResult of discoveryReport.entries) {
+    const entry = entries.find((e) => e.key === entryResult.entryKey);
+    if (!entry) {
+      results.push({
+        entryKey: entryResult.entryKey,
+        leadKind: "candidate_title_match",
+        verificationStatus: "needs_manual_review",
+        promotedToActiveCoverage: false,
+        rejectReason: "Entry not found in inventory"
+      });
+      needsReview++;
+      continue;
+    }
+
+    // Strategy A: mevzuat_source_id lead → direct verification
+    const sourceIdLead = entryResult.leads.find(
+      (l) => l.leadKind === "mevzuat_source_id"
+    );
+
+    if (sourceIdLead && sourceIdLead.sourceId) {
+      // Create a scoped copy with the discovered sourceId
+      const scopedEntry: HealthLegislationInventoryEntry = {
+        ...entry,
+        candidateLegacySourceId: sourceIdLead.sourceId,
+        officialSourceStatus: "candidate"
+      };
+
+      const verifierResult = await verifyBySourceIdDirect(scopedEntry, adapter);
+
+      if (verifierResult && verifierResult.status === "verified_via_source_id_direct") {
+        verified++;
+        results.push({
+          entryKey: entry.key,
+          leadKind: "mevzuat_source_id",
+          sourceId: sourceIdLead.sourceId,
+          officialUrl: sourceIdLead.officialUrl,
+          verificationStatus: "verified",
+          verifierStatus: verifierResult.status,
+          titleScore: verifierResult.titleScore,
+          markerScore: verifierResult.markerScore,
+          rgScore: verifierResult.rgScore,
+          promotedToActiveCoverage: true,
+          rejectReason: undefined
+        });
+        continue;
+      }
+
+      if (verifierResult && verifierResult.status !== "verified_via_source_id_direct") {
+        rejected++;
+        results.push({
+          entryKey: entry.key,
+          leadKind: "mevzuat_source_id",
+          sourceId: sourceIdLead.sourceId,
+          officialUrl: sourceIdLead.officialUrl,
+          verificationStatus: "not_verified",
+          verifierStatus: verifierResult.status,
+          titleScore: verifierResult.titleScore,
+          markerScore: verifierResult.markerScore,
+          rgScore: verifierResult.rgScore,
+          promotedToActiveCoverage: false,
+          rejectReason: verifierResult.rejectReason ?? `Verifier rejected: ${verifierResult.status}`
+        });
+        continue;
+      }
+
+      // verifyBySourceIdDirect returned null (no fetchOfficialDocument)
+      rejected++;
+      results.push({
+        entryKey: entry.key,
+        leadKind: "mevzuat_source_id",
+        sourceId: sourceIdLead.sourceId,
+        verificationStatus: "unverifiable",
+        promotedToActiveCoverage: false,
+        rejectReason: "Adapter missing fetchOfficialDocument"
+      });
+      continue;
+    }
+
+    // Strategy B: RG-only lead → search by RG number, then try verification
+    const rgLead = entryResult.leads.find(
+      (l) => l.leadKind === "resmi_gazete_url" && l.rgNumber
+    );
+
+    if (rgLead && rgLead.rgNumber && adapter.searchOfficialLegislation) {
+      const rgQuery = rgLead.rgNumber;
+      const searchResults = await adapter.searchOfficialLegislation(rgQuery);
+
+      if (Array.isArray(searchResults) && searchResults.length > 0) {
+        // Find the best match by title similarity
+        const bestResult = searchResults
+          .map((r) => ({
+            result: r,
+            score: scoreTitleMatch(entry.title, r.title)
+          }))
+          .sort((a, b) => b.score - a.score)[0];
+
+        if (bestResult && bestResult.score >= 0.40) {
+          const discoveredSourceId = bestResult.result.sourceId;
+          const scopedEntry: HealthLegislationInventoryEntry = {
+            ...entry,
+            candidateLegacySourceId: discoveredSourceId,
+            officialSourceStatus: "candidate"
+          };
+
+          const verifierResult = await verifyBySourceIdDirect(scopedEntry, adapter);
+
+          if (verifierResult && verifierResult.status === "verified_via_source_id_direct") {
+            verified++;
+            results.push({
+              entryKey: entry.key,
+              leadKind: "rg_search_discovery",
+              sourceId: discoveredSourceId,
+              officialUrl: bestResult.result.documentUrl,
+              verificationStatus: "verified",
+              verifierStatus: verifierResult.status,
+              titleScore: verifierResult.titleScore,
+              markerScore: verifierResult.markerScore,
+              rgScore: verifierResult.rgScore,
+              promotedToActiveCoverage: true,
+              rejectReason: undefined
+            });
+            continue;
+          }
+
+          rejected++;
+          results.push({
+            entryKey: entry.key,
+            leadKind: "rg_search_discovery",
+            sourceId: discoveredSourceId,
+            verificationStatus: "not_verified",
+            verifierStatus: verifierResult?.status,
+            titleScore: verifierResult?.titleScore,
+            markerScore: verifierResult?.markerScore,
+            promotedToActiveCoverage: false,
+            rejectReason: verifierResult?.rejectReason ?? "Verifier rejected RG-discovered sourceId"
+          });
+          continue;
+        }
+      }
+
+      // RG search found no good match
+      needsReview++;
+      results.push({
+        entryKey: entry.key,
+        leadKind: "resmi_gazete_url",
+        rgNumber: rgLead.rgNumber,
+        verificationStatus: "needs_manual_review",
+        promotedToActiveCoverage: false,
+        rejectReason: `RG number ${rgLead.rgNumber} search failed or no matching title found. Manual sourceId discovery needed.`
+      });
+      continue;
+    }
+
+    // No actionable lead
+    needsReview++;
+    results.push({
+      entryKey: entry.key,
+      leadKind: "candidate_title_match",
+      verificationStatus: "needs_manual_review",
+      promotedToActiveCoverage: false,
+      rejectReason: "No sourceId or RG lead available for automatic verification."
+    });
+  }
+
+  const totalAttempted = results.filter(
+    (r) => r.verificationStatus === "verified" || r.verificationStatus === "not_verified"
+  ).length;
+
+  return {
+    leadsAttempted: totalAttempted,
+    leadsVerified: verified,
+    leadsRejected: rejected,
+    needsManualReviewCount: needsReview,
+    promotedToActiveCoverageCount: verified,
+    results,
+    generatedAt: new Date().toISOString()
+  };
 }

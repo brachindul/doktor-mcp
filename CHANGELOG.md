@@ -1,5 +1,76 @@
 # Changelog
 
+## [0.34.0] — 2026-05-24 — Official Source Lead Verification
+
+> Tag: `v0.34.0-official-source-lead-verification`
+
+### Summary
+
+Bridge between v0.33 source discovery leads and the existing direct verifier.
+Discovered leads (mevzuat.gov.tr sourceId, Resmi Gazete metadata) are now
+routed through `verifyBySourceIdDirect()` automatically. Lead found ≠ verified
+principle enforced: only entries passing title/alias/RG/marker/gov.tr checks
+are marked promotable. This is a verification infrastructure release, not an
+active coverage increase.
+
+### Added
+
+- **`verifyDiscoveredOfficialLeads()`** in `healthLegislationSourceDiscovery.ts`:
+  async function that takes discovery report + inventory entries + adapter and
+  routes each lead through the existing verifier.
+  - SourceId leads → `verifyBySourceIdDirect()` with full entry metadata
+  - RG-only leads → search mevzuat.gov.tr by RG number, then verify if found
+  - No actionable leads → `needs_manual_review`
+  - Returns `LeadVerificationReport` with `leadsAttempted`, `leadsVerified`,
+    `leadsRejected`, `needsManualReviewCount`, `promotedToActiveCoverageCount`
+- **`DiscoveredLeadVerificationResult`** and **`LeadVerificationReport`** types
+- **`verify:discovered-health-legislation`** CLI in
+  `verifyDiscoveredHealthLegislationCli.ts`:
+  runs discovery → verification pipeline, writes report to
+  `exports/health-legislation-source-discovery/verification-report.json`
+- **16 test cases** in `healthLegislationLeadVerification.test.ts` covering:
+  - SourceId lead → verified (title/marker match)
+  - SourceId lead → rejected (fetch fail, title mismatch)
+  - Known wrong match rejection
+  - RG-only lead → search → verified
+  - RG-only lead → no search results → needs_manual_review
+  - Multiple entries aggregated counts
+  - Özel Hastaneler correct/wrong PDF fixture
+  - Non-gov.tr source rejection, no original entry mutation
+
+### Changed
+
+- `healthLegislationSourceDiscovery.ts`: v0.33 → v0.34 header; imports
+  `verifyBySourceIdDirect` and `scoreTitleMatch` from verifier; exports
+  `DiscoveredLeadVerificationResult`, `LeadVerificationReport`,
+  `verifyDiscoveredOfficialLeads`
+- `package.json`: `0.33.0` → `0.34.0`, new script
+  `verify:discovered-health-legislation`
+
+### Audit
+
+- **No gov.tr dışı source acceptance**: non-gov.tr leads never reach verifier
+- **No auto-promotion**: `promotedToActiveCoverageCount` reflects verifier
+  results; no inventory/mapping file mutation from CLI
+- **No output contract changes**: verified entries unchanged
+- **No local-yargi import**
+- **Coverage unchanged**: `coveredOfficialLegislationCount` = 11,
+  `verifiedOfficialSourceCount` = 11, `coveredByActiveHintsCount` = 11,
+  `gapCount` = 2, `unofficialLegislationSourceCount` = 0
+
+### Lead Verification Results (Live)
+
+| Entry | Lead | Verifier Result |
+|-------|------|-----------------|
+| ozel-hastaneler | mevzuat:7.5.29092 | `rejected_source_id_fetch_failed` |
+| ayakta-teshis | RG 29058 | needs_manual_review |
+| acil-saglik | RG 29332 | needs_manual_review |
+| isyeri-hekimi | RG 29818 | needs_manual_review |
+| kisisel-saglik-verileri | RG 30867 | needs_manual_review |
+| saglik-bakanligi-disiplin | RG 25450 | needs_manual_review |
+
+---
+
 ## [0.33.0] — 2026-05-24 — Manual Official Source Discovery
 
 > Tag: `v0.33.0-manual-official-source-discovery`
