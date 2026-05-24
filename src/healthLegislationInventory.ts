@@ -73,6 +73,22 @@ export interface HealthLegislationInventoryEntry {
   coverageStatus: "covered" | "candidate" | "gap" | "deferred";
   /** Free-text notes for transparency */
   notes: string[];
+
+  // ── v0.30.0 query-recall fields ──────────────────────────────────────────
+  /** Alternative title forms for alias matching during verification */
+  aliases?: string[];
+  /** Expected legislation type — used for type-mismatch rejection */
+  expectedLegislationType?: "kanun" | "yonetmelik" | "nizamname";
+  /** Expected Official Gazette date (YYYY-MM-DD) — used for metadata scoring */
+  expectedRgDate?: string;
+  /** Expected Official Gazette number — used for metadata scoring */
+  expectedRgNumber?: string;
+  /**
+   * Unconfirmed candidate mevzuat sourceId lead.
+   * Enables sourceId-probe verification path when title match ≥ 0.50.
+   * MUST be validated by title match before activation; never used as standalone verified signal.
+   */
+  candidateLegacySourceId?: string;
 }
 
 export interface HealthLegislationInventoryReport {
@@ -211,10 +227,16 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     relatedTopicClusters: ["private_health_facility"],
     searchTerms: ["özel hastane", "özel sağlık kuruluşu"],
     coverageStatus: "gap",
+    expectedLegislationType: "yonetmelik",
+    aliases: [
+      "Özel Hastaneler Hakkında Yönetmelik",
+      "Özel Hastane Yönetmeliği"
+    ],
     notes: [
       "Known gap since v0.22.0 — mevzuat.gov.tr internal ID not confirmed.",
       "Do not add to active adapter registry until official sourceId verified.",
-      "Governs licensing, staffing, and operation of private hospitals."
+      "Governs licensing, staffing, and operation of private hospitals.",
+      "v0.30.0: exact title and aliases added to query plan."
     ]
   },
 
@@ -230,29 +252,45 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     relatedTopicClusters: ["private_health_facility"],
     searchTerms: ["ayakta tedavi", "özel sağlık kuruluşu", "poliklinik"],
     coverageStatus: "gap",
+    expectedLegislationType: "yonetmelik",
+    aliases: [
+      "Ayakta Teşhis ve Tedavi Yapılan Özel Sağlık Kuruluşları Yönetmeliği",
+      "Özel Ayakta Sağlık Kuruluşları Yönetmeliği"
+    ],
     notes: [
       "Known gap since v0.22.0 — mevzuat.gov.tr internal ID not confirmed.",
       "Do not add to active adapter registry until official sourceId verified.",
-      "Governs outpatient private clinics and polyclinics."
+      "Governs outpatient private clinics and polyclinics.",
+      "v0.30.0: exact title and aliases added to query plan."
     ]
   },
 
   {
     key: "saglik-meslek-is-gorev-tanimlari",
     title: "Sağlık Meslek Mensupları ile Sağlık Hizmetlerinde Çalışan Diğer Meslek Mensuplarının İş ve Görev Tanımlarına Dair Yönetmelik",
-    titleNormalized: "saglik meslek mensuplarinın is ve gorev tanimlarına dair yonetmelik",
+    titleNormalized: "saglik meslek mensuplari ile saglik hizmetlerinde calisan diger meslek mensuplarinin is ve gorev tanimlarina dair yonetmelik",
     category: "physician_practice",
     relevanceLevel: "core",
     officialSourceRequired: true,
     officialSourceStatus: "gap",
-    relatedIssueIds: ["professional_scope_of_practice"],
+    relatedIssueIds: ["professional_scope_of_practice", "disciplinary_administrative", "patient_rights"],
     relatedTopicClusters: ["professional_scope_of_practice"],
     searchTerms: ["görev tanımı", "sağlık meslek mensubu", "iş tanımı"],
     coverageStatus: "gap",
+    expectedLegislationType: "yonetmelik",
+    expectedRgDate: "2014-05-22",
+    expectedRgNumber: "29007",
+    candidateLegacySourceId: "mevzuat:7.5.19696",
+    aliases: [
+      "Sağlık Meslek Mensupları İş ve Görev Tanımları Yönetmeliği",
+      "Sağlık Meslek Mensupları Görev Tanımları Yönetmeliği",
+      "Sağlık Meslek Mensupları ile Diğer Meslek Mensupları Görev Tanımları"
+    ],
     notes: [
       "Known gap since v0.22.0 — mevzuat.gov.tr internal ID not confirmed.",
       "Do not add to active adapter registry until official sourceId verified.",
-      "Defines scope of practice for physicians and allied health staff."
+      "Defines scope of practice for physicians and allied health staff.",
+      "v0.30.0: RG 29007 (22.05.2014) lead; candidate sourceId mevzuat:7.5.19696; exact title + aliases added."
     ]
   },
 
@@ -270,9 +308,14 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     relatedTopicClusters: ["emergency_intervention", "emergency_exception"],
     searchTerms: ["acil sağlık", "acil servis", "acil müdahale"],
     coverageStatus: "candidate",
+    expectedLegislationType: "yonetmelik",
+    aliases: [
+      "Acil Sağlık Hizmetleri Hakkında Yönetmelik"
+    ],
     notes: [
       "Governs emergency care delivery obligations — highly relevant for acil intervention questions.",
-      "Candidate for active coverage once mevzuat.gov.tr sourceId confirmed."
+      "Candidate for active coverage once mevzuat.gov.tr sourceId confirmed.",
+      "v0.30.0: exact title and alias added to query plan."
     ]
   },
 
@@ -329,13 +372,19 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     officialSourceRequired: true,
     officialSourceStatus: "candidate",
     relatedIssueIds: ["occupational_health"],
-    relatedTopicClusters: [],
+    relatedTopicClusters: ["professional_scope_of_practice"],
     searchTerms: ["işyeri hekimi", "iş yeri hekimi", "işyeri sağlık"],
     coverageStatus: "candidate",
+    expectedLegislationType: "yonetmelik",
+    aliases: [
+      "İşyeri Hekimi Yönetmeliği",
+      "İşyeri Hekimi Görev Yetki Sorumluluk Yönetmeliği"
+    ],
     notes: [
       "Governs workplace physician duties, authority, and liability.",
       "Specialized — relevant for occupational health physician questions.",
-      "Candidate for active coverage once sourceId confirmed."
+      "Candidate for active coverage once sourceId confirmed.",
+      "v0.30.0: exact title and aliases added to query plan."
     ]
   },
 
@@ -351,10 +400,16 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     relatedTopicClusters: ["personal_health_data"],
     searchTerms: ["kişisel sağlık verisi", "sağlık verisi yönetmelik"],
     coverageStatus: "candidate",
+    expectedLegislationType: "yonetmelik",
+    aliases: [
+      "Kişisel Sağlık Verileri Yönetmeliği",
+      "Sağlık Verileri Hakkında Yönetmelik"
+    ],
     notes: [
       "Health-specific data regulation under KVKK framework.",
       "Should accompany KVKK in health data privacy questions.",
-      "Candidate for active coverage once sourceId confirmed."
+      "Candidate for active coverage once sourceId confirmed.",
+      "v0.30.0: exact title and aliases added to query plan."
     ]
   },
 
@@ -425,19 +480,25 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
   {
     key: "saglik-bakanligi-disiplin-yonetmeligi",
     title: "Sağlık Bakanlığı Disiplin Amirleri ve Disiplin Kurulları ile İlgili Yönetmelik",
-    titleNormalized: "saglik bakanligi disiplin amirleri yonetmeligi",
+    titleNormalized: "saglik bakanligi disiplin amirleri disiplin kurullari ile ilgili yonetmelik",
     category: "discipline",
     relevanceLevel: "supporting",
     officialSourceRequired: true,
     officialSourceStatus: "candidate",
     relatedIssueIds: ["disciplinary_administrative"],
-    relatedTopicClusters: [],
+    relatedTopicClusters: ["professional_ethics"],
     searchTerms: ["disiplin soruşturması", "disiplin kurulu", "Sağlık Bakanlığı disiplin"],
     coverageStatus: "candidate",
+    expectedLegislationType: "yonetmelik",
+    aliases: [
+      "Sağlık Bakanlığı Disiplin Yönetmeliği",
+      "Sağlık Bakanlığı Disiplin Amirleri Yönetmeliği"
+    ],
     notes: [
       "Governs Ministry of Health disciplinary proceedings against health staff.",
       "Relevant for all administrative disciplinary questions.",
-      "Candidate for active coverage once sourceId confirmed."
+      "Candidate for active coverage once sourceId confirmed.",
+      "v0.30.0: exact title and aliases added to query plan."
     ]
   },
 

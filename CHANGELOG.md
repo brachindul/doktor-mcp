@@ -1,5 +1,69 @@
 # Changelog
 
+## [0.30.0] — 2026-05-24 — Health Legislation Query Recall
+
+> Tag: `v0.30.0-health-legislation-query-recall`
+
+### Summary
+
+Multi-variant query recall strategy for the 7 entries rejected in v0.29.0. Instead of relying
+solely on raw `searchTerms`, each inventory entry now has a full query plan:
+`exact_title → aliases → legacy_source_id_probe → rg_number → keyword_combo`. Scores are
+composited from title F1, alias F1, legislation-type metadata, and optional sourceId probe bonus.
+Two acceptance paths: Path A (finalScore ≥ 0.75) and Path B (sourceId probe match + title/alias ≥ 0.50).
+
+### Added
+
+- **`buildQueryPlan(entry)`** — generates a deduplicated, prioritised `HealthLegislationQueryPlan`
+  with query variants in weight order (1.0 → 0.9 → 0.8 → 0.7 → 0.5)
+- **`computeCompositeScore(entry, result, variant)`** — composite scoring:
+  - `titleScore` (F1 word-overlap on official title)
+  - `aliasScore` (max F1 across all aliases)
+  - `metadataScore` (+0.05 when legislation type inferred from sourceId matches `expectedLegislationType`)
+  - `sourceIdProbeBonus` (+0.25 when result.sourceId === candidateLegacySourceId)
+  - `probePathEligible` — true when sourceId matches AND bestTitleOrAlias ≥ 0.50
+  - `finalScore` = min(1.0, max(titleScore, aliasScore) + metadataScore)
+- **New status**: `"verified_via_source_id_probe"` — Path B acceptance
+- **New status**: `"rejected_wrong_document"` — legislation type mismatch rejection
+- **New types**: `QueryVariantKind`, `HealthLegislationQueryVariant`, `QueryRecallStrategy`,
+  `HealthLegislationQueryPlan`, `CompositeMatchScore`
+- **New fields on `HealthLegislationVerificationAttempt`**: `attemptedQueries`, `bestQueryKind`,
+  `titleScore`, `aliasScore`, `metadataScore`, `sourceIdProbeUsed`, `topCandidates`
+- **New optional fields on `HealthLegislationInventoryEntry`**:
+  `aliases?`, `expectedLegislationType?`, `expectedRgDate?`, `expectedRgNumber?`, `candidateLegacySourceId?`
+
+### Updated
+
+- **`src/healthLegislationInventory.ts`** — 7 rejected entries enriched with aliases + metadata:
+  - `saglik-meslek-is-gorev-tanimlari`: 3 aliases, `expectedLegislationType="yonetmelik"`,
+    `expectedRgDate="2014-05-22"`, `expectedRgNumber="29007"`, `candidateLegacySourceId="mevzuat:7.5.19696"`
+  - `ozel-hastaneler-yonetmeligi`, `ayakta-teshis-ozel-saglik`, `acil-saglik-hizmetleri-yonetmeligi`,
+    `isyeri-hekimi-yonetmeligi`, `kisisel-saglik-verileri-yonetmeligi`,
+    `saglik-bakanligi-disiplin-yonetmeligi`: each given 2–3 aliases + `expectedLegislationType`
+
+- **`src/healthLegislationAccessVerifier.ts`** — full rewrite for v0.30.0 multi-variant architecture
+
+- **`src/verifyHealthLegislationCli.ts`** — enhanced reporting: per-entry `queryKind`, `titleScore`,
+  `aliasScore`, `probeUsed`, query count, top candidate listing
+
+- **`tests/healthLegislationAccessVerifier.test.ts`** — expanded from 38 to 73 tests:
+  - `buildQueryPlan` — 10 tests (ordering, deduplication, strategy labels, probe/rg/alias inclusion)
+  - `computeCompositeScore` — 7 tests (titleScore, aliasScore, metadataScore, probePathEligible)
+  - `verifyInventoryEntry` — 4 new cases (rejected_wrong_document, alias-verified, probe-verified, probe-rejected-low-title)
+  - `saglik-meslek-is-gorev-tanimlari` fixture — 6 dedicated tests
+  - `buildAccessVerificationReport` — 1 new test (verified_via_source_id_probe counted correctly)
+  - Integration guard — 1 new test (verified_via_source_id_probe officialUrl constraint)
+
+### Constraints upheld
+
+- No gov.tr-external source accepted as verified (Path A + Path B both apply gov.tr guard)
+- No ambiguous match may activate (AMBIGUITY_MARGIN = 0.10 applies to both paths)
+- No output contract change; no source sufficiency relaxation
+- No new topic cluster added
+- local-yargi: not imported, not vendored
+
+---
+
 ## [0.29.0] — 2026-05-24 — Official Legislation Access Verifier
 
 > Tag: `v0.29.0-official-legislation-access-verifier`
