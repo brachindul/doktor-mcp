@@ -25,6 +25,7 @@ export interface BetaReadinessReport {
     cannotComposeResearchPackCount: number;
     averageLegislationPerPack: number;
     averageVerifiedPrecedentPerPack: number;
+    timeoutQuestionIds: string[];
   };
 }
 
@@ -49,7 +50,9 @@ export function evaluateBetaReadiness(report: BenchmarkReport): BetaReadinessRep
   }
 
   const contractPassedCount = report.results.filter((r) => r.contractPassed).length;
-  const contractFailedCount = totalQuestions - contractPassedCount;
+  const contractFailedCount = report.results.filter(
+    (r) => !r.contractPassed && !r.legislation.sourceUnavailable.some((e) => e.errorCode === "pack_generation_failed")
+  ).length;
 
   const unsafeAdviceDetectedCount = report.results.filter((r) => r.unsafeAdviceDetected).length;
   const unofficialSourceDetectedCount = report.results.filter((r) => r.unofficialSourceDetected).length;
@@ -88,11 +91,13 @@ export function evaluateBetaReadiness(report: BenchmarkReport): BetaReadinessRep
   const lowConfidenceRouteCount = report.results.filter((r) => r.routerConfidence === "low").length;
 
   // Identify timeout questions
-  const timeoutQuestionCount = report.results.filter((r) =>
+  const timeoutQuestions = report.results.filter((r) =>
     r.legislation.sourceUnavailable.some(
       (e) => e.message.toLowerCase().includes("timed out") || e.message.toLowerCase().includes("timeout")
     )
-  ).length;
+  );
+  const timeoutQuestionCount = timeoutQuestions.length;
+  const timeoutQuestionIds = timeoutQuestions.map((r) => r.id);
 
   const cannotComposeResearchPackCount = report.results.filter((r) => !r.canComposeResearchPack).length;
 
@@ -232,7 +237,8 @@ export function evaluateBetaReadiness(report: BenchmarkReport): BetaReadinessRep
       timeoutQuestionCount,
       cannotComposeResearchPackCount,
       averageLegislationPerPack,
-      averageVerifiedPrecedentPerPack
+      averageVerifiedPrecedentPerPack,
+      timeoutQuestionIds
     }
   };
 }

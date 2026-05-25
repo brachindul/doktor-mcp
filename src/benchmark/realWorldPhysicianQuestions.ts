@@ -330,3 +330,15 @@ export const realWorldPhysicianQuestions: BenchmarkQuestion[] = [
     notes: "Checks for Kişisel Sağlık Verileri Yönetmeliği gap."
   }
 ];
+
+export const realWorldPhysicianLiveSmokeQuestions = realWorldPhysicianQuestions.filter(q =>
+  [
+    "real-consent-lack",
+    "real-emergency-no-consent",
+    "real-privacy-share",
+    "real-scope-violation",
+    "real-private-hospital-liability",
+    "real-disciplinary-investigation"
+  ].includes(q.id)
+);
+

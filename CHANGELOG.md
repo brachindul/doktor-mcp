@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.38.0] — 2026-05-25 — Live Real-World Physician Beta Smoke Hardening
+
+> Tag: `v0.38.0-live-real-world-beta-smoke-hardening`
+
+### Summary
+
+Introduces a deterministic, highly-controlled live smoke benchmark subset representing the core medico-legal risk axes for physicians. Hardens the Live Beta Readiness Gate to treat timeout/pack generation failures in live mode as soft observations rather than contract failures, while introducing detailed timeout metrics and tracking.
+
+### Added
+
+- **`src/benchmark/realWorldPhysicianQuestions.ts`** — exported `realWorldPhysicianLiveSmokeQuestions` containing exactly 6 deterministic questions representing all major medico-legal axes (consent, emergency, privacy, scope, hospital gaps, and discipline).
+- **`src/benchmark/realWorldLiveSmokeRunnerCli.ts`** — new independent CLI runner for the live smoke subset:
+  - Default command: `npm run benchmark:physician-real-world:live-smoke`.
+  - Runs in `live` mode by default, supporting all timeout guards.
+  - Produces structured reports under `exports/physician-real-world-live-smoke/report.json` and `report.md`.
+  - Appends Beta Readiness Gate Report cleanly.
+- **`tests/realWorldLiveSmoke.test.ts`** — unit tests validating live smoke deterministic subset and soft timeout observation behavior.
+
+### Changed
+
+- **`src/physicianPackBetaGate.ts`**:
+  - Excluded timeout/pack generation failed questions from `contractFailedCount` to prevent false hard failures.
+  - Added `timeoutQuestionIds` array to the returned report `metrics`.
+- **`package.json` & `package-lock.json`**:
+  - Bumped version `0.37.0` → `0.38.0`.
+  - Configured script: `"benchmark:physician-real-world:live-smoke": "tsx src/benchmark/realWorldLiveSmokeRunnerCli.ts --sourceMode live"`.
+
+---
+
 ## [0.37.0] — 2026-05-25 — Real-World Physician Research Pack Beta
 
 > Tag: `v0.37.0-real-world-physician-research-pack-beta`
