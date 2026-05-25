@@ -1,4 +1,6 @@
 import { PhysicianLegalInformationService } from "../app/service.js";
+import type { TimeBudgetTelemetry } from "../app/service.js";
+import { ResearchTimeBudget } from "../live/timeBudget.js";
 import type { DoctorLegalInformationPack, PrecedentStatus, ContentStatus } from "../contracts/legal.js";
 import type { QueryAttemptTelemetry, SourceReliabilityMetrics, IssueProfileReliabilityMetrics } from "../contracts/queryTelemetry.js";
 import { buildLiveReliabilityGate } from "../live/reliabilityGate.js";
@@ -129,6 +131,8 @@ export interface BenchmarkItemResult {
   sourceSufficiencyReasonCount: number;
   canComposeResearchPack: boolean;
   notes: string;
+  // Time budget telemetry (live mode only, v0.39.0)
+  timeBudgetTelemetry?: TimeBudgetTelemetry;
 }
 
 export interface SourceUnavailableMetric {
@@ -300,6 +304,15 @@ export interface BenchmarkReport {
   };
   // Live reliability gate (v0.26.0)
   liveReliabilityGate: LiveReliabilityGate;
+  // Time budget aggregate metrics (v0.39.0)
+  timeBudgetMetrics: {
+    questionsWithBudget: number;
+    averageLegislationPhaseMs: number | null;
+    averagePrecedentPhaseMs: number | null;
+    averageTotalElapsedMs: number | null;
+    budgetExhaustedCount: number;
+    sourcePriorityDistribution: Record<string, number>;
+  };
   // Cross-source provenance metrics (v0.27.0)
   provenanceMetrics: {
     totalDecisions: number;
@@ -341,8 +354,9 @@ export async function runBenchmark(options: {
     const itemStartedAt = Date.now();
     let enrichedPack: Awaited<ReturnType<PhysicianLegalInformationService["prepareInformationPack"]>>;
     try {
+      const timeBudget = sourceMode === "live" ? new ResearchTimeBudget() : undefined;
       enrichedPack = await Promise.race([
-        service.prepareInformationPack({ question: question.question, sourceMode }),
+        service.prepareInformationPack({ question: question.question, sourceMode, timeBudget }),
         new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error(`Question timed out after ${PER_QUESTION_TIMEOUT_MS}ms`)), PER_QUESTION_TIMEOUT_MS)
         )
@@ -353,7 +367,8 @@ export async function runBenchmark(options: {
         sourceMode,
         durationMs: Date.now() - itemStartedAt,
         queryTelemetry: enrichedPack.queryTelemetry,
-        rerankResult: enrichedPack.rerankResult
+        rerankResult: enrichedPack.rerankResult,
+        timeBudgetTelemetry: enrichedPack.timeBudgetTelemetry
       }));
     } catch (error) {
       results.push(evaluateThrownBenchmarkItem({
@@ -389,6 +404,7 @@ export function evaluateBenchmarkItem(input: {
   durationMs: number;
   queryTelemetry?: QueryAttemptTelemetry[];
   rerankResult?: RerankResult;
+  timeBudgetTelemetry?: TimeBudgetTelemetry;
 }): BenchmarkItemResult {
   const { question, pack, sourceMode, durationMs } = input;
   const queryTelemetry = input.queryTelemetry ?? [];
@@ -554,7 +570,8 @@ export function evaluateBenchmarkItem(input: {
     missingAuthorityTypes: sufficiencyResult.missingAuthorityTypes,
     sourceSufficiencyReasonCount: sufficiencyResult.reasons.length,
     canComposeResearchPack: sufficiencyResult.canComposeResearchPack,
-    notes: question.notes
+    notes: question.notes,
+    timeBudgetTelemetry: input.timeBudgetTelemetry
   };
 }
 
@@ -840,6 +857,28 @@ function buildOfficialLegislationCoverage(results: BenchmarkItemResult[]): Bench
   };
 }
 
+function buildTimeBudgetMetrics(results: BenchmarkItemResult[]): BenchmarkReport["timeBudgetMetrics"] {
+  const withBudget = results.filter((r) => r.timeBudgetTelemetry != null);
+  const questionsWithBudget = withBudget.length;
+  const legPhases = withBudget.map((r) => r.timeBudgetTelemetry!.legislationPhaseMs);
+  const precPhases = withBudget.map((r) => r.timeBudgetTelemetry!.precedentPhaseMs);
+  const totals = withBudget.map((r) => r.timeBudgetTelemetry!.totalElapsedMs);
+  const budgetExhaustedCount = withBudget.filter((r) => r.timeBudgetTelemetry!.budgetExhausted).length;
+  const sourcePriorityDistribution: Record<string, number> = {};
+  for (const r of withBudget) {
+    const order = r.timeBudgetTelemetry!.sourcePriorityOrder.join(",");
+    sourcePriorityDistribution[order] = (sourcePriorityDistribution[order] ?? 0) + 1;
+  }
+  return {
+    questionsWithBudget,
+    averageLegislationPhaseMs: average(legPhases),
+    averagePrecedentPhaseMs: average(precPhases),
+    averageTotalElapsedMs: average(totals),
+    budgetExhaustedCount,
+    sourcePriorityDistribution
+  };
+}
+
 function buildLiveTimeoutMetrics(results: BenchmarkItemResult[]): BenchmarkReport["liveTimeoutMetrics"] {
   const allTelemetry = results.flatMap((r) => r.queryTelemetry);
   const timeoutCount = allTelemetry.filter((t) => t.timedOut).length;
@@ -1061,6 +1100,7 @@ function buildBenchmarkReport(input: {
     ...buildQueryAggregateMetrics(input.results, verifiedAuditEntries),
     liveTimeoutMetrics: buildLiveTimeoutMetrics(input.results),
     liveReliabilityGate: buildLiveReliabilityGateFromResults(input.results, input.sourceMode),
+    timeBudgetMetrics: buildTimeBudgetMetrics(input.results),
     provenanceMetrics: buildProvenanceMetricsFromResults(input.results),
     results: input.results
   };

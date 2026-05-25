@@ -259,6 +259,14 @@ function createMockReport(results: BenchmarkItemResult[]): BenchmarkReport {
         insufficientSufficiencyCount: 0
       }
     },
+    timeBudgetMetrics: {
+      questionsWithBudget: results.length,
+      averageLegislationPhaseMs: null,
+      averagePrecedentPhaseMs: null,
+      averageTotalElapsedMs: null,
+      budgetExhaustedCount: 0,
+      sourcePriorityDistribution: { "yargitay,danistay": results.length }
+    },
     provenanceMetrics: {
       totalDecisions: results.length,
       uniqueDecisions: results.length,

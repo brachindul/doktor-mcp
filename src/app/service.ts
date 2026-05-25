@@ -9,6 +9,8 @@ import type {
 } from "../contracts/legal.js";
 import type { QueryAttemptTelemetry } from "../contracts/queryTelemetry.js";
 import { PrecedentCache } from "../sources/precedentCache.js";
+import { ResearchTimeBudget } from "../live/timeBudget.js";
+import type { ResearchBudgetSnapshot } from "../live/timeBudget.js";
 
 import { composeDoctorLegalInformationPack } from "../health/answerComposer.js";
 import { LegislationMapper } from "../health/legislationMapper.js";
@@ -37,6 +39,22 @@ import { LiveBedestenAdapter } from "../sources/bedesten/liveBedestenAdapter.js"
 
 /** Maximum number of query attempts per source in live mode. */
 const MAX_QUERIES_PER_SOURCE = 2;
+
+/**
+ * Telemetry about the time budget consumption for a single prepareInformationPack call.
+ * Available only in live mode.
+ */
+export interface TimeBudgetTelemetry {
+  deadlineMs: number;
+  reserveMs: number;
+  totalElapsedMs: number;
+  remainingMsAtEnd: number;
+  budgetExhausted: boolean;
+  legislationPhaseMs: number;
+  precedentPhaseMs: number;
+  sourcePriorityOrder: string[];
+  snapshot: ResearchBudgetSnapshot;
+}
 
 export interface PhysicianLegalInformationServiceOptions {
   mockLegislation?: MockLegislationAdapter;
@@ -300,9 +318,79 @@ export class PhysicianLegalInformationService {
       precedentDiagnostics: ReturnType<typeof buildPrecedentSelectionDiagnostics>;
       queryTelemetry: QueryAttemptTelemetry[];
       rerankResult: RerankResult;
+      timeBudgetTelemetry?: TimeBudgetTelemetry;
     }
   > {
     const classification = this.classify(input.question);
+
+    // Live mode: sequential research with time budget
+    if (input.sourceMode === "live") {
+      const budget = input.timeBudget instanceof ResearchTimeBudget
+        ? input.timeBudget
+        : new ResearchTimeBudget();
+
+      // Infer issue profile for source prioritization
+      const issueProfile = inferIssueProfileFromQuestion(input.question);
+      const prioritizedSources = prioritizeSourcesByIssue(issueProfile, input.precedentSources ?? ["yargitay", "danistay"]);
+
+      // Phase 1: Legislation (time-bounded)
+      budget.markPhaseStart("legislation");
+      const legislation = await this.searchLegislation(classification, "live");
+      budget.markPhaseEnd("legislation");
+
+      // Phase 2: Precedents with remaining budget
+      budget.markPhaseStart("precedent");
+      const precedentResult = await this.searchPrecedents(classification, "live", prioritizedSources);
+      budget.markPhaseEnd("precedent");
+
+      const snap = budget.snapshot();
+      const timeBudgetTelemetry: TimeBudgetTelemetry = {
+        deadlineMs: budget.deadlineMs,
+        reserveMs: budget.reserveMs,
+        totalElapsedMs: snap.elapsedMs,
+        remainingMsAtEnd: snap.remainingMs,
+        budgetExhausted: snap.isExhausted,
+        legislationPhaseMs: snap.phaseElapsedMs.legislation,
+        precedentPhaseMs: snap.phaseElapsedMs.precedent,
+        sourcePriorityOrder: prioritizedSources,
+        snapshot: snap
+      };
+
+      const { decisions, sourceResults, queryTelemetry } = precedentResult;
+      const liveUnavailable = isLiveUnavailable(legislation) ? [legislation] : [];
+      const provisions = isLiveResult(legislation)
+        ? legislation.status === "ok" ? legislation.provisions : []
+        : legislation;
+
+      const filtered = this.filterPrecedents(decisions);
+      const { reranked, rerankResult } = rerankByIssueRelevance(filtered, input.question);
+
+      const precedentDiagnostics = buildPrecedentSelectionDiagnostics(reranked, input.question, sourceResults);
+      const pack = composeDoctorLegalInformationPack(
+        classification,
+        provisions,
+        selectVerifiedPrecedents(reranked),
+        liveUnavailable
+      );
+      const selectionDiagnostics = buildLegislationSelectionDiagnostics({
+        query: input.question,
+        sourceMode: "live",
+        provisions,
+        sourceUnavailable: liveUnavailable,
+        warningCount: pack.sourceWarnings.length
+      });
+
+      return {
+        ...pack,
+        selectionDiagnostics,
+        precedentDiagnostics,
+        queryTelemetry,
+        rerankResult,
+        timeBudgetTelemetry
+      };
+    }
+
+    // Mock mode: parallel, no budget
     const [legislation, precedentResult] = await Promise.all([
       this.searchLegislation(classification, input.sourceMode),
       this.searchPrecedents(classification, input.sourceMode, input.precedentSources)
@@ -324,15 +412,7 @@ export class PhysicianLegalInformationService {
       selectVerifiedPrecedents(reranked),
       liveUnavailable
     );
-    const selectionDiagnostics = input.sourceMode === "live"
-      ? buildLegislationSelectionDiagnostics({
-        query: input.question,
-        sourceMode: "live",
-        provisions,
-        sourceUnavailable: liveUnavailable,
-        warningCount: pack.sourceWarnings.length
-      })
-      : undefined;
+    const selectionDiagnostics = undefined;
 
     return {
       ...pack,
@@ -342,6 +422,29 @@ export class PhysicianLegalInformationService {
       rerankResult
     };
   }
+}
+
+/**
+ * Prioritize sources based on issue profile.
+ * - disciplinary/administrative issues: danistay-first
+ * - privacy/kvkk issues: yargitay-first (civil/criminal emphasis)
+ * - default: yargitay-first
+ */
+function prioritizeSourcesByIssue(issueProfile: string, sources: PrecedentSource[]): PrecedentSource[] {
+  const danistayFirst = ["disciplinary_administrative", "administrative_liability"];
+  if (danistayFirst.some((issue) => issueProfile.includes(issue))) {
+    return [...sources].sort((a, b) => {
+      if (a === "danistay") return -1;
+      if (b === "danistay") return 1;
+      return 0;
+    });
+  }
+  // Default: yargitay-first
+  return [...sources].sort((a, b) => {
+    if (a === "yargitay") return -1;
+    if (b === "yargitay") return 1;
+    return 0;
+  });
 }
 
 function isLiveResult(value: unknown): value is LiveLegislationResult {
