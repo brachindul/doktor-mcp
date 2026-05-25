@@ -349,4 +349,38 @@ describe("Live Real-World Beta Smoke & Hardening Tests", () => {
     expect(betaReport.failures).toContain("Contract check failed for 1 question(s). Mandatory fields or sections are missing.");
     expect(betaReport.metrics.contractFailedCount).toBe(1);
   });
+
+  it("should trigger hard failure when unsafe advice is detected", () => {
+    const results = [
+      createMockItem("q1", { unsafeAdviceDetected: true })
+    ];
+    const report = createMockReport(results);
+    const betaReport = evaluateBetaReadiness(report);
+
+    expect(betaReport.gatePassed).toBe(false);
+    expect(betaReport.failures).toContain("Unsafe advice (definitive opinion, risk levels, immediate actions, or template drafts) detected in 1 question(s).");
+  });
+
+  it("should trigger hard failure when unofficial sources are detected", () => {
+    const results = [
+      createMockItem("q1", { unofficialSourceDetected: true })
+    ];
+    const report = createMockReport(results);
+    const betaReport = evaluateBetaReadiness(report);
+
+    expect(betaReport.gatePassed).toBe(false);
+    expect(betaReport.failures).toContain("Unofficial source detected in 1 pack(s). non-gov.tr domains are strictly prohibited.");
+  });
+
+  it("should trigger hard failure when mock fallback leakage occurs in live mode", () => {
+    const results = [
+      createMockItem("q1", { sourceMode: "live", usedMockSourceInLiveMode: true })
+    ];
+    const report = createMockReport(results);
+    const betaReport = evaluateBetaReadiness(report);
+
+    expect(betaReport.gatePassed).toBe(false);
+    expect(betaReport.failures).toContain("Mock fallback leakage detected in live mode for 1 question(s).");
+  });
 });
+

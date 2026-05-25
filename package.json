@@ -22,6 +22,7 @@
     "benchmark:doctor-questions:live-smoke": "tsx src/benchmark/benchmarkRunnerCli.ts --sourceMode live --limit 5",
     "benchmark:physician-real-world": "tsx src/benchmark/realWorldBenchmarkRunnerCli.ts",
     "benchmark:physician-real-world:live-smoke": "tsx src/benchmark/realWorldLiveSmokeRunnerCli.ts --sourceMode live",
+    "benchmark:physician-real-world:live-smoke:mock": "tsx src/benchmark/realWorldLiveSmokeRunnerCli.ts --sourceMode mock",
     "benchmark:doctor-questions:performance": "tsx src/benchmark/performanceBenchmarkCli.ts",
     "verify:health-legislation": "tsx src/verifyHealthLegislationCli.ts",
     "discover:health-legislation-sources": "tsx src/discoverHealthLegislationSourcesCli.ts",
