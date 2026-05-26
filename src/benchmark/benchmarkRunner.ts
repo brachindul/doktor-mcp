@@ -312,6 +312,13 @@ export interface BenchmarkReport {
     averageTotalElapsedMs: number | null;
     budgetExhaustedCount: number;
     sourcePriorityDistribution: Record<string, number>;
+    // v0.40.0 legislation phase diagnostics
+    legislationPhaseTimeoutCount: number;
+    legislationPhaseBudgetExhaustedCount: number;
+    knownHintFastPathCount: number;
+    coverageGapCount: number;
+    legislationPhaseFailedBeforePrecedentCount: number;
+    packGeneratedAfterLegislationTimeoutCount: number;
   };
   // Cross-source provenance metrics (v0.27.0)
   provenanceMetrics: {
@@ -490,7 +497,11 @@ export function evaluateBenchmarkItem(input: {
     unofficialSourceDetected: auditRes.contractCheck.unofficialSourceDetected,
     usedMockSourceInLiveMode,
     sourceMode,
-    auditOk: auditRes.ok
+    auditOk: auditRes.ok,
+    // v0.40.0 legislation phase diagnostics from timeBudgetTelemetry
+    legislationPhaseBudgetExhausted: input.timeBudgetTelemetry?.legislationPhaseBudgetExhausted,
+    legislationPhaseTimedOut: input.timeBudgetTelemetry?.legislationPhaseTimedOut,
+    legislationCoverageGaps: input.timeBudgetTelemetry?.legislationCoverageGaps
   });
 
   return {
@@ -869,13 +880,29 @@ function buildTimeBudgetMetrics(results: BenchmarkItemResult[]): BenchmarkReport
     const order = r.timeBudgetTelemetry!.sourcePriorityOrder.join(",");
     sourcePriorityDistribution[order] = (sourcePriorityDistribution[order] ?? 0) + 1;
   }
+  // v0.40.0 legislation phase diagnostics
+  const legislationPhaseTimeoutCount = withBudget.filter((r) => r.timeBudgetTelemetry!.legislationPhaseTimedOut).length;
+  const legislationPhaseBudgetExhaustedCount = withBudget.filter((r) => r.timeBudgetTelemetry!.legislationPhaseBudgetExhausted).length;
+  const knownHintFastPathCount = withBudget.filter((r) => r.timeBudgetTelemetry!.legislationKnownHintFastPathUsed).length;
+  const coverageGapCount = withBudget.reduce((sum, r) => sum + (r.timeBudgetTelemetry!.legislationCoverageGaps?.length ?? 0), 0);
+  const legislationPhaseFailedBeforePrecedentCount = withBudget.filter((r) => r.timeBudgetTelemetry!.legislationPhaseFailedBeforePrecedent).length;
+  // packGeneratedAfterLegislationTimeoutCount: passed items where legislation timed out
+  const packGeneratedAfterLegislationTimeoutCount = results.filter((r) =>
+    r.timeBudgetTelemetry?.legislationPhaseTimedOut && r.passed
+  ).length;
   return {
     questionsWithBudget,
     averageLegislationPhaseMs: average(legPhases),
     averagePrecedentPhaseMs: average(precPhases),
     averageTotalElapsedMs: average(totals),
     budgetExhaustedCount,
-    sourcePriorityDistribution
+    sourcePriorityDistribution,
+    legislationPhaseTimeoutCount,
+    legislationPhaseBudgetExhaustedCount,
+    knownHintFastPathCount,
+    coverageGapCount,
+    legislationPhaseFailedBeforePrecedentCount,
+    packGeneratedAfterLegislationTimeoutCount
   };
 }
 

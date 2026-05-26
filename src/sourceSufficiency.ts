@@ -27,7 +27,9 @@ export type MissingAuthorityType =
   | "verifiedPrecedentEligibility"
   | "retrievalTimeout"
   | "timeBudgetExhausted"
-  | "sourceBudgetExhausted";
+  | "sourceBudgetExhausted"
+  | "legislationPhaseBudgetExhausted"
+  | "legislationCoverageGap";
 
 export interface SourceSufficiencyResult {
   level: SourceSufficiencyLevel;
@@ -76,6 +78,11 @@ export interface SourceSufficiencyInput {
   timeBudgetExhausted?: boolean;
   retrievalTimeout?: boolean;
   sourceBudgetExhausted?: boolean;
+
+  // v0.40.0 legislation phase diagnostics
+  legislationPhaseBudgetExhausted?: boolean;
+  legislationPhaseTimedOut?: boolean;
+  legislationCoverageGaps?: string[];
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
@@ -241,7 +248,10 @@ export function evaluateSourceSufficiency(
     auditOk,
     timeBudgetExhausted,
     retrievalTimeout,
-    sourceBudgetExhausted
+    sourceBudgetExhausted,
+    legislationPhaseBudgetExhausted,
+    legislationPhaseTimedOut,
+    legislationCoverageGaps
   } = input;
 
   const missing: MissingAuthorityType[] = [];
@@ -259,6 +269,24 @@ export function evaluateSourceSufficiency(
   if (sourceBudgetExhausted) {
     missing.push("sourceBudgetExhausted");
     reasons.push("Kaynak bazlı zaman sınırı aşıldı (source budget exhausted).");
+  }
+
+  // v0.40.0: Legislation phase diagnostics
+  if (legislationPhaseBudgetExhausted) {
+    missing.push("legislationPhaseBudgetExhausted");
+    reasons.push("Mevzuat fazı zaman sınırı aşıldı (legislation phase budget exhausted).");
+  }
+  if (legislationPhaseTimedOut) {
+    if (!missing.includes("retrievalTimeout")) {
+      missing.push("retrievalTimeout");
+    }
+    reasons.push("Mevzuat retrieval zaman aşımına uğradı (legislation phase timed out).");
+  }
+  if (legislationCoverageGaps && legislationCoverageGaps.length > 0) {
+    missing.push("legislationCoverageGap");
+    for (const gap of legislationCoverageGaps) {
+      reasons.push(`Resmi mevzuat kapsam boşluğu: ${gap} (coverage gap).`);
+    }
   }
 
   // ── 1. Legislation ──────────────────────────────────────────────────────────

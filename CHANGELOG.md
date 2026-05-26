@@ -1,5 +1,90 @@
 # Changelog
 
+## [0.40.0] — 2026-05-26 — Live Legislation Phase Hardening
+
+> Tag: `v0.40.0-live-legislation-phase-hardening`
+
+### Summary
+
+Legislation phase hardening layer for live mode. Four real-world live smoke
+questions that timed out entirely in v0.39 during the legislation phase
+are now intercepted by a phase-level budget cap (`effectivePhaseBudgetMs`)
+before they can consume the full 30s per-question timeout. When the
+legislation phase exceeds its budget (default 8–10s), the phase is
+interrupted via `Promise.race` and the code proceeds to the precedent
+phase. Coverage gaps for unverified but known-important legislation
+(e.g., Özel Hastaneler, Acil Sağlık, Kişisel Sağlık Verileri) are
+detected before any slow search is attempted, producing structured gap
+reasons instead of open-ended timeouts. Legislation phase diagnostics
+(`legislationPhaseTimedOut`, `legislationPhaseBudgetExhausted`,
+`legislationCoverageGaps`) flow through to source sufficiency evaluation
+and benchmark telemetry.
+
+### Added
+
+- **Legislation phase budget cap in `src/app/service.ts`**:
+  - `executeLegislationPhase()` private method wraps `searchLegislation`
+    with a `Promise.race` against `effectivePhaseBudgetMs("legislation")`.
+  - When the phase budget is exhausted before legislation search returns,
+    the method returns an `unavailable` result with a clear timeout reason,
+    WITHOUT throwing — the precedent phase can still proceed.
+  - `LegislationPhaseResult` returned with diagnostics:
+    `phaseBudgetExhausted`, `timedOut`, `retrievalTimeout`,
+    `failedBeforePrecedent`, `coverageGaps`, `knownHintFastPathUsed`.
+- **Coverage gap detection before legislation search**:
+  - `detectLegislationCoverageGaps()` queries the router for issue IDs
+    and cross-references against `HEALTH_LEGISLATION_INVENTORY` for entries
+    with `coverageStatus !== "covered"`.
+  - Identified gaps (e.g., Özel Hastaneler, Ayakta Teşhis, Acil Sağlık,
+    Kişisel Sağlık Verileri, İşyeri Hekimi, Sağlık Bakanlığı Disiplin)
+    produce structured `coverage gap` reasons instead of silent timeouts.
+  - No fake legislation quotes are produced for gap entries.
+- **New source sufficiency missing authority types**:
+  - `legislationPhaseBudgetExhausted` — legislation phase exceeded its
+    allocated budget.
+  - `legislationCoverageGap` — a known official legislation coverage gap
+    was identified for the routed issue.
+- **TimeBudgetTelemetry extended with v0.40.0 fields**:
+  - `legislationPhaseBudgetExhausted`, `legislationPhaseTimedOut`,
+    `legislationPhaseFailedBeforePrecedent`, `legislationCoverageGaps`,
+    `legislationKnownHintFastPathUsed`, `legislationPhaseBudgetMs`,
+    `legislationRetrievalTimeout`.
+- **BenchmarkReport.timeBudgetMetrics extended**:
+  - `legislationPhaseTimeoutCount`, `legislationPhaseBudgetExhaustedCount`,
+    `knownHintFastPathCount`, `coverageGapCount`,
+    `legislationPhaseFailedBeforePrecedentCount`,
+    `packGeneratedAfterLegislationTimeoutCount`.
+
+### Changed
+
+- **`src/app/service.ts`**:
+  - `prepareInformationPack()` live mode now calls `executeLegislationPhase()`
+    instead of directly calling `searchLegislation()`.
+  - `routeMedicalIssue` imported for coverage gap detection.
+- **`src/sourceSufficiency.ts`**:
+  - New input fields: `legislationPhaseBudgetExhausted?`,
+    `legislationPhaseTimedOut?`, `legislationCoverageGaps?`.
+  - New missing authority types processed in `evaluateSourceSufficiency()`.
+- **`src/benchmark/benchmarkRunner.ts`**:
+  - Sufficiency evaluation call passes v0.40.0 legislation phase fields.
+  - `buildTimeBudgetMetrics()` aggregates new legislation phase counters.
+- **`package.json` & `package-lock.json`**: bumped version `0.39.0` → `0.40.0`.
+- **`tests/realWorldLiveSmoke.test.ts`**: mock report updated with new fields.
+
+### Design Invariants
+
+- **No new source integration**: same live adapters.
+- **No source rule relaxation**: gov.tr-only, no mock fallback in live, no unofficial sources.
+- **No output contract change**: DoctorLegalInformationPack format unchanged.
+- **No coverage change**: `coveredOfficialLegislationCount` = 11, `verifiedOfficialSourceCount` = 11.
+- **No local-yargi vendor or import**.
+- **Coverage gap reasons are NOT fake legislation quotes**: gap entries never added to `relevantLegislation`.
+- **Legislation phase timeout ≠ pack failure**: precedent phase still proceeds.
+- **Generated-pack contract failures remain hard failures**.
+- **Timeout-induced raw contract failures excluded from beta gate hard failures**.
+
+---
+
 ## [0.39.0] — 2026-05-26 — Live Time Budget and Source Prioritization
 
 > Tag: `v0.39.0-live-time-budget-and-source-prioritization`

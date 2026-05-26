@@ -265,7 +265,13 @@ function createMockReport(results: BenchmarkItemResult[]): BenchmarkReport {
       averagePrecedentPhaseMs: null,
       averageTotalElapsedMs: null,
       budgetExhaustedCount: 0,
-      sourcePriorityDistribution: { "yargitay,danistay": results.length }
+      sourcePriorityDistribution: { "yargitay,danistay": results.length },
+      legislationPhaseTimeoutCount: 0,
+      legislationPhaseBudgetExhaustedCount: 0,
+      knownHintFastPathCount: results.length,
+      coverageGapCount: 0,
+      legislationPhaseFailedBeforePrecedentCount: 0,
+      packGeneratedAfterLegislationTimeoutCount: 0
     },
     provenanceMetrics: {
       totalDecisions: results.length,

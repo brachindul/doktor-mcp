@@ -23,6 +23,11 @@ import { classifyMedicalLegalQuestion } from "../health/questionClassifier.js";
 import { inferIssueProfileFromQuestion } from "../health/precedentRelevance.js";
 import { rankedQueriesForSource } from "../health/queryRanking.js";
 import type { IssueProfile } from "../health/precedentRelevance.js";
+import { routeMedicalIssue } from "../medicalIssueRouter.js";
+import type { MedicalIssueId } from "../medicalIssueRouter.js";
+import {
+  HEALTH_LEGISLATION_INVENTORY
+} from "../healthLegislationInventory.js";
 import { rerankByIssueRelevance } from "../health/precedentRerank.js";
 import type { RerankResult } from "../health/precedentRerank.js";
 import { MockAymAdapter } from "../sources/aym/mockAymAdapter.js";
@@ -54,6 +59,14 @@ export interface TimeBudgetTelemetry {
   precedentPhaseMs: number;
   sourcePriorityOrder: string[];
   snapshot: ResearchBudgetSnapshot;
+  // v0.40.0 legislation phase diagnostics
+  legislationPhaseBudgetExhausted?: boolean;
+  legislationPhaseTimedOut?: boolean;
+  legislationPhaseFailedBeforePrecedent?: boolean;
+  legislationCoverageGaps?: string[];
+  legislationKnownHintFastPathUsed?: boolean;
+  legislationPhaseBudgetMs?: number;
+  legislationRetrievalTimeout?: boolean;
 }
 
 export interface PhysicianLegalInformationServiceOptions {
@@ -307,6 +320,108 @@ export class PhysicianLegalInformationService {
     return { decisions, sourceResults, queryTelemetry: [] };
   }
 
+  /**
+   * v0.40.0: Legislation phase diagnostics for a single legislation search attempt.
+   */
+  private legislationPhaseDiagnostics = {
+    phaseBudgetExhausted: false,
+    timedOut: false,
+    retrievalTimeout: false,
+    failedBeforePrecedent: false,
+    coverageGaps: [] as string[],
+    knownHintFastPathUsed: false
+  };
+
+  /**
+   * Execute the legislation phase with a hard budget cap via Promise.race.
+   * If the legislation search takes longer than the phase budget, the phase
+   * is interrupted but precedent search still proceeds.
+   */
+  private async executeLegislationPhase(
+    classification: Awaited<ReturnType<PhysicianLegalInformationService["classify"]>>,
+    _budget: ResearchTimeBudget,
+    phaseBudgetMs: number
+  ): Promise<{
+    legislation: Awaited<ReturnType<PhysicianLegalInformationService["searchLegislation"]>>;
+    diagnostics: {
+      phaseBudgetExhausted: boolean;
+      timedOut: boolean;
+      retrievalTimeout: boolean;
+      failedBeforePrecedent: boolean;
+      coverageGaps: string[];
+      knownHintFastPathUsed: boolean;
+    };
+  }> {
+    this.legislationPhaseDiagnostics = {
+      phaseBudgetExhausted: false,
+      timedOut: false,
+      retrievalTimeout: false,
+      failedBeforePrecedent: false,
+      coverageGaps: [],
+      knownHintFastPathUsed: true // legislation adapter uses known hints by default
+    };
+
+    // Detect coverage gaps before search
+    const routed = routeMedicalIssue(classification.question);
+    const issueIds = routed.routes.map((r) => r.issueId);
+    const coverageGaps = detectLegislationCoverageGaps(issueIds);
+    if (coverageGaps.length > 0) {
+      this.legislationPhaseDiagnostics.coverageGaps = coverageGaps;
+    }
+
+    let legislation: Awaited<ReturnType<PhysicianLegalInformationService["searchLegislation"]>>;
+
+    try {
+      legislation = await Promise.race([
+        this.searchLegislation(classification, "live"),
+        new Promise<Awaited<ReturnType<PhysicianLegalInformationService["searchLegislation"]>>>((_, reject) =>
+          setTimeout(() => reject(new Error(`LEGISLATION_PHASE_TIMEOUT:${phaseBudgetMs}`)), phaseBudgetMs)
+        )
+      ]);
+    } catch (error) {
+      this.legislationPhaseDiagnostics.timedOut = true;
+      this.legislationPhaseDiagnostics.phaseBudgetExhausted = true;
+      this.legislationPhaseDiagnostics.retrievalTimeout = true;
+
+      // Legislation phase failed, but precedent phase can still proceed
+      // Return empty legislation result with selectionDiagnostics for type compatibility
+      return {
+        legislation: {
+          status: "unavailable" as const,
+          source: "mevzuat.gov.tr" as const,
+          errorCode: "source_error" as const,
+          message: `Legislation phase timed out after ${phaseBudgetMs}ms (legislationPhaseBudgetExhausted).`,
+          retryable: true,
+          recommendedNextStep: "Proceeding to precedent phase with available sources.",
+          selectionDiagnostics: buildLegislationSelectionDiagnostics({
+            query: classification.question,
+            sourceMode: "live",
+            provisions: [],
+            sourceUnavailable: [{
+              status: "unavailable" as const,
+              source: "mevzuat.gov.tr",
+              errorCode: "source_error",
+              message: `Legislation phase timed out after ${phaseBudgetMs}ms.`,
+              retryable: true,
+              recommendedNextStep: "Proceeding to precedent phase with available sources."
+            }]
+          })
+        },
+        diagnostics: { ...this.legislationPhaseDiagnostics }
+      };
+    }
+
+    // Check if legislation returned unavailable (but didn't timeout)
+    if (isLegislationUnavailable(legislation)) {
+      this.legislationPhaseDiagnostics.failedBeforePrecedent = true;
+    }
+
+    return {
+      legislation,
+      diagnostics: { ...this.legislationPhaseDiagnostics }
+    };
+  }
+
   filterPrecedents(decisions: CourtDecision[]) {
     return filterReasonedPrecedents(decisions);
   }
@@ -333,10 +448,13 @@ export class PhysicianLegalInformationService {
       const issueProfile = inferIssueProfileFromQuestion(input.question);
       const prioritizedSources = prioritizeSourcesByIssue(issueProfile, input.precedentSources ?? ["yargitay", "danistay"]);
 
-      // Phase 1: Legislation (time-bounded)
+      // Phase 1: Legislation (time-bounded with hard cap)
       budget.markPhaseStart("legislation");
-      const legislation = await this.searchLegislation(classification, "live");
+      const legislationPhaseBudgetMs = budget.effectivePhaseBudgetMs("legislation");
+      const legislationResult = await this.executeLegislationPhase(classification, budget, legislationPhaseBudgetMs);
       budget.markPhaseEnd("legislation");
+      const legislation = legislationResult.legislation;
+      const legislationPhaseDiags = legislationResult.diagnostics;
 
       // Phase 2: Precedents with remaining budget
       budget.markPhaseStart("precedent");
@@ -353,7 +471,14 @@ export class PhysicianLegalInformationService {
         legislationPhaseMs: snap.phaseElapsedMs.legislation,
         precedentPhaseMs: snap.phaseElapsedMs.precedent,
         sourcePriorityOrder: prioritizedSources,
-        snapshot: snap
+        snapshot: snap,
+        legislationPhaseBudgetExhausted: legislationPhaseDiags.phaseBudgetExhausted,
+        legislationPhaseTimedOut: legislationPhaseDiags.timedOut,
+        legislationPhaseFailedBeforePrecedent: legislationPhaseDiags.failedBeforePrecedent,
+        legislationCoverageGaps: legislationPhaseDiags.coverageGaps,
+        legislationKnownHintFastPathUsed: legislationPhaseDiags.knownHintFastPathUsed,
+        legislationPhaseBudgetMs: legislationPhaseBudgetMs,
+        legislationRetrievalTimeout: legislationPhaseDiags.retrievalTimeout
       };
 
       const { decisions, sourceResults, queryTelemetry } = precedentResult;
@@ -453,6 +578,32 @@ function isLiveResult(value: unknown): value is LiveLegislationResult {
 
 function isLiveUnavailable(value: Awaited<ReturnType<PhysicianLegalInformationService["searchLegislation"]>>) {
   return isLiveResult(value) && value.status === "unavailable";
+}
+
+/**
+ * Check if a legislation search result is an unavailable result.
+ */
+function isLegislationUnavailable(value: unknown): boolean {
+  return typeof value === "object" && value !== null && "status" in value && (value as Record<string, unknown>).status === "unavailable";
+}
+
+/**
+ * v0.40.0: Detect legislation coverage gaps for routed issue IDs.
+ * Returns the keys of inventory gap/candidate/deferred entries whose
+ * relatedIssueIds intersect with the given issue IDs.
+ * This is used to surface coverage gap reasons before slow live searches.
+ */
+function detectLegislationCoverageGaps(issueIds: MedicalIssueId[]): string[] {
+  if (issueIds.length === 0) return [];
+  const gaps: string[] = [];
+  for (const entry of HEALTH_LEGISLATION_INVENTORY) {
+    if (entry.coverageStatus === "covered") continue;
+    const entryIssues = entry.relatedIssueIds ?? [];
+    if (entryIssues.some((id) => issueIds.includes(id as MedicalIssueId))) {
+      gaps.push(`${entry.titleNormalized} (${entry.coverageStatus}: ${entry.officialSourceStatus})`);
+    }
+  }
+  return gaps;
 }
 
 function queryFromProvisions(provisions: LegislationProvision[], documentIds: string[]) {
