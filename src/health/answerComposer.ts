@@ -85,14 +85,31 @@ export function composeDoctorLegalInformationPack(
   provisions: LegislationProvision[],
   precedents: CourtDecision[],
   sourceUnavailable: SourceUnavailable[] = [],
-  selectionDiagnostics?: LegislationSelectionDiagnostics
+  selectionDiagnostics?: LegislationSelectionDiagnostics,
+  timeBudget?: any
 ): DoctorLegalInformationPack {
   const groundedCount = provisions.length + precedents.length;
-  const shortAnswer =
+  let shortAnswer =
     groundedCount > 0
       ? "Soru resmi kaynak kayitlariyla eslestirildi; asagidaki paket nihai hukuki kanaat degildir."
       : "Bu soru icin dogrulanmis mevzuat maddesi veya gerekceli yuksek mahkeme karari bulunamadi.";
+
+  const isExhausted = timeBudget && typeof timeBudget.isExhausted === "function" && timeBudget.isExhausted();
+  if (isExhausted && groundedCount > 0) {
+    shortAnswer = "Zaman bütçesi limiti nedeniyle kısmi veri seti oluşturulabildi. Soru resmi kaynak kayitlariyla eslestirildi; asagidaki paket nihai hukuki kanaat degildir.";
+  }
+
   const hasLiveLegislation = provisions.some((provision) => Boolean(provision.evidence.sourceUrl));
+
+  const sourceWarnings = groundedCount > 0
+    ? [hasLiveLegislation
+        ? "Mevzuat maddesi canli resmi kaynaktan cikartildi; emsal kaynak modlari diagnostik alaninda izlenir."
+        : "MVP mock kaynaklarla calisir; canli resmi kaynak entegrasyonu bu pack icin kullanilmadi."]
+    : ["Kaynak yokken madde veya karar uretilmedi."];
+
+  if (isExhausted) {
+    sourceWarnings.push("Zaman bütçesi sınırı nedeniyle tarama erken sonlandırıldı (timeBudgetExhausted).");
+  }
 
   return {
     shortAnswer,
@@ -112,12 +129,7 @@ export function composeDoctorLegalInformationPack(
       "Somut olay belgeleri ile resmi kaynak eslestirmesinin avukat tarafindan kontrolu",
       "Guncel mevzuat metni ve karar tam metninin canli kaynaktan yeniden dogrulanmasi"
     ],
-    sourceWarnings:
-      groundedCount > 0
-        ? [hasLiveLegislation
-            ? "Mevzuat maddesi canli resmi kaynaktan cikartildi; emsal kaynak modlari diagnostik alaninda izlenir."
-            : "MVP mock kaynaklarla calisir; canli resmi kaynak entegrasyonu bu pack icin kullanilmadi."]
-        : ["Kaynak yokken madde veya karar uretilmedi."],
+    sourceWarnings,
     ...(sourceUnavailable.length > 0 ? { sourceUnavailable } : {}),
     ...(provisions.some((provision) => provision.sourceTrace)
       ? { sourceTrace: provisions.flatMap((provision) => provision.sourceTrace ? [provision.sourceTrace] : []) }

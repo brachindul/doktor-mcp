@@ -202,6 +202,7 @@ export interface PrepareInformationPackInput {
   question: string;
   sourceMode?: LegislationSourceMode;
   precedentSources?: PrecedentSource[];
+  timeBudget?: any;
 }
 
 export interface PrecedentSourceSummary {

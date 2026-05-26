@@ -1,5 +1,89 @@
 # Changelog
 
+## [0.39.0] — 2026-05-26 — Live Time Budget and Source Prioritization
+
+> Tag: `v0.39.0-live-time-budget-and-source-prioritization`
+
+### Summary
+
+Introduces a fixed time budget (30s total per question) for live research pack
+preparation, replaces parallel live source fetches with sequential phased
+execution (legislation → precedent), adds issue-aware source prioritization,
+and surfaces time-budget-exhausted diagnostics in pack composition and source
+sufficiency evaluation. The goal is to reduce timeout-induced pack failures by
+making conscious budget allocation decisions instead of allowing a single slow
+source to consume the entire per-question deadline.
+
+### Added
+
+- **`src/live/timeBudget.ts`** — `ResearchTimeBudget` class with:
+  - `deadlineMs`, `reserveMs`, per-phase `sourceBudgets` (legislation: 8s, precedent: 15s)
+  - `elapsedMs()`, `remainingMs()`, `isExhausted()`
+  - `phaseBudget(phase)`, `effectivePhaseBudgetMs(phase)` — caps phase to remaining global budget
+  - `shouldStartPhase(phase)` — returns false when budget exhausted or phase budget < 500ms
+  - `markPhaseStart(phase)`, `markPhaseEnd(phase)` — phase timing
+  - `snapshot()` → `ResearchBudgetSnapshot` with elapsed/remaining/per-phase times
+  - Exported types: `ResearchPhase`, `ResearchBudgetSnapshot`, `SourceBudgetDecision`
+- **Sequential phase execution in `src/app/service.ts`**:
+  - Live mode now runs legislation first, then precedent (was `Promise.all` parallel)
+  - `TimeBudgetTelemetry` exported interface with `deadlineMs`, `reserveMs`, `totalElapsedMs`,
+    `remainingMsAtEnd`, `budgetExhausted`, `legislationPhaseMs`, `precedentPhaseMs`,
+    `sourcePriorityOrder`, `snapshot`
+  - `prioritizeSourcesByIssue()` — danistay-first for disciplinary/administrative issues,
+    yargitay-first otherwise
+- **Time budget awareness in `src/health/answerComposer.ts`**:
+  - Optional `timeBudget` parameter passed through to `composeDoctorLegalInformationPack()`
+  - When budget is exhausted and grounded sources exist, `shortAnswer` notes partial data set
+  - `sourceWarnings` include `timeBudgetExhausted` when applicable
+- **New missing authority types in `src/sourceSufficiency.ts`**:
+  - `retrievalTimeout` — live retrieval timeout occurred
+  - `timeBudgetExhausted` — global time budget exhausted
+  - `sourceBudgetExhausted` — per-source budget exceeded
+  - New input fields: `timeBudgetExhausted?: boolean`, `retrievalTimeout?: boolean`,
+    `sourceBudgetExhausted?: boolean`
+- **Time budget telemetry in `src/benchmark/benchmarkRunner.ts`**:
+  - `BenchmarkItemResult.timeBudgetTelemetry?: TimeBudgetTelemetry`
+  - `BenchmarkReport.timeBudgetMetrics` aggregate with `questionsWithBudget`,
+    `averageLegislationPhaseMs`, `averagePrecedentPhaseMs`, `averageTotalElapsedMs`,
+    `budgetExhaustedCount`, `sourcePriorityDistribution`
+  - `buildTimeBudgetMetrics()` helper
+  - `ResearchTimeBudget` created per question in live mode, passed through
+    `prepareInformationPack`
+- **`PrepareInformationPackInput.timeBudget`** — optional field in `src/contracts/legal.ts`
+
+### Changed
+
+- **`src/app/service.ts`**:
+  - `prepareInformationPack()` in live mode: sequential legislation then precedent with
+    phase timing via `ResearchTimeBudget`
+  - Returns `timeBudgetTelemetry` on live mode response
+- **`package.json` & `package-lock.json`**: bumped version `0.38.0` → `0.39.0`
+- **`tests/realWorldLiveSmoke.test.ts`**: mock report updated to include `timeBudgetMetrics`
+
+### Design Invariants
+
+- **No new source integration**: same live adapters (Yargıtay, Danıştay, mevzuat.gov.tr)
+- **No source rule relaxation**: gov.tr-only, no mock fallback in live, no unofficial sources
+- **No output contract change**: DoctorLegalInformationPack format unchanged
+- **No coverage change**: coveredOfficialLegislationCount = 11, verifiedOfficialSourceCount = 11
+- **No local-yargi vendor or import**
+- **Mock mode unchanged**: 15s per-question timeout preserved, no time budget overhead
+- **Per-question timeout (30s for live, 15s for mock) preserved** via `Promise.race`
+- **Timeout-induced raw contract failures excluded from beta gate hard failures**
+- **Generated-pack contract failures remain hard failures**
+
+### Expected v0.38 → v0.39 Live Smoke Improvements
+
+- **Sequential execution**: reduces concurrent source load, prevents multiple slow sources
+  from compounding
+- **Source prioritization**: fastest/most-relevant source runs first, so usable data is
+  available before budget expires
+- **Time budget telemetry**: reveals which phase consumed the budget
+- **Partial pack production**: when legislation succeeds but precedent times out,
+  a partial pack can still be generated with source sufficiency warnings
+
+---
+
 ## [0.38.0] — 2026-05-25 — Live Real-World Physician Beta Smoke Hardening
 
 > Tag: `v0.38.0-live-real-world-beta-smoke-hardening`

@@ -24,7 +24,10 @@ export type MissingAuthorityType =
   | "fullTextReasoning"
   | "issueSpecificMatch"
   | "officialSourceTrace"
-  | "verifiedPrecedentEligibility";
+  | "verifiedPrecedentEligibility"
+  | "retrievalTimeout"
+  | "timeBudgetExhausted"
+  | "sourceBudgetExhausted";
 
 export interface SourceSufficiencyResult {
   level: SourceSufficiencyLevel;
@@ -68,6 +71,11 @@ export interface SourceSufficiencyInput {
 
   /** Audit ok flag (from AuditResult). */
   auditOk: boolean;
+
+  // v0.39.0 time budget telemetry
+  timeBudgetExhausted?: boolean;
+  retrievalTimeout?: boolean;
+  sourceBudgetExhausted?: boolean;
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
@@ -230,12 +238,28 @@ export function evaluateSourceSufficiency(
     contractPassed,
     unofficialSourceDetected,
     usedMockSourceInLiveMode,
-    auditOk
+    auditOk,
+    timeBudgetExhausted,
+    retrievalTimeout,
+    sourceBudgetExhausted
   } = input;
 
   const missing: MissingAuthorityType[] = [];
   const reasons: string[] = [];
   const warnings: string[] = [];
+
+  if (retrievalTimeout) {
+    missing.push("retrievalTimeout");
+    reasons.push("Canlı kaynaktan veri çekilirken zaman aşımı (retrieval timeout) oluştu.");
+  }
+  if (timeBudgetExhausted) {
+    missing.push("timeBudgetExhausted");
+    reasons.push("Zaman bütçesi tükendiği için (time budget exhausted) tarama durduruldu.");
+  }
+  if (sourceBudgetExhausted) {
+    missing.push("sourceBudgetExhausted");
+    reasons.push("Kaynak bazlı zaman sınırı aşıldı (source budget exhausted).");
+  }
 
   // ── 1. Legislation ──────────────────────────────────────────────────────────
 
