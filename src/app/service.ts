@@ -69,6 +69,61 @@ export interface TimeBudgetTelemetry {
   legislationRetrievalTimeout?: boolean;
 }
 
+export type MinimalPackRescueReason =
+  | "timeout_with_legislation"
+  | "timeout_with_precedent"
+  | "timeout_with_both"
+  | "timeout_no_partial_state"
+  | "budget_exhausted_with_legislation"
+  | "budget_exhausted_with_precedent";
+
+export interface MinimalPackRescueContext {
+  rescueReason: MinimalPackRescueReason;
+  failedPhase: "legislation" | "precedent" | "pack_generation" | "unknown";
+  lastCompletedPhase: "legislation" | "precedent" | "none";
+  provisionsAvailable: number;
+  precedentsAvailable: number;
+  classification: ClassifiedMedicalLegalQuestion;
+  provisions: LegislationProvision[];
+  decisions: CourtDecision[];
+  reranked: Array<{ decision: CourtDecision; status: string }>;
+  sourceResults: PrecedentSourceResult[];
+  legislationPhaseDiagnostics: {
+    phaseBudgetExhausted: boolean;
+    timedOut: boolean;
+    retrievalTimeout: boolean;
+    failedBeforePrecedent: boolean;
+    coverageGaps: string[];
+    knownHintFastPathUsed: boolean;
+  } | null;
+  timeBudgetTelemetry: TimeBudgetTelemetry | null;
+  queryTelemetry: QueryAttemptTelemetry[];
+  rerankResult: RerankResult;
+}
+
+export interface PartialDiagnosticPack {
+  packGenerated: boolean;
+  partialPackGenerated: boolean;
+  noPackDiagnostic: {
+    canComposeResearchPack: boolean;
+    packGenerationFailureReason: string;
+    failedPhase: "legislation" | "precedent" | "pack_generation" | "unknown";
+    elapsedMs: number;
+    sourceSufficiencyLevel: string;
+    missingAuthorityTypes: string[];
+    coverageGaps: string[];
+    recommendedNextDiagnostic: string;
+    partialLegislationCount: number;
+    partialVerifiedPrecedentCount: number;
+    lastCompletedPhase: string;
+    retrievalTimeoutSources: string[];
+    canRetryWithLongerBudget: boolean;
+    canRetryWithNarrowerIssue: boolean;
+    partialStateAvailable: boolean;
+  } | null;
+  minimalPackRescueReason: MinimalPackRescueReason | null;
+}
+
 export interface PhysicianLegalInformationServiceOptions {
   mockLegislation?: MockLegislationAdapter;
   liveLegislation?: LiveOfficialLegislationAdapter;
@@ -100,6 +155,43 @@ export class PhysicianLegalInformationService {
     this.liveDanistay = options.liveDanistay ?? new LiveDanistayAdapter({ cache });
     this.liveBedesten = options.liveBedesten ?? new LiveBedestenAdapter();
     this.legislationMapper = new LegislationMapper(this.mockLegislation);
+  }
+
+  /** v0.42.0: Partial state for minimal pack rescue on timeout */
+  private lastPartialState: MinimalPackRescueContext | null = null;
+  private lastPartialStateCleared = false;
+
+  /** v0.42.0: Retrieve partial state for minimal pack rescue. Returns null if not available or already consumed. */
+  getLastPartialState(): MinimalPackRescueContext | null {
+    const state = this.lastPartialState;
+    if (this.lastPartialStateCleared) return null;
+    this.lastPartialStateCleared = true;
+    return state;
+  }
+
+  private updatePartialState(update: Partial<MinimalPackRescueContext>) {
+    this.lastPartialState = {
+      rescueReason: update.rescueReason ?? this.lastPartialState?.rescueReason ?? "timeout_no_partial_state",
+      failedPhase: update.failedPhase ?? this.lastPartialState?.failedPhase ?? "unknown",
+      lastCompletedPhase: update.lastCompletedPhase ?? this.lastPartialState?.lastCompletedPhase ?? "none",
+      provisionsAvailable: update.provisionsAvailable ?? this.lastPartialState?.provisionsAvailable ?? 0,
+      precedentsAvailable: update.precedentsAvailable ?? this.lastPartialState?.precedentsAvailable ?? 0,
+      classification: update.classification ?? this.lastPartialState?.classification!,
+      provisions: update.provisions ?? this.lastPartialState?.provisions ?? [],
+      decisions: update.decisions ?? this.lastPartialState?.decisions ?? [],
+      reranked: update.reranked ?? this.lastPartialState?.reranked ?? [],
+      sourceResults: update.sourceResults ?? this.lastPartialState?.sourceResults ?? [],
+      legislationPhaseDiagnostics: update.legislationPhaseDiagnostics ?? this.lastPartialState?.legislationPhaseDiagnostics ?? null,
+      timeBudgetTelemetry: update.timeBudgetTelemetry ?? this.lastPartialState?.timeBudgetTelemetry ?? null,
+      queryTelemetry: update.queryTelemetry ?? this.lastPartialState?.queryTelemetry ?? [],
+      rerankResult: update.rerankResult ?? this.lastPartialState?.rerankResult ?? { preRerankTopId: null, postRerankTopId: null, rerankChangedSelection: false, usableCount: 0 }
+    };
+    this.lastPartialStateCleared = false;
+  }
+
+  private clearPartialState() {
+    this.lastPartialState = null;
+    this.lastPartialStateCleared = false;
   }
 
   classify(question: string) {
@@ -437,6 +529,7 @@ export class PhysicianLegalInformationService {
     }
   > {
     const classification = this.classify(input.question);
+    this.clearPartialState();
 
     // Live mode: sequential research with time budget
     if (input.sourceMode === "live") {
@@ -455,6 +548,19 @@ export class PhysicianLegalInformationService {
       budget.markPhaseEnd("legislation");
       const legislation = legislationResult.legislation;
       const legislationPhaseDiags = legislationResult.diagnostics;
+
+      // v0.42.0: Update partial state after legislation phase
+      const legislationProvisions = isLiveResult(legislation)
+        ? legislation.status === "ok" ? legislation.provisions : []
+        : [];
+      this.updatePartialState({
+        classification,
+        provisions: legislationProvisions,
+        provisionsAvailable: legislationProvisions.length,
+        lastCompletedPhase: legislationPhaseDiags.timedOut ? "none" : "legislation",
+        legislationPhaseDiagnostics: legislationPhaseDiags,
+        failedPhase: legislationPhaseDiags.timedOut ? "legislation" : "unknown"
+      });
 
       // Phase 2: Precedents with remaining budget
       budget.markPhaseStart("precedent");
@@ -490,6 +596,40 @@ export class PhysicianLegalInformationService {
       const filtered = this.filterPrecedents(decisions);
       const { reranked, rerankResult } = rerankByIssueRelevance(filtered, input.question);
 
+      // v0.42.0: Update partial state after precedent phase
+      const verifiedPrecedents = selectVerifiedPrecedents(reranked);
+      this.updatePartialState({
+        classification,
+        provisions,
+        provisionsAvailable: provisions.length,
+        decisions,
+        reranked,
+        sourceResults,
+        queryTelemetry,
+        rerankResult,
+        timeBudgetTelemetry: {
+          deadlineMs: budget.deadlineMs,
+          reserveMs: budget.reserveMs,
+          totalElapsedMs: snap.elapsedMs,
+          remainingMsAtEnd: snap.remainingMs,
+          budgetExhausted: snap.isExhausted,
+          legislationPhaseMs: snap.phaseElapsedMs.legislation,
+          precedentPhaseMs: snap.phaseElapsedMs.precedent,
+          sourcePriorityOrder: prioritizedSources,
+          snapshot: snap,
+          legislationPhaseBudgetExhausted: legislationPhaseDiags.phaseBudgetExhausted,
+          legislationPhaseTimedOut: legislationPhaseDiags.timedOut,
+          legislationPhaseFailedBeforePrecedent: legislationPhaseDiags.failedBeforePrecedent,
+          legislationCoverageGaps: legislationPhaseDiags.coverageGaps,
+          legislationKnownHintFastPathUsed: legislationPhaseDiags.knownHintFastPathUsed,
+          legislationPhaseBudgetMs: legislationPhaseBudgetMs,
+          legislationRetrievalTimeout: legislationPhaseDiags.retrievalTimeout
+        },
+        precedentsAvailable: verifiedPrecedents.length,
+        lastCompletedPhase: "precedent",
+        failedPhase: null as unknown as "unknown"
+      });
+
       const precedentDiagnostics = buildPrecedentSelectionDiagnostics(reranked, input.question, sourceResults);
       const pack = composeDoctorLegalInformationPack(
         classification,
@@ -504,6 +644,9 @@ export class PhysicianLegalInformationService {
         sourceUnavailable: liveUnavailable,
         warningCount: pack.sourceWarnings.length
       });
+
+      // v0.42.0: Successful completion — clear partial state
+      this.clearPartialState();
 
       return {
         ...pack,

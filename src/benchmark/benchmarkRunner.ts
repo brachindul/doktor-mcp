@@ -1,6 +1,8 @@
 import { PhysicianLegalInformationService } from "../app/service.js";
-import type { TimeBudgetTelemetry } from "../app/service.js";
+import type { TimeBudgetTelemetry, MinimalPackRescueContext } from "../app/service.js";
 import { ResearchTimeBudget } from "../live/timeBudget.js";
+import { composeDoctorLegalInformationPack } from "../health/answerComposer.js";
+import { selectVerifiedPrecedents } from "../health/precedentFilter.js";
 import type { DoctorLegalInformationPack, PrecedentStatus, ContentStatus } from "../contracts/legal.js";
 import type { QueryAttemptTelemetry, SourceReliabilityMetrics, IssueProfileReliabilityMetrics } from "../contracts/queryTelemetry.js";
 import { buildLiveReliabilityGate } from "../live/reliabilityGate.js";
@@ -144,6 +146,8 @@ export interface BenchmarkItemResult {
   packFailureKind: PackFailureKind;
   packGenerationFailureReason: string | null;
   failedPhase: "legislation" | "precedent" | "pack_generation" | "unknown" | null;
+  packGeneratedFromPartialState: boolean;
+  minimalPackRescueReason: string | null;
   noPackDiagnostic?: {
     canComposeResearchPack: false;
     packGenerationFailureReason: string;
@@ -153,6 +157,13 @@ export interface BenchmarkItemResult {
     missingAuthorityTypes: MissingAuthorityType[];
     coverageGaps: string[];
     recommendedNextDiagnostic: string;
+    partialLegislationCount: number;
+    partialVerifiedPrecedentCount: number;
+    lastCompletedPhase: string;
+    retrievalTimeoutSources: string[];
+    canRetryWithLongerBudget: boolean;
+    canRetryWithNarrowerIssue: boolean;
+    partialStateAvailable: boolean;
   };
   partialPackGenerated: boolean;
   notes: string;
@@ -370,7 +381,13 @@ export interface BenchmarkReport {
   generatedPackUnofficialCount: number;
   liveReliabilityGateTimeoutObservationCount: number;
   noPackDiagnosticCount: number;
+  noPackDiagnosticEnhancedCount: number;
   partialPackGeneratedCount: number;
+  partialStateAvailableCount: number;
+  generatedFromPartialStateCount: number;
+  minimalPackRescueAttemptCount: number;
+  minimalPackRescueSuccessCount: number;
+  minimalPackRescueFailureCount: number;
   results: BenchmarkItemResult[];
 }
 
@@ -413,12 +430,56 @@ export async function runBenchmark(options: {
         timeBudgetTelemetry: enrichedPack.timeBudgetTelemetry
       }));
     } catch (error) {
-      results.push(evaluateThrownBenchmarkItem({
-        question,
-        sourceMode,
-        durationMs: Date.now() - itemStartedAt,
-        error
-      }));
+      // v0.42.0: Try minimal pack rescue from partial state
+      let partialState: MinimalPackRescueContext | null = null;
+      try {
+        partialState = service.getLastPartialState();
+      } catch {
+        // ignore - partial state not available
+      }
+
+      if (partialState && (partialState.provisionsAvailable > 0 || partialState.precedentsAvailable > 0)) {
+        // Attempt minimal pack rescue
+        try {
+          const rescuedPack = buildMinimalRescuePack(partialState, question);
+          const rescueResult = evaluateBenchmarkItem({
+            question,
+            pack: rescuedPack as unknown as DoctorLegalInformationPack & Record<string, unknown>,
+            sourceMode,
+            durationMs: Date.now() - itemStartedAt,
+            queryTelemetry: partialState.queryTelemetry,
+            rerankResult: partialState.rerankResult,
+            timeBudgetTelemetry: partialState.timeBudgetTelemetry ?? undefined
+          });
+          // Mark as rescued from timeout
+          rescueResult.packGenerated = true;
+          rescueResult.packGeneratedFromPartialState = true;
+          rescueResult.packFailureKind = rescueResult.contractPassed ? "none" : "generated_pack_contract_fail";
+          rescueResult.minimalPackRescueReason = deriveRescueReason(partialState);
+          rescueResult.partialPackGenerated = true;
+          rescueResult.noPackDiagnostic = undefined;
+          rescueResult.packGenerationFailureReason = null;
+          rescueResult.failedPhase = null;
+          results.push(rescueResult);
+        } catch {
+          // Rescue pack failed to build — enhanced no-pack diagnostic
+          results.push(evaluateThrownBenchmarkItem({
+            question,
+            sourceMode,
+            durationMs: Date.now() - itemStartedAt,
+            error,
+            partialState
+          }));
+        }
+      } else {
+        results.push(evaluateThrownBenchmarkItem({
+          question,
+          sourceMode,
+          durationMs: Date.now() - itemStartedAt,
+          error,
+          partialState
+        }));
+      }
     }
   }
 
@@ -628,6 +689,8 @@ export function evaluateBenchmarkItem(input: {
             : "none",
     packGenerationFailureReason: null,
     failedPhase: null,
+    packGeneratedFromPartialState: false,
+    minimalPackRescueReason: null,
     partialPackGenerated: sufficiencyResult.level !== "sufficient",
     notes: question.notes,
     timeBudgetTelemetry: input.timeBudgetTelemetry
@@ -697,10 +760,13 @@ function evaluateThrownBenchmarkItem(input: {
   sourceMode: "live" | "mock";
   durationMs: number;
   error: unknown;
+  partialState?: MinimalPackRescueContext | null;
 }): BenchmarkItemResult {
   const message = input.error instanceof Error ? input.error.message : String(input.error);
   const packFailureKind = classifyPackGenerationFailure(message);
   const failedPhase = packFailureKind === "pack_generation_failed_budget_exhausted" ? "pack_generation" : "unknown";
+  const ps = input.partialState;
+  const hasPartialState = Boolean(ps && (ps.provisionsAvailable > 0 || ps.precedentsAvailable > 0));
   const emptyPack = {
     relevantLegislation: [],
     verifiedHighCourtPrecedents: [],
@@ -811,6 +877,8 @@ function evaluateThrownBenchmarkItem(input: {
     packFailureKind,
     packGenerationFailureReason: message,
     failedPhase,
+    packGeneratedFromPartialState: false,
+    minimalPackRescueReason: null,
     noPackDiagnostic: {
       canComposeResearchPack: false,
       packGenerationFailureReason: message,
@@ -818,8 +886,15 @@ function evaluateThrownBenchmarkItem(input: {
       elapsedMs: input.durationMs,
       sourceSufficiencyLevel: "insufficient",
       missingAuthorityTypes: ["legislation", "highCourtPrecedent", "officialSourceTrace"],
-      coverageGaps: [],
-      recommendedNextDiagnostic: diagnosticForPackFailure(packFailureKind)
+      coverageGaps: ps?.legislationPhaseDiagnostics?.coverageGaps ?? [],
+      recommendedNextDiagnostic: diagnosticForPackFailure(packFailureKind),
+      partialLegislationCount: ps?.provisionsAvailable ?? 0,
+      partialVerifiedPrecedentCount: ps?.precedentsAvailable ?? 0,
+      lastCompletedPhase: ps?.lastCompletedPhase ?? "none",
+      retrievalTimeoutSources: ps?.legislationPhaseDiagnostics?.retrievalTimeout ? ["mevzuat.gov.tr"] : [],
+      canRetryWithLongerBudget: true,
+      canRetryWithNarrowerIssue: hasPartialState,
+      partialStateAvailable: hasPartialState
     },
     partialPackGenerated: false,
     notes: input.question.notes
@@ -845,6 +920,49 @@ function diagnosticForPackFailure(kind: PackFailureKind): string {
     default:
       return "Pack generation failed before a safe research pack could be composed; inspect thrown error and source diagnostics.";
   }
+}
+
+function deriveRescueReason(ps: MinimalPackRescueContext): string {
+  if (ps.provisionsAvailable > 0 && ps.precedentsAvailable > 0) return "timeout_with_both";
+  if (ps.provisionsAvailable > 0) return "timeout_with_legislation";
+  if (ps.precedentsAvailable > 0) return "timeout_with_precedent";
+  return "timeout_no_partial_state";
+}
+
+function buildMinimalRescuePack(ps: MinimalPackRescueContext, _question: BenchmarkQuestion): DoctorLegalInformationPack {
+  const { provisions, classification, legislationPhaseDiagnostics } = ps;
+
+  // Convert reranked to FilteredPrecedent format for selectVerifiedPrecedents
+  const filteredPrecedents = ps.reranked.map((r) => ({
+    decision: r.decision,
+    status: r.status as PrecedentStatus,
+    reason: ""
+  }));
+  const verifiedPrecedents = selectVerifiedPrecedents(filteredPrecedents);
+  const provisionsArray = Array.isArray(provisions) ? provisions : [];
+  const precedentsArray = Array.isArray(verifiedPrecedents) ? verifiedPrecedents : [];
+
+  const pack = composeDoctorLegalInformationPack(
+    classification,
+    provisionsArray,
+    precedentsArray,
+    [],
+    undefined
+  );
+
+  // Add coverage gap warnings
+  if (legislationPhaseDiagnostics?.coverageGaps?.length) {
+    for (const gap of legislationPhaseDiagnostics.coverageGaps) {
+      pack.sourceWarnings.push(`Coverage gap detected: ${gap}`);
+    }
+  }
+
+  // Add rescue warning
+  if (provisionsArray.length > 0 || precedentsArray.length > 0) {
+    pack.sourceWarnings.push("Partial pack generated from intermediate state after timeout; verify all content against live sources.");
+  }
+
+  return pack;
 }
 
 // Known gaps — legislation that would be valuable but whose mevzuat.gov.tr
@@ -1067,7 +1185,13 @@ function buildPackFailureMetrics(results: BenchmarkItemResult[]) {
   const generatedPackUnsafeCount = results.filter((r) => r.packGenerated && r.unsafeAdviceDetected).length;
   const generatedPackUnofficialCount = results.filter((r) => r.packGenerated && r.unofficialSourceDetected).length;
   const noPackDiagnosticCount = results.filter((r) => Boolean(r.noPackDiagnostic)).length;
+  const noPackDiagnosticEnhancedCount = results.filter((r) => Boolean(r.noPackDiagnostic?.partialStateAvailable)).length;
   const partialPackGeneratedCount = results.filter((r) => r.partialPackGenerated).length;
+  const partialStateAvailableCount = results.filter((r) => Boolean(r.noPackDiagnostic?.partialStateAvailable)).length;
+  const generatedFromPartialStateCount = results.filter((r) => r.packGeneratedFromPartialState).length;
+  const minimalPackRescueAttemptCount = results.filter((r) => Boolean(r.minimalPackRescueReason)).length;
+  const minimalPackRescueSuccessCount = results.filter((r) => r.packGeneratedFromPartialState && r.contractPassed).length;
+  const minimalPackRescueFailureCount = results.filter((r) => r.packGeneratedFromPartialState && !r.contractPassed).length;
   return {
     packGenerationFailureDistribution: distribution,
     timeoutNoPackCount,
@@ -1077,7 +1201,13 @@ function buildPackFailureMetrics(results: BenchmarkItemResult[]) {
     generatedPackUnsafeCount,
     generatedPackUnofficialCount,
     noPackDiagnosticCount,
-    partialPackGeneratedCount
+    noPackDiagnosticEnhancedCount,
+    partialPackGeneratedCount,
+    partialStateAvailableCount,
+    generatedFromPartialStateCount,
+    minimalPackRescueAttemptCount,
+    minimalPackRescueSuccessCount,
+    minimalPackRescueFailureCount
   };
 }
 

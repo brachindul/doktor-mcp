@@ -1,5 +1,67 @@
 # Changelog
 
+## [0.42.0] — 2026-05-27 — Live Minimal Pack Rescue Diagnostics
+
+> Tag: `v0.42.0-live-minimal-pack-rescue`
+
+### Summary
+
+Adds minimal pack rescue for real-world live smoke questions that timeout
+before a full pack can be composed. When the per-question timeout fires but
+the service has already completed one or both research phases (legislation
+and/or precedents), the intermediate state is captured and used to build a
+minimal/partial research pack. This reduces the number of complete no-pack
+timeouts and provides richer diagnostic information for questions that still
+cannot produce a pack.
+
+### Added
+
+- Minimal pack rescue context in `src/app/service.ts`:
+  - `MinimalPackRescueContext` type with intermediate phase state tracking
+  - `MinimalPackRescueReason` type for classifying rescue attempts
+  - `PartialDiagnosticPack` type for enhanced no-pack diagnostics
+  - `getLastPartialState()` method for benchmark runner to access partial state on timeout
+  - Partial state tracking after each phase completion
+- Minimal pack rescue logic in `src/benchmark/benchmarkRunner.ts`:
+  - `buildMinimalRescuePack()` — builds a minimal pack from intermediate state
+  - `deriveRescueReason()` — classifies the rescue reason
+  - On timeout, service partial state is accessed and used to build minimal pack
+  - If minimal pack contract audit passes, it's a generated pack
+  - If contract audit fails, enhanced no-pack diagnostic is produced
+- Enhanced no-pack diagnostic fields:
+  - `partialLegislationCount`
+  - `partialVerifiedPrecedentCount`
+  - `lastCompletedPhase`
+  - `retrievalTimeoutSources`
+  - `canRetryWithLongerBudget`
+  - `canRetryWithNarrowerIssue`
+  - `partialStateAvailable`
+- Rescue/telemetry metrics in `BenchmarkReport`:
+  - `minimalPackRescueAttemptCount`
+  - `minimalPackRescueSuccessCount`
+  - `minimalPackRescueFailureCount`
+  - `noPackDiagnosticEnhancedCount`
+  - `partialStateAvailableCount`
+  - `generatedFromPartialStateCount`
+
+### Changed
+
+- Service now tracks intermediate state as each phase completes
+- Benchmark runner accesses partial state on timeout for minimal pack rescue
+- Generated minimal packs run through existing contract audit
+- No source sufficiency threshold was relaxed
+- No non-gov.tr source is accepted as verified
+- No fake required pack fields are generated
+
+### Safety invariants
+
+- Generated minimal packs still run contract audit — contract failures remain hard
+- No-pack diagnostics do not hard-fail gates (v0.41 semantics preserved)
+- No new live source integration
+- No active health legislation coverage promotion
+- No risk level, urgent action, definitive legal opinion, petition or defense draft
+- No local-yargi vendor/import
+
 ## [0.41.0] — 2026-05-27 — Live Timeout Gate Semantics and Partial/No-Pack Diagnostics
 
 > Tag: `v0.41.0-live-timeout-gate-semantics-and-partial-pack`
