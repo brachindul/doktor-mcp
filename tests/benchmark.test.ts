@@ -476,6 +476,14 @@ describe("Benchmark Dataset & Runner Tests", () => {
         expect(parsed.results.length).toBe(1);
         expect(parsed.results[0].passed).toBe(false);
         expect(parsed.failedCount).toBe(1);
+        expect(parsed.results[0].packGenerated).toBe(false);
+        expect(parsed.results[0].packFailureKind).toBe("pack_generation_failed_timeout");
+        expect(parsed.results[0].noPackDiagnostic).toBeDefined();
+        expect(parsed.timeoutNoPackCount).toBe(1);
+        expect(parsed.noPackDiagnosticCount).toBe(1);
+        expect(parsed.packGenerationFailureDistribution.pack_generation_failed_timeout).toBe(1);
+        expect(parsed.liveReliabilityGate.gateFailures).toEqual([]);
+        expect(parsed.liveReliabilityGate.timeoutNoPackCount).toBe(1);
       } finally {
         if (fs.existsSync(tempOutDir)) fs.rmSync(tempOutDir, { recursive: true, force: true });
       }

@@ -47,6 +47,31 @@ describe("buildLiveReliabilityGate", () => {
     expect(gate.gateFailures[0]).toContain("2");
   });
 
+  it("does not hard fail timeout/no-pack diagnostics when no generated pack contract failed", () => {
+    const gate = buildLiveReliabilityGate(baseInput({
+      contractFailedCount: 0,
+      generatedPackContractFailCount: 0,
+      packGenerationFailedCount: 2,
+      timeoutNoPackCount: 2
+    }));
+    expect(gate.gatePassed).toBe(true);
+    expect(gate.gateFailures.some((f) => f.includes("CONTRACT_FAIL"))).toBe(false);
+    expect(gate.timeoutNoPackCount).toBe(2);
+    expect(gate.gateObservations.some((o) => o.includes("TIMEOUT_NO_PACK"))).toBe(true);
+  });
+
+  it("keeps generated pack contract failures as hard failures", () => {
+    const gate = buildLiveReliabilityGate(baseInput({
+      contractFailedCount: 1,
+      generatedPackContractFailCount: 1,
+      packGenerationFailedCount: 2,
+      timeoutNoPackCount: 2
+    }));
+    expect(gate.gatePassed).toBe(false);
+    expect(gate.generatedPackContractFailCount).toBe(1);
+    expect(gate.gateFailures.some((f) => f.includes("CONTRACT_FAIL"))).toBe(true);
+  });
+
   it("fails on contractUnofficialSourceCount > 0", () => {
     const gate = buildLiveReliabilityGate(baseInput({ contractUnofficialSourceCount: 1 }));
     expect(gate.gatePassed).toBe(false);

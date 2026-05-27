@@ -22,6 +22,10 @@ export interface BetaReadinessReport {
     issueCoverageDistribution: Record<string, number>;
     lowConfidenceRouteCount: number;
     timeoutQuestionCount: number;
+    timeoutNoPackCount: number;
+    sourceUnavailableNoPackCount: number;
+    budgetExhaustedNoPackCount: number;
+    generatedPackContractFailCount: number;
     cannotComposeResearchPackCount: number;
     averageLegislationPerPack: number;
     averageVerifiedPrecedentPerPack: number;
@@ -50,9 +54,7 @@ export function evaluateBetaReadiness(report: BenchmarkReport): BetaReadinessRep
   }
 
   const contractPassedCount = report.results.filter((r) => r.contractPassed).length;
-  const contractFailedCount = report.results.filter(
-    (r) => !r.contractPassed && !r.legislation.sourceUnavailable.some((e) => e.errorCode === "pack_generation_failed")
-  ).length;
+  const contractFailedCount = report.results.filter((r) => r.packGenerated && !r.contractPassed).length;
 
   const unsafeAdviceDetectedCount = report.results.filter((r) => r.unsafeAdviceDetected).length;
   const unofficialSourceDetectedCount = report.results.filter((r) => r.unofficialSourceDetected).length;
@@ -98,6 +100,10 @@ export function evaluateBetaReadiness(report: BenchmarkReport): BetaReadinessRep
   );
   const timeoutQuestionCount = timeoutQuestions.length;
   const timeoutQuestionIds = timeoutQuestions.map((r) => r.id);
+  const timeoutNoPackCount = report.results.filter((r) => !r.packGenerated && r.packFailureKind === "pack_generation_failed_timeout").length;
+  const sourceUnavailableNoPackCount = report.results.filter((r) => !r.packGenerated && r.packFailureKind === "pack_generation_failed_source_unavailable").length;
+  const budgetExhaustedNoPackCount = report.results.filter((r) => !r.packGenerated && r.packFailureKind === "pack_generation_failed_budget_exhausted").length;
+  const generatedPackContractFailCount = report.results.filter((r) => r.packGenerated && !r.contractPassed).length;
 
   const cannotComposeResearchPackCount = report.results.filter((r) => !r.canComposeResearchPack).length;
 
@@ -235,6 +241,10 @@ export function evaluateBetaReadiness(report: BenchmarkReport): BetaReadinessRep
       issueCoverageDistribution,
       lowConfidenceRouteCount,
       timeoutQuestionCount,
+      timeoutNoPackCount,
+      sourceUnavailableNoPackCount,
+      budgetExhaustedNoPackCount,
+      generatedPackContractFailCount,
       cannotComposeResearchPackCount,
       averageLegislationPerPack,
       averageVerifiedPrecedentPerPack,

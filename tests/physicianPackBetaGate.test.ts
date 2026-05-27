@@ -126,6 +126,11 @@ function createMockItem(id: string, overrides: Partial<BenchmarkItemResult> = {}
     missingAuthorityTypes: [],
     sourceSufficiencyReasonCount: 0,
     canComposeResearchPack: true,
+    packGenerated: true,
+    packFailureKind: "none",
+    packGenerationFailureReason: null,
+    failedPhase: null,
+    partialPackGenerated: false,
     notes: "",
     ...overrides
   };
@@ -326,6 +331,56 @@ describe("Beta Readiness Gate", () => {
     expect(betaReport.gatePassed).toBe(false);
     expect(betaReport.betaReadinessLevel).toBe("not_ready");
     expect(betaReport.failures).toContain("Contract check failed for 1 question(s). Mandatory fields or sections are missing.");
+  });
+
+  it("does not treat timeout/no-pack as generated-pack contract hard failure", () => {
+    const timeoutItem = createMockItem("timeout-q", {
+      passed: false,
+      regressionStatus: "failed",
+      auditStatus: "error",
+      audit: { ok: false, errors: ["Pack generation threw error: Question timed out after 30000ms"], warnings: [] },
+      contractPassed: false,
+      packGenerated: false,
+      packFailureKind: "pack_generation_failed_timeout",
+      packGenerationFailureReason: "Question timed out after 30000ms",
+      failedPhase: "unknown",
+      partialPackGenerated: false,
+      legislation: {
+        selectedCount: 0,
+        expectedPrimaryMatched: false,
+        expectedPrimaryLegislation: [],
+        firstLegislationName: null,
+        firstArticleNo: null,
+        priorityMatch: false,
+        quotePresent: false,
+        sourceTracePresent: false,
+        sourceUnavailable: [{ source: "benchmark", errorCode: "pack_generation_failed", message: "Question timed out after 30000ms" }]
+      },
+      precedents: {
+        searchedSources: [], selectedUsableCount: 0, excludedCount: 0, exclusionReasonsBreakdown: {}, sourceUnavailableBreakdown: [],
+        verifiedHighCourtPrecedentsCount: 0, metadataOnlyUsedAsPrecedent: false, proceduralOnlyUsedAsPrecedent: false,
+        noReasoningUsedAsPrecedent: false, verifiedPrecedentAudit: []
+      },
+      sourceSufficiencyLevel: "insufficient",
+      canComposeResearchPack: false,
+      missingAuthorityTypes: ["legislation", "highCourtPrecedent", "officialSourceTrace"],
+      noPackDiagnostic: {
+        canComposeResearchPack: false,
+        packGenerationFailureReason: "Question timed out after 30000ms",
+        failedPhase: "unknown",
+        elapsedMs: 30000,
+        sourceSufficiencyLevel: "insufficient",
+        missingAuthorityTypes: ["legislation", "highCourtPrecedent", "officialSourceTrace"],
+        coverageGaps: [],
+        recommendedNextDiagnostic: "timeout diagnostic"
+      }
+    });
+    const report = createMockReport([timeoutItem]);
+    const betaReport = evaluateBetaReadiness(report);
+    expect(betaReport.gatePassed).toBe(true);
+    expect(betaReport.metrics.contractFailedCount).toBe(0);
+    expect(betaReport.metrics.timeoutNoPackCount).toBe(1);
+    expect(betaReport.metrics.generatedPackContractFailCount).toBe(0);
   });
 
   it("should trigger hard failure when unsafe advice is detected", () => {

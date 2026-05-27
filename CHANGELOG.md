@@ -1,5 +1,78 @@
 # Changelog
 
+## [0.41.0] — 2026-05-27 — Live Timeout Gate Semantics and Partial/No-Pack Diagnostics
+
+> Tag: `v0.41.0-live-timeout-gate-semantics-and-partial-pack`
+
+### Summary
+
+Aligns live timeout/no-pack semantics across `liveReliabilityGate` and
+`physicianPackBetaGate`. Pack generation failures caused by timeout, source
+unavailability, or budget exhaustion are now classified separately from
+generated-pack contract failures. A generated pack with contract errors remains
+as a soft diagnostic observation. This preserves the safety contract while
+removing the v0.40 semantic mismatch where beta gate passed but reliability gate
+could fail on no-pack timeouts as `CONTRACT_FAIL`.
+
+### Added
+
+- Result-level failure taxonomy in `src/benchmark/benchmarkRunner.ts`:
+  - `PackFailureKind`
+  - `packGenerated`
+  - `packFailureKind`
+  - `packGenerationFailureReason`
+  - `failedPhase`
+  - `noPackDiagnostic`
+  - `partialPackGenerated`
+- Report-level metrics:
+  - `packGenerationFailureDistribution`
+  - `timeoutNoPackCount`
+  - `sourceUnavailableNoPackCount`
+  - `budgetExhaustedNoPackCount`
+  - `generatedPackContractFailCount`
+  - `generatedPackUnsafeCount`
+  - `generatedPackUnofficialCount`
+  - `liveReliabilityGateTimeoutObservationCount`
+  - `noPackDiagnosticCount`
+  - `partialPackGeneratedCount`
+- `liveReliabilityGate` explicit metrics:
+  - `timeoutNoPackCount`
+  - `generatedPackContractFailCount`
+  - `packGenerationFailedCount`
+  - `sourceUnavailableNoPackCount`
+  - `budgetExhaustedNoPackCount`
+
+### Changed
+
+- `liveReliabilityGate` now treats timeout/source-unavailable/budget-exhausted
+  no-pack failures as soft observations, not hard `CONTRACT_FAIL`.
+- Generated-pack contract failure remains a hard reliability gate failure.
+- `physicianPackBetaGate` and `liveReliabilityGate` now share the same generated
+  pack vs no-pack failure distinction.
+- No source sufficiency threshold was relaxed.
+- No non-gov.tr source is accepted as verified.
+- No fake required pack fields are generated for no-pack diagnostics.
+
+### Tests
+
+- Added/updated tests covering:
+  - timeout/no-pack item does not hard fail `liveReliabilityGate`
+  - generated-pack contract failure remains hard fail
+  - unsafe advice, unofficial source, mock fallback, quote-unusable precedent remain hard failures
+  - beta gate and live reliability gate timeout/no-pack semantics are aligned
+  - `packGenerationFailureDistribution` is correct
+  - no-pack diagnostic is JSON-parseable
+  - partial generated pack still runs contract audit
+  - existing doctor and real-world benchmark behavior remains stable
+
+### Safety invariants
+
+- No new live source integration.
+- No active health legislation coverage promotion.
+- No gov.tr-external source verification.
+- No risk level, urgent action, definitive legal opinion, petition or defense draft.
+- No local-yargi vendor/import.
+
 ## [0.40.0] — 2026-05-26 — Live Legislation Phase Hardening
 
 > Tag: `v0.40.0-live-legislation-phase-hardening`

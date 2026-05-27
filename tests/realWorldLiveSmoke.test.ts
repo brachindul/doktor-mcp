@@ -127,6 +127,11 @@ function createMockItem(id: string, overrides: Partial<BenchmarkItemResult> = {}
     missingAuthorityTypes: [],
     sourceSufficiencyReasonCount: 0,
     canComposeResearchPack: true,
+    packGenerated: true,
+    packFailureKind: "none",
+    packGenerationFailureReason: null,
+    failedPhase: null,
+    partialPackGenerated: false,
     notes: "",
     ...overrides
   };
@@ -245,19 +250,30 @@ function createMockReport(results: BenchmarkItemResult[]): BenchmarkReport {
       timedOutSources: []
     },
     liveReliabilityGate: {
+      totalLiveQuestions: results.length,
+      livePassedCount: results.filter(r => r.passed).length,
+      liveFailedCount: results.filter(r => !r.passed).length,
+      mockFallbackDetected: false,
+      timeoutCount: 0,
+      rateLimitCount: 0,
+      sourceUnavailableCount: 0,
+      transientFailureCount: 0,
+      totalRetries: 0,
+      totalBackoffMs: 0,
+      cacheHitCount: 0,
+      cacheMissCount: 0,
+      networkRequestMadeCount: 0,
+      verifiedPrecedentCount: results.reduce((sum, r) => sum + r.precedents.verifiedHighCourtPrecedentsCount, 0),
+      sourceSufficiencyDistribution: [],
+      quoteUnusableInVerifiedCount: 0,
+      generatedPackContractFailCount: 0,
+      packGenerationFailedCount: 0,
+      timeoutNoPackCount: 0,
+      sourceUnavailableNoPackCount: 0,
+      budgetExhaustedNoPackCount: 0,
       gatePassed: true,
       gateFailures: [],
-      gateObservations: [],
-      scalerMetrics: {
-        totalQuestions: results.length,
-        mockFallbackCount: 0,
-        contractFailedCount: 0,
-        unofficialSourceCount: 0,
-        ineligiblePrecedentCount: 0,
-        timeoutCount: 0,
-        rateLimitCount: 0,
-        insufficientSufficiencyCount: 0
-      }
+      gateObservations: []
     },
     timeBudgetMetrics: {
       questionsWithBudget: results.length,
@@ -288,6 +304,16 @@ function createMockReport(results: BenchmarkItemResult[]): BenchmarkReport {
       unavailableDecisionCount: 0,
       perSourceFetchStatusDistribution: {}
     },
+    packGenerationFailureDistribution: { none: results.length },
+    timeoutNoPackCount: 0,
+    sourceUnavailableNoPackCount: 0,
+    budgetExhaustedNoPackCount: 0,
+    generatedPackContractFailCount: 0,
+    generatedPackUnsafeCount: 0,
+    generatedPackUnofficialCount: 0,
+    liveReliabilityGateTimeoutObservationCount: 0,
+    noPackDiagnosticCount: 0,
+    partialPackGeneratedCount: 0,
     results
   };
 }
@@ -309,6 +335,11 @@ describe("Live Real-World Beta Smoke & Hardening Tests", () => {
       createMockItem("q1", { contractPassed: true }),
       createMockItem("q2", {
         contractPassed: false, // timeout empty pack contract fail
+        packGenerated: false,
+        packFailureKind: "pack_generation_failed_timeout",
+        packGenerationFailureReason: "timed out after 30000ms",
+        failedPhase: "unknown",
+        partialPackGenerated: false,
         legislation: {
           selectedCount: 0,
           expectedPrimaryMatched: false,
@@ -342,6 +373,8 @@ describe("Live Real-World Beta Smoke & Hardening Tests", () => {
       createMockItem("q1", { contractPassed: true }),
       createMockItem("q2", {
         contractPassed: false, // contract failed but NO timeout error code
+        packGenerated: true,
+        packFailureKind: "generated_pack_contract_fail",
         legislation: {
           selectedCount: 1,
           expectedPrimaryMatched: true,
@@ -397,4 +430,3 @@ describe("Live Real-World Beta Smoke & Hardening Tests", () => {
     expect(betaReport.failures).toContain("Mock fallback leakage detected in live mode for 1 question(s).");
   });
 });
-

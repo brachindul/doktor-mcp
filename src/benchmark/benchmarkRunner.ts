@@ -28,6 +28,16 @@ import * as path from "path";
 export type QualityBand = "good" | "acceptable" | "needs_tuning" | "unsafe";
 export type RegressionStatus = "passed" | "failed";
 export type AuditStatus = "clean" | "warning" | "error";
+export type PackFailureKind =
+  | "none"
+  | "generated_pack_contract_fail"
+  | "pack_generation_failed_timeout"
+  | "pack_generation_failed_source_unavailable"
+  | "pack_generation_failed_budget_exhausted"
+  | "pack_generation_failed_unknown"
+  | "generated_pack_unsafe"
+  | "generated_pack_unofficial_source"
+  | "mock_fallback_in_live";
 
 export interface BenchmarkScores {
   legislationMatchScore: number;
@@ -130,6 +140,21 @@ export interface BenchmarkItemResult {
   missingAuthorityTypes: MissingAuthorityType[];
   sourceSufficiencyReasonCount: number;
   canComposeResearchPack: boolean;
+  packGenerated: boolean;
+  packFailureKind: PackFailureKind;
+  packGenerationFailureReason: string | null;
+  failedPhase: "legislation" | "precedent" | "pack_generation" | "unknown" | null;
+  noPackDiagnostic?: {
+    canComposeResearchPack: false;
+    packGenerationFailureReason: string;
+    failedPhase: "legislation" | "precedent" | "pack_generation" | "unknown";
+    elapsedMs: number;
+    sourceSufficiencyLevel: SourceSufficiencyLevel;
+    missingAuthorityTypes: MissingAuthorityType[];
+    coverageGaps: string[];
+    recommendedNextDiagnostic: string;
+  };
+  partialPackGenerated: boolean;
   notes: string;
   // Time budget telemetry (live mode only, v0.39.0)
   timeBudgetTelemetry?: TimeBudgetTelemetry;
@@ -336,6 +361,16 @@ export interface BenchmarkReport {
     unavailableDecisionCount: number;
     perSourceFetchStatusDistribution: Record<string, Record<string, number>>;
   };
+  packGenerationFailureDistribution: Record<PackFailureKind, number>;
+  timeoutNoPackCount: number;
+  sourceUnavailableNoPackCount: number;
+  budgetExhaustedNoPackCount: number;
+  generatedPackContractFailCount: number;
+  generatedPackUnsafeCount: number;
+  generatedPackUnofficialCount: number;
+  liveReliabilityGateTimeoutObservationCount: number;
+  noPackDiagnosticCount: number;
+  partialPackGeneratedCount: number;
   results: BenchmarkItemResult[];
 }
 
@@ -581,6 +616,19 @@ export function evaluateBenchmarkItem(input: {
     missingAuthorityTypes: sufficiencyResult.missingAuthorityTypes,
     sourceSufficiencyReasonCount: sufficiencyResult.reasons.length,
     canComposeResearchPack: sufficiencyResult.canComposeResearchPack,
+    packGenerated: true,
+    packFailureKind: !auditRes.contractCheck.passed
+      ? "generated_pack_contract_fail"
+      : auditRes.contractCheck.unsafeAdviceDetected
+        ? "generated_pack_unsafe"
+        : auditRes.contractCheck.unofficialSourceDetected
+          ? "generated_pack_unofficial_source"
+          : usedMockSourceInLiveMode
+            ? "mock_fallback_in_live"
+            : "none",
+    packGenerationFailureReason: null,
+    failedPhase: null,
+    partialPackGenerated: sufficiencyResult.level !== "sufficient",
     notes: question.notes,
     timeBudgetTelemetry: input.timeBudgetTelemetry
   };
@@ -651,6 +699,8 @@ function evaluateThrownBenchmarkItem(input: {
   error: unknown;
 }): BenchmarkItemResult {
   const message = input.error instanceof Error ? input.error.message : String(input.error);
+  const packFailureKind = classifyPackGenerationFailure(message);
+  const failedPhase = packFailureKind === "pack_generation_failed_budget_exhausted" ? "pack_generation" : "unknown";
   const emptyPack = {
     relevantLegislation: [],
     verifiedHighCourtPrecedents: [],
@@ -757,8 +807,44 @@ function evaluateThrownBenchmarkItem(input: {
     missingAuthorityTypes: ["legislation", "highCourtPrecedent", "officialSourceTrace"],
     sourceSufficiencyReasonCount: 1,
     canComposeResearchPack: false,
+    packGenerated: false,
+    packFailureKind,
+    packGenerationFailureReason: message,
+    failedPhase,
+    noPackDiagnostic: {
+      canComposeResearchPack: false,
+      packGenerationFailureReason: message,
+      failedPhase,
+      elapsedMs: input.durationMs,
+      sourceSufficiencyLevel: "insufficient",
+      missingAuthorityTypes: ["legislation", "highCourtPrecedent", "officialSourceTrace"],
+      coverageGaps: [],
+      recommendedNextDiagnostic: diagnosticForPackFailure(packFailureKind)
+    },
+    partialPackGenerated: false,
     notes: input.question.notes
   };
+}
+
+function classifyPackGenerationFailure(message: string): PackFailureKind {
+  const lower = message.toLowerCase();
+  if (lower.includes("timed out") || lower.includes("timeout")) return "pack_generation_failed_timeout";
+  if (lower.includes("budget") || lower.includes("exhausted")) return "pack_generation_failed_budget_exhausted";
+  if (lower.includes("source unavailable") || lower.includes("unavailable")) return "pack_generation_failed_source_unavailable";
+  return "pack_generation_failed_unknown";
+}
+
+function diagnosticForPackFailure(kind: PackFailureKind): string {
+  switch (kind) {
+    case "pack_generation_failed_timeout":
+      return "Pack generation timed out before a safe research pack could be composed; inspect phase telemetry and source availability.";
+    case "pack_generation_failed_budget_exhausted":
+      return "Time budget was exhausted before pack generation; inspect legislation/precedent phase allocation.";
+    case "pack_generation_failed_source_unavailable":
+      return "A required live source was unavailable before pack generation; retry live sources or inspect source adapters.";
+    default:
+      return "Pack generation failed before a safe research pack could be composed; inspect thrown error and source diagnostics.";
+  }
 }
 
 // Known gaps — legislation that would be valuable but whose mevzuat.gov.tr
@@ -941,12 +1027,15 @@ function buildLiveReliabilityGateFromResults(results: BenchmarkItemResult[], sou
   const quoteUnusableInVerifiedCount = results.reduce((sum, r) =>
     sum + r.precedents.verifiedPrecedentAudit.filter((e) => !e.quoteUsable).length, 0);
 
+  const generatedPackContractFailCount = results.filter((r) => r.packGenerated && !r.contractPassed).length;
+  const packGenerationFailed = results.filter((r) => !r.packGenerated);
+
   return buildLiveReliabilityGate({
     totalLiveQuestions: sourceMode === "live" ? results.length : liveResults.length,
     livePassedCount: results.filter((r) => r.passed).length,
     liveFailedCount: results.filter((r) => !r.passed).length,
     mockFallbackDetected: results.some((r) => r.usedMockSourceInLiveMode),
-    contractFailedCount: results.filter((r) => !r.contractPassed).length,
+    contractFailedCount: generatedPackContractFailCount,
     contractUnofficialSourceCount: results.filter((r) => r.unofficialSourceDetected).length,
     ineligibleUsedCount,
     timeoutCount: timeoutMetrics.timeoutCount,
@@ -960,8 +1049,36 @@ function buildLiveReliabilityGateFromResults(results: BenchmarkItemResult[], sou
     networkRequestMadeCount,
     verifiedPrecedentCount: results.reduce((sum, r) => sum + r.precedents.verifiedHighCourtPrecedentsCount, 0),
     sourceSufficiencyDistribution,
-    quoteUnusableInVerifiedCount
+    quoteUnusableInVerifiedCount,
+    generatedPackContractFailCount,
+    packGenerationFailedCount: packGenerationFailed.length,
+    timeoutNoPackCount: packGenerationFailed.filter((r) => r.packFailureKind === "pack_generation_failed_timeout").length,
+    sourceUnavailableNoPackCount: packGenerationFailed.filter((r) => r.packFailureKind === "pack_generation_failed_source_unavailable").length,
+    budgetExhaustedNoPackCount: packGenerationFailed.filter((r) => r.packFailureKind === "pack_generation_failed_budget_exhausted").length
   });
+}
+
+function buildPackFailureMetrics(results: BenchmarkItemResult[]) {
+  const distribution = countBy(results, (r) => r.packFailureKind);
+  const timeoutNoPackCount = results.filter((r) => r.packFailureKind === "pack_generation_failed_timeout").length;
+  const sourceUnavailableNoPackCount = results.filter((r) => r.packFailureKind === "pack_generation_failed_source_unavailable").length;
+  const budgetExhaustedNoPackCount = results.filter((r) => r.packFailureKind === "pack_generation_failed_budget_exhausted").length;
+  const generatedPackContractFailCount = results.filter((r) => r.packGenerated && !r.contractPassed).length;
+  const generatedPackUnsafeCount = results.filter((r) => r.packGenerated && r.unsafeAdviceDetected).length;
+  const generatedPackUnofficialCount = results.filter((r) => r.packGenerated && r.unofficialSourceDetected).length;
+  const noPackDiagnosticCount = results.filter((r) => Boolean(r.noPackDiagnostic)).length;
+  const partialPackGeneratedCount = results.filter((r) => r.partialPackGenerated).length;
+  return {
+    packGenerationFailureDistribution: distribution,
+    timeoutNoPackCount,
+    sourceUnavailableNoPackCount,
+    budgetExhaustedNoPackCount,
+    generatedPackContractFailCount,
+    generatedPackUnsafeCount,
+    generatedPackUnofficialCount,
+    noPackDiagnosticCount,
+    partialPackGeneratedCount
+  };
 }
 
 function buildProvenanceMetricsFromResults(results: BenchmarkItemResult[]): BenchmarkReport["provenanceMetrics"] {
@@ -1045,6 +1162,8 @@ function buildBenchmarkReport(input: {
   const relevanceScores = verifiedAuditEntries
     .map((entry) => entry.healthLawRelevanceScore)
     .filter((score): score is number => typeof score === "number");
+  const liveReliabilityGate = buildLiveReliabilityGateFromResults(input.results, input.sourceMode);
+  const packFailureMetrics = buildPackFailureMetrics(input.results);
 
   return {
     timestamp: input.startedAt,
@@ -1126,9 +1245,11 @@ function buildBenchmarkReport(input: {
     contractUnsafeAdviceCount: input.results.filter((r) => r.unsafeAdviceDetected).length,
     ...buildQueryAggregateMetrics(input.results, verifiedAuditEntries),
     liveTimeoutMetrics: buildLiveTimeoutMetrics(input.results),
-    liveReliabilityGate: buildLiveReliabilityGateFromResults(input.results, input.sourceMode),
+    liveReliabilityGate,
     timeBudgetMetrics: buildTimeBudgetMetrics(input.results),
     provenanceMetrics: buildProvenanceMetricsFromResults(input.results),
+    ...packFailureMetrics,
+    liveReliabilityGateTimeoutObservationCount: liveReliabilityGate.gateObservations.filter((o) => o.includes("TIMEOUT")).length,
     results: input.results
   };
 }
