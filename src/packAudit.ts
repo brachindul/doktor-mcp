@@ -86,7 +86,21 @@ const MVP_FORBIDDEN_PHRASES = [
   // also catch common ASCII/unaccented variants
   "kesin hukuki opinion",
   "petition draft",
-  "defense draft"
+  "defense draft",
+  // v0.43.0: output safety language guards
+  "kesin olarak sorumlusunuz",
+  "kesin beraat eder",
+  "derhal şunu yapın",
+  "derhal sunu yapin",
+  "risk seviyesi yüksek",
+  "risk seviyesi dusuk",
+  "risk seviyesi düşük",
+  "savunma dilekçesi şöyle olmalı",
+  "savunma dilekcesi soyle olmali",
+  "şu cezayı alırsınız",
+  "su cezayi alirsiniz",
+  "şunu yapmanız gerekir",
+  "sunu yapmaniz gerekir"
 ];
 
 function isNonEmpty(val: unknown): boolean {

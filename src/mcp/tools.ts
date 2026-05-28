@@ -2,8 +2,9 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import { PhysicianLegalInformationService } from "../app/service.js";
-import type { CourtDecision } from "../contracts/legal.js";
+import type { CourtDecision, DoctorLegalInformationPack } from "../contracts/legal.js";
 import { buildPrecedentSelectionDiagnostics } from "../health/precedentFilter.js";
+import { formatDoctorPackResponse, detectForbiddenOutputPhrases } from "./formatDoctorPackResponse.js";
 
 const sourceModeSchema = z.enum(["mock", "live"]).default("mock");
 const precedentSourceSchema = z.enum(["yargitay", "danistay", "aym"]);
@@ -28,6 +29,43 @@ function jsonResult(value: unknown): CallToolResult {
   };
 }
 
+/**
+ * v0.43.0: Format pack response with safety guards.
+ * Falls back to raw pack if formatting fails.
+ */
+function formatPackResponse(pack: DoctorLegalInformationPack, options: {
+  coverageGaps?: string[];
+  retrievalTimeouts?: string[];
+  missingAuthorityTypes?: string[];
+  gateObservations?: string[];
+} = {}): Record<string, unknown> {
+  try {
+    const response = formatDoctorPackResponse(pack, options);
+    // Safety guard: check for forbidden output phrases in the pack
+    const forbiddenPhrases = detectForbiddenOutputPhrases(pack as unknown as Record<string, unknown>);
+    if (forbiddenPhrases.length > 0) {
+      (response as unknown as Record<string, unknown>)._forbiddenPhraseWarning = forbiddenPhrases;
+    }
+    return response as unknown as Record<string, unknown>;
+  } catch {
+    // Fallback: return raw pack with basic wrapper
+    return {
+      responseVersion: "doctor-pack-response/v1",
+      ok: true,
+      status: "full_pack",
+      pack,
+      summary: {
+        shortAnswer: pack.shortAnswer,
+        sourceSufficiency: pack.relevantLegislation.length > 0 ? "partial" : "insufficient",
+        verifiedLegislationCount: pack.relevantLegislation.length,
+        verifiedPrecedentCount: pack.verifiedHighCourtPrecedents.length,
+        coverageGapCount: 0,
+        timeoutOrRetrievalIssue: false
+      }
+    };
+  }
+}
+
 export function createMedicalLegalToolHandlers(service = new PhysicianLegalInformationService()) {
   return {
     classify_medical_legal_question: async (input: unknown) => service.classify(questionSchema.parse(input).question),
@@ -50,8 +88,10 @@ export function createMedicalLegalToolHandlers(service = new PhysicianLegalInfor
       const diagnostics = buildPrecedentSelectionDiagnostics(filtered, parsed.query ?? "");
       return { filtered, diagnostics };
     },
-    prepare_doctor_legal_information_pack: async (input: unknown) =>
-      service.prepareInformationPack(packInputSchema.parse(input))
+    prepare_doctor_legal_information_pack: async (input: unknown) => {
+      const pack = await service.prepareInformationPack(packInputSchema.parse(input));
+      return formatPackResponse(pack);
+    }
   };
 }
 

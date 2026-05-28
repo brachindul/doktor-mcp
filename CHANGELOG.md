@@ -1,5 +1,73 @@
 # Changelog
 
+## [0.43.0] — 2026-05-28 — MCP Output Product Polish
+
+> Tag: `v0.43.0-mcp-output-product-polish`
+
+### Summary
+
+Product polish for the MCP doctor pack output format. Adds a structured
+response wrapper (`DoctorPackResponse`) with clear separation between
+physician-facing content and diagnostic details. Adds a deterministic
+Markdown renderer for stable, human-readable output. Strengthens output
+safety language guards to prevent forbidden phrases from appearing in
+physician-facing text. All existing pack contract tests pass unchanged.
+
+### Added
+
+- `src/mcp/formatDoctorPackResponse.ts` — MCP response formatter:
+  - `DoctorPackResponse` type with `responseVersion: "doctor-pack-response/v1"`
+  - `formatDoctorPackResponse()` wraps pack into structured response
+  - `formatNoPackDiagnosticResponse()` for no-pack cases
+  - `detectForbiddenOutputPhrases()` safety guard
+  - `DoctorPackResponseStatus`: `full_pack` | `partial_pack` | `no_pack_diagnostic`
+  - `DoctorPackSummary` with `sourceSufficiency`, counts, `timeoutOrRetrievalIssue`
+  - `DoctorPackDiagnostics` with `coverageGaps`, `retrievalTimeouts`, `noPackReason`
+- `src/formatters/doctorPackMarkdown.ts` — deterministic Markdown renderer:
+  - `renderDoctorPackMarkdown()` with fixed section order:
+    1. Hekim Hukuki Bilgilendirme Paketi
+    2. Kısa Cevap
+    3. Hukuki Sınıflandırma
+    4. İlgili Resmi Mevzuat
+    5. Doğrulanmış Yüksek Mahkeme Emsalleri
+    6. Kaynak Sınırlılığı ve Eksik Bilgiler
+    7. Avukat İncelemesi Gerektiren Noktalar
+    8. Teknik Doğrulama Özeti
+  - `renderNoPackDiagnosticMarkdown()` for no-pack cases
+  - Safe opening statement: "Bu paket, aşağıdaki resmi kaynaklarla sınırlı hukuki bilgilendirme sağlar."
+  - Deterministic output (same input → same Markdown)
+- Output safety language guards in `src/packAudit.ts`:
+  - Forbidden phrases expanded with Turkish output-specific phrases
+  - Prevents: "kesin olarak sorumlusunuz", "kesin beraat eder", "derhal şunu yapın", etc.
+- 22 test cases in `tests/formatters/`:
+  - Full/partial/no-pack response formatting
+  - Status derivation (full_pack, partial_pack, no_pack_diagnostic)
+  - Source sufficiency derivation
+  - Diagnostics inclusion/exclusion
+  - Forbidden phrase detection
+  - Markdown section order, legislation, precedents, safe language
+  - Deterministic output
+- MCP `prepare_doctor_legal_information_pack` now returns `DoctorPackResponse`
+
+### Changed
+
+- `src/mcp/tools.ts`: pack handler returns formatted response with `pack` field for backward compatibility
+- `src/packAudit.ts`: expanded `MVP_FORBIDDEN_PHRASES` with output safety language
+
+### Backward compatibility
+
+- Raw `DoctorLegalInformationPack` still available in `response.pack`
+- Existing callers can access `response.pack` for raw data
+- `responseVersion` field allows future schema evolution
+
+### Safety invariants
+
+- No source sufficiency threshold was relaxed
+- No non-gov.tr source is accepted as verified
+- No fake required pack fields are generated
+- No risk level, urgent action, definitive legal opinion, petition or defense draft
+- No local-yargi vendor/import
+
 ## [0.42.0] — 2026-05-27 — Live Minimal Pack Rescue Diagnostics
 
 > Tag: `v0.42.0-live-minimal-pack-rescue`

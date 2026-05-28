@@ -134,10 +134,11 @@ describe("MCP legislation sourceMode", () => {
       liveDanistay: { searchHealthPrecedents: async () => [] } as any,
       liveBedesten: { searchHealthPrecedents: async () => [] } as any
     }));
-    const pack = await handlers.prepare_doctor_legal_information_pack({
+    const result = await handlers.prepare_doctor_legal_information_pack({
       question: "kişisel sağlık verisi",
       sourceMode: "live"
     });
+    const pack = (result as any).pack ?? result;
 
     expect(pack.relevantLegislation[0]?.verbatimQuote).toBe(liveProvision.verbatimText);
     expect(pack.relevantLegislation[0]?.sourceDocumentId).toBe(liveProvision.documentId);
@@ -158,10 +159,11 @@ describe("MCP legislation sourceMode", () => {
       liveDanistay: { searchHealthPrecedents: async () => [] } as any,
       liveBedesten: { searchHealthPrecedents: async () => [] } as any
     }));
-    const pack = await handlers.prepare_doctor_legal_information_pack({
+    const result = await handlers.prepare_doctor_legal_information_pack({
       question: "kişisel sağlık verisi",
       sourceMode: "live"
     });
+    const pack = (result as any).pack ?? result;
     const json = JSON.stringify(pack).toLocaleLowerCase("tr-TR");
 
     expect(pack.relevantLegislation).toEqual([]);
