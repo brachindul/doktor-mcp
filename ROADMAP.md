@@ -302,6 +302,81 @@
 
 ---
 
+## Faz 7 — Faz 6 Must-Have Düzeltmeleri (Kalite Açıkları)
+
+> Bu faz, Faz 6 sonrası canlı (`--sourceMode live`) inceleme ile tespit edilen gerçek
+> açıkları kapatır. Faz 6 must-have'lerinin 3'ünden 2'si kabul kriterini karşılamadı ve
+> T6.1 yeni bir HTML-hijyeni sorununu görünür kıldı. Bu faz v1 için bloklayıcıdır.
+
+### [ ] T7.1 — Karar metnindeki ham HTML'i temizle (sanitization)
+- **Sorun**: `preliminaryAssessment` cümlelerinde `prec.outcome` hiç temizlenmeden
+  basılıyor; hekime giden metinde ham HTML kalıyor: `<br>`, `&#39;`, `&#39;&#39;`,
+  `</font></p></body></html>` vb. `answerComposer.ts`'de de `extractOutcome`/`extractLegalReasoning`
+  zincirinde de HTML strip yok.
+- **Dosya**: `src/sources/precedentUtils.ts` (extract noktası) + `src/health/answerComposer.ts`.
+- **Yapılacak**:
+  - Paylaşılan bir `stripHtmlToText(raw)` yardımcı yaz: HTML etiketlerini kaldır, HTML
+    entity'lerini decode et (`&#39;`→`'`, `&amp;`→`&`, `&lt;`/`&gt;`, `&nbsp;` vb.),
+    fazla boşluğu sadeleştir, baştaki/sondaki artık işaretleri at.
+  - `outcome`, `legalAssessment`/`legalReasoning`, `factSummary`, `similarityDifference`
+    gibi hekime dönük tüm serbest-metin alanlarını çıkış noktasında bu fonksiyondan geçir.
+  - Çok uzun outcome metnini anlamlı bir cümle uzunluğuna kırp (ör. ilk cümle / ~200 char),
+    sonuna `…` ekle. Ham metni `decisionSourceTrace` içinde bırakmak serbest; hekim-dönük
+    alanlar temiz olmalı.
+- **Kabul**: Test: HTML/entity içeren bir karar → assessment cümlesinde `<`, `>`, `&#`,
+  `</` geçmiyor. Canlı smoke çıktısında ham HTML kalmıyor. Build + test yeşil.
+
+### [ ] T7.2 — T6.2 testini canlı/recorded-fixture'a çevir (mock yanıltması)
+- **Sorun**: `tests/healthPrimaryLegislationPriority.test.ts` `sourceMode: "mock"` kullanıyor;
+  mock veride Hasta Hakları zaten var, test geçiyor. Ama hata **canlı** modda: canlıda
+  "Hekim kişisel sağlık verisini izinsiz paylaştı" sorusu **yalnızca KVKK m.6** döndürüyor,
+  Hasta Hakları Yönetmeliği yüzeye çıkmıyor. Test gerçek bug'ı maskeliyor.
+- **Yapılacak**:
+  - Testi sanitize edilmiş **recorded-fixture** (canlı yanıt kaydı) ile yaz: gizlilik/kişisel-
+    sağlık-verisi sorusunda sağlık-birincil mevzuat KVKK'dan **önce** sıralanmalı; aksi halde
+    **hard-fail**.
+  - Canlıda sağlık-birincil mevzuatın **neden çıkmadığını** teşhis et (mevzuat.gov.tr
+    extraction fail mi, health mapping ateşlenmiyor mu, ranking mı eliyor) ve kök nedeni düzelt.
+    Düzeltilemiyorsa en azından `selectionDiagnostics`/`coverageGaps`'e açık gerekçe düşür —
+    sessizce KVKK'ya düşmesin.
+  - Mock testi silme; canlı/recorded testi ek olarak koy.
+- **Kabul**: Canlı/recorded test, KVKK'nın Hasta Hakları'nın önüne geçtiği (veya Hasta
+  Hakları'nın hiç gelmediği) durumu hard-fail yapıyor; kök neden ya düzeltildi ya da
+  diagnostic'te açık.
+
+### [ ] T7.3 — Emsal relevance eşiğini sıkılaştır (alakasız karar sızıntısı)
+- **Sorun**: Gizlilik sorusuna gelen verified emsaller arasında konuyla **alakasız** kararlar
+  var (tapu iptali/tescil — Yargıtay 1. HD; trafikte darp/suçun vasfı — Yargıtay 1. CD), ama
+  hepsi "'hasta mahremiyeti' sağlık hukuku aramasıyla eşleşti" etiketiyle assessment'a giriyor.
+  Relevance filtresi fazla gevşek.
+- **Dosya**: `src/health/precedentRelevance.ts`, `src/health/precedentRerank.ts`,
+  `src/health/answerComposer.ts`.
+- **Yapılacak**:
+  - `assessPrecedentRelevance` skoru düşük olan (zayıf relevance) kararlar **assessment
+    cümlesi olarak üretilmesin**; verified listede kalabilir ama `preliminaryAssessment`'a
+    yalnızca eşik üstü ilgili kararlar girsin.
+  - Assessment cümlesinin "eşleşti" iddiası, gerçek issue-signal örtüşmesine dayansın; sadece
+    geniş sağlık kelimesi yakaladıysa o cümleyi üretme (T6.1'deki "içerik yoksa üretme"
+    kuralının relevance versiyonu).
+  - Eşiği `runtimeConfig` üzerinden ayarlanabilir yap (varsayılan makul bir değer).
+- **Kabul**: Test: bilinen alakasız karar (tapu/trafik fixture) → assessment cümlesi
+  üretilmiyor; ilgili karar → üretiliyor. Canlı smoke'ta gizlilik sorusunun assessment'ında
+  konu-dışı daire görünmüyor.
+
+### [ ] T7.4 — T6.3'ü çöz veya kabul kriterini dürüstçe düşür
+- **Sorun**: T6.3 `[x]` işaretli ama commit'i "0 promoted" diyor; kabul kriteri "en az 3 girdi
+  `covered`'a yükselsin" idi — tutturulmadı. İşaret ile gerçek uyuşmuyor.
+- **Yapılacak** (ikisinden biri):
+  - **(a)** Gerçekten kapat: mevcut doğrulama hattıyla en az 3 çekirdek yönetmeliği canlı
+    gov.tr sourceId + RG ile doğrulayıp `covered` yap; uydurma kaynak yok. **VEYA**
+  - **(b)** Kapatılamıyorsa: T6.3'ün kabul kriterini resmen "doğrulanamayan girdiler net
+    gerekçeyle `needs_manual_review` kalır; coverage sayısı değişmeyebilir" olacak şekilde
+    güncelle, ROADMAP'te T6.3 başlığını buna göre düzelt ve durumu CHANGELOG'a dürüstçe yansıt.
+- **Kabul**: Ya `coveredOfficialLegislationCount` ≥ önceki+3, ya da T6.3 kabul kriteri ve
+  işareti gerçekle tutarlı; her iki durumda da uydurma kaynak yok.
+
+---
+
 ## Öncelik Sırası (loop için önerilen yürütme sırası)
 
 1. Faz 0 (tech debt — düşük risk, hızlı kazanç) → T0.1, T0.2, T0.5, T0.3, T0.4
@@ -312,6 +387,7 @@
 6. Faz 5 (sürüm/changelog tutarlılığı) → T5.1 → T5.2
 7. Faz 6 (v1 release readiness) → **önce must-have**: T6.1 → T6.2 → T6.3;
    sonra should-have: T6.4 → T6.5 → T6.6 → T6.7; en son nice-to-have: T6.8
+8. Faz 7 (Faz 6 kalite açıkları — v1 bloklayıcı) → T7.1 → T7.2 → T7.3 → T7.4
 
 **Her görev sonunda**: build + test yeşil → commit. Bir görev testi kırıyorsa, görev
 tamamlanmadan sıradakine geçme; önce düzelt.
