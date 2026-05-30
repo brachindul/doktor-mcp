@@ -35,10 +35,11 @@ describe("Ingest Fixture CLI", () => {
 
   it("should fail gracefully if raw file does not exist", () => {
     try {
-      execSync(`npx tsx src/ingestFixtureCli.ts --source danistay --raw ${join(TEMP_DIR, "non-existent.json")} --query test`, { encoding: "utf-8" });
+      execSync(`npx tsx src/ingestFixtureCli.ts --source danistay --raw ${join(TEMP_DIR, "non-existent.json")} --query test`, { encoding: "utf-8", stdio: "pipe" });
       expect.fail("Should have thrown an error");
     } catch (error: any) {
-      expect(error.stdout || error.stderr).toContain("Failed to read raw fixture");
+      const output = (error.stdout ?? "") + (error.stderr ?? "");
+      expect(output).toContain("Failed to read raw fixture");
       expect(error.status).toBe(1);
     }
   });

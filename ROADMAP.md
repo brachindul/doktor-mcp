@@ -6,7 +6,7 @@
 >
 > **Genel kurallar (her görevde geçerli):**
 > - `npm run build` (tsc) **0 hata** vermeli.
-> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 866 testi kırma.
+> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 874 testi kırma.
 > - Yeni davranış eklediysen **yeni test** yaz. Test yoksa görev "done" sayılmaz.
 > - Pakedin/araç JSON şekli (response contract) değişiyorsa README'yi güncelle.
 > - Türkçe kullanıcı mesajları ve İngilizce kod/yorum karışımını koru (mevcut konvansiyon).
@@ -141,7 +141,7 @@
 
 ## Faz 3 — Test ve Kalite Sağlamlaştırma
 
-### T3.1 — Test sırasındaki gürültüyü temizle
+### [x] T3.1 — Test sırasındaki gürültüyü temizle
 - **Sorun**: Test çıktısında `Failed to read raw fixture ... non-existent.json` ENOENT log'u var.
 - **Yapılacak**: İlgili testte beklenen hata yolunu sustur (logger mock / beklenen hata olarak
   yakala). Test çıktısı temiz olsun.
@@ -159,7 +159,7 @@
   hard eşik koyma (CI'yi kırma), sadece raporla.
 - **Kabul**: Coverage raporu üretiliyor; `.gitignore`'a `coverage/` zaten ekli (doğrula).
 
-### T3.4 — Determinizm/güvenlik regresyon testi
+### [x] T3.4 — Determinizm/güvenlik regresyon testi
 - **Yapılacak**: "KVKK gizlilik-dışı pakette görünmemeli", "live modda mock fallback olmamalı",
   "yasaklı hard-blocked ifade çıktıda olmamalı" invariyantlarını tek bir
   `tests/safetyInvariants.test.ts` altında toparla; benchmark'tan bağımsız hızlı koşsun.
