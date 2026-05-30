@@ -126,7 +126,7 @@ verified precedent entry must survive the reasoned-precedent filter.
 
 The MVP does not include:
 
-- a live AYM high court client
+- a live AYM high court client (AYM kararlar bilgi bankası HTML-only arayüzdür; JSON API yoktur — `synthetic_only` işaretlidir)
 - categorical risk level scoring ("risk seviyesi yüksek/düşük") without source reference or conditional language
 - immediate action instructions
 - petition or defense drafting
@@ -134,6 +134,15 @@ The MVP does not include:
 - categorical statements such as "liability exists" or "liability does not exist"
 - The tool may provide source-grounded conditional assessments (e.g., "kaynaklar şu yönde eğilim gösteriyor") but never categorical final judgments
 - model-only legal propositions that are not confirmed by MCP source records
+
+## New in v0.44.0
+
+- **`assessmentTone`**: Optional parameter (`"strict"` | `"grounded-advisory"`, default: `"grounded-advisory"`). In `strict` mode, only source lists are returned (no assessment). In `grounded-advisory` mode, a `preliminaryAssessment` is included with source-grounded conditional evaluation.
+- **`preliminaryAssessment`**: Optional response field containing `summary` and `sentences[]`. Each sentence has `text`, `sourceRef`, and `sourceLabel`. Sentences use real outcome/reasoning from precedents and verbatim quote snippets from legislation — never boilerplate.
+- **Legislation force metadata**: Provisions carry `inForce`, `lastAmendedDate`, and `repealed` fields (never assumes "in force" by default).
+- **Decision deduplication**: Cross-source duplicates (e.g., same case from Yargıtay and Bedesten) are deduplicated, keeping the richest version.
+- **Full Turkish diacritic policy**: All physician-facing text uses proper Turkish characters (no ASCII substitutions).
+- See [CHANGELOG.md](./CHANGELOG.md) for complete version history. See [COMPATIBILITY.md](./docs/COMPATIBILITY.md) for stability tiers.
 
 Rate limiting is reserved for live clients: the intended behavior is practical public-source
 traffic with adaptive backoff after a real block or source error, not an aggressive throttle
@@ -470,6 +479,29 @@ AYM remains a mock adapter.
 
 When one source is unavailable, the others continue. The pack is never blocked on a single
 adapter failure.
+
+### `assessmentTone` Parameter (v0.44.0)
+
+`prepare_doctor_legal_information_pack` also accepts an optional `assessmentTone` parameter:
+
+```json
+{
+  "question": "hasta hakları nelerdir",
+  "sourceMode": "mock",
+  "assessmentTone": "grounded-advisory"
+}
+```
+
+| Value | Behavior |
+|-------|----------|
+| `"grounded-advisory"` (default) | Pack includes `preliminaryAssessment` with source-grounded conditional sentences. Every sentence carries a `sourceRef`. |
+| `"strict"` | Old behavior: only source lists are returned. No assessment text is produced. |
+
+The `preliminaryAssessment` field contains `summary` (overview) and `sentences[]` (individual
+assessment items). Each sentence has `text`, `sourceRef`, and `sourceLabel`.
+Sentences use real outcome/reasoning from precedents and verbatim quote snippets from
+legislation — never boilerplate. See [COMPATIBILITY.md](./docs/COMPATIBILITY.md) for
+stability guarantees.
 
 ### Health Law Query Expansion
 

@@ -287,7 +287,7 @@
   doğru diakritiklerle) ve uygula.
 - **Kabul**: Çıktıdaki hekim-dönük alanlar tek aksan politikasına uyuyor; test bunu doğruluyor.
 
-#### [ ] T6.7 — README'yi gerçek canlı davranışla hizala
+#### [x] T6.7 — README'yi gerçek canlı davranışla hizala
 - **Yapılacak**: Özellikle mevzuat-önceliği ve kapsam iddialarını T6.2/T6.3 sonrası
   doğrulanmış gerçeklerle eşitle. Test edilmemiş iddia bırakma.
 - **Kabul**: README'deki davranış iddiaları canlı/recorded testlerle örtüşüyor.
