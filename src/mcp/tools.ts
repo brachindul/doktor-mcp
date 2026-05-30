@@ -4,7 +4,12 @@ import { z } from "zod";
 import { DoktorMcpInformationService } from "../app/service.js";
 import type { CourtDecision, DoctorLegalInformationPack } from "../contracts/legal.js";
 import { buildPrecedentSelectionDiagnostics } from "../health/precedentFilter.js";
-import { formatDoctorPackResponse, detectForbiddenOutputPhrases } from "./formatDoctorPackResponse.js";
+import {
+  formatDoctorPackResponse,
+  detectForbiddenOutputPhrases,
+  type SafeDoctorPackResponse,
+  type DoctorPackResponse
+} from "./formatDoctorPackResponse.js";
 
 const sourceModeSchema = z.enum(["mock", "live"]).default("mock");
 const precedentSourceSchema = z.enum(["yargitay", "danistay", "aym"]);
@@ -38,15 +43,16 @@ function formatPackResponse(pack: DoctorLegalInformationPack, options: {
   retrievalTimeouts?: string[];
   missingAuthorityTypes?: string[];
   gateObservations?: string[];
-} = {}): Record<string, unknown> {
+} = {}): SafeDoctorPackResponse | Record<string, unknown> {
   try {
-    const response = formatDoctorPackResponse(pack, options);
+    const response: DoctorPackResponse = formatDoctorPackResponse(pack, options);
+    const result: SafeDoctorPackResponse = { ...response };
     // Safety guard: check for forbidden output phrases in the pack
-    const forbiddenPhrases = detectForbiddenOutputPhrases(pack as unknown as Record<string, unknown>);
+    const forbiddenPhrases = detectForbiddenOutputPhrases(pack);
     if (forbiddenPhrases.length > 0) {
-      (response as unknown as Record<string, unknown>)._forbiddenPhraseWarning = forbiddenPhrases;
+      result._forbiddenPhraseWarning = forbiddenPhrases;
     }
-    return response as unknown as Record<string, unknown>;
+    return result;
   } catch {
     // Fallback: return raw pack with basic wrapper
     return {

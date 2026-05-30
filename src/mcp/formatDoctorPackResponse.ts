@@ -38,6 +38,11 @@ export interface DoctorPackResponse {
   diagnostics?: DoctorPackDiagnostics;
 }
 
+/** MCP-safe wrapper that may carry internal safety metadata. */
+export type SafeDoctorPackResponse = DoctorPackResponse & {
+  _forbiddenPhraseWarning?: string[];
+};
+
 // ─── Safety language guards ────────────────────────────────────────────────
 
 const FORBIDDEN_OUTPUT_PHRASES = [
@@ -64,8 +69,8 @@ const FORBIDDEN_OUTPUT_PHRASES = [
  * Check if any forbidden output phrases appear in the pack.
  * Returns list of forbidden phrases found.
  */
-export function detectForbiddenOutputPhrases(pack: Record<string, unknown>): string[] {
-  const allText = collectAllText(pack).toLowerCase();
+export function detectForbiddenOutputPhrases(pack: DoctorLegalInformationPack): string[] {
+  const allText = collectAllText(pack as unknown as Record<string, unknown>).toLowerCase();
   const found: string[] = [];
   for (const phrase of FORBIDDEN_OUTPUT_PHRASES) {
     if (allText.includes(phrase)) {

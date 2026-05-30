@@ -24,7 +24,7 @@
 - **Kabul**: `server.ts` artık literal sürüm taşımıyor; `npm run build` geçiyor;
   yeni `tests/version.test.ts` package.json ile server sürümünün eşitliğini doğruluyor.
 
-### T0.2 — `as unknown as Record<string, unknown>` cast'lerini temizle
+### [x] T0.2 — `as unknown as Record<string, unknown>` cast'lerini temizle
 - **Sorun**: `src/mcp/tools.ts` (ör. `formatPackResponse`) tip güvenliğini noktasal deliyor.
 - **Yapılacak**: `formatDoctorPackResponse` dönüş tipini gerçek bir `DoctorPackResponse`
   arayüzüne bağla (`src/mcp/formatDoctorPackResponse.ts` içinde export et). Çift cast'leri kaldır.
