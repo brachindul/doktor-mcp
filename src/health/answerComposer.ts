@@ -13,6 +13,7 @@ import type {
 import { assessPrecedentRelevance } from "./precedentRelevance.js";
 import { deduplicateDecisions } from "./decisionDedup.js";
 import { stripHtmlToText, truncateForDisplay } from "../util/textSanitizer.js";
+import { readConfig } from "../core/runtimeConfig.js";
 
 /** Controls whether the pack includes a source-grounded preliminary assessment. */
 export type AssessmentTone = "strict" | "grounded-advisory";
@@ -115,6 +116,11 @@ function buildPreliminaryAssessment(pack: DoctorLegalInformationPack): Prelimina
 
   // ── Precedent sentences: extract real outcome, dedupe chambers ──
   for (const prec of pack.verifiedHighCourtPrecedents) {
+    // Skip low-relevance decisions (e.g. land registry, traffic court)
+    const relevance = prec.healthLawRelevanceScore ?? 0;
+    const minScore = readConfig().assessment.minRelevanceScore;
+    if (relevance < minScore) continue;
+
     const courtLabel = prec.courtAndChamber ?? prec.court ?? "yüksek mahkeme";
 
     // Skip if no meaningful content to report

@@ -68,6 +68,12 @@ export const DoktorMcpConfigSchema = z.object({
 
   /** HTTP fetch timeout */
   fetchTimeoutMs: z.number().int().positive().default(15_000),
+
+  /** Assessment configuration */
+  assessment: z.object({
+    /** Minimum relevance score (0-5) for a precedent to appear in preliminaryAssessment */
+    minRelevanceScore: z.number().int().min(0).max(5).default(2),
+  }).default(() => ({ minRelevanceScore: 2 })),
 });
 
 export type DoktorMcpConfig = z.infer<typeof DoktorMcpConfigSchema>;
@@ -106,6 +112,12 @@ const ENV_SETTERS: Record<string, ConfigSetter> = {
   DOKTOR_MCP_RETRY_INITIAL_BACKOFF_MS: (c, v) => { (c.retry as Record<string, unknown>).initialBackoffMs = parseNum(v); },
   DOKTOR_MCP_RETRY_MAX_BACKOFF_MS:     (c, v) => { (c.retry as Record<string, unknown>).maxBackoffMs = parseNum(v); },
 
+  // assessment
+  DOKTOR_MCP_ASSESSMENT_MIN_RELEVANCE_SCORE: (c, v) => {
+    if (!c.assessment || typeof c.assessment !== "object") c.assessment = {};
+    (c.assessment as Record<string, unknown>).minRelevanceScore = parseNum(v);
+  },
+
   // scalars
   DOKTOR_MCP_ASSESSMENT_TONE: (c, v) => { c.assessmentTone = v; },
   DOKTOR_MCP_SOURCE_MODE:     (c, v) => { c.sourceMode = v; },
@@ -140,6 +152,7 @@ export function readConfig(): DoktorMcpConfig {
     rateLimit: {},
     cache: {},
     retry: {},
+    assessment: {},
   };
 
   const envOverrides = readEnvOverrides();

@@ -44,7 +44,7 @@ describe("preliminaryAssessment — meaningful content", () => {
         court: "yargitay" as any,
         chamber: "12. Ceza Dairesi",
         outcome: "Beraat",
-        legalReasoning: "Sanığın kastı bulunmadığından beraatine karar verilmiştir.",
+        legalReasoning: "Malpraktis ve komplikasyon değerlendirilmiştir. Sanığın kastı bulunmadığından beraatine karar verilmiştir.",
         topicTags: ["patient_rights"],
         evidence: { documentId: "yargitay-123", sourceId: "yargitay", sourceUrl: "" },
       }],
@@ -67,13 +67,13 @@ describe("preliminaryAssessment — meaningful content", () => {
       [
         {
           id: "dec-1", court: "yargitay" as any, chamber: "12. Ceza Dairesi",
-          outcome: "Beraat", legalReasoning: "Reasoning 1",
+          outcome: "Beraat", legalReasoning: "Malpraktis ve komplikasyon değerlendirilmiştir. Reasoning 1",
           topicTags: ["patient_rights"],
           evidence: { documentId: "y-1", sourceId: "yargitay", sourceUrl: "" },
         },
         {
           id: "dec-2", court: "yargitay" as any, chamber: "12. Ceza Dairesi",
-          outcome: "Mahkumiyet", legalReasoning: "Reasoning 2",
+          outcome: "Mahkumiyet", legalReasoning: "Tıbbi hata ve hekim kusuru değerlendirilmiştir. Reasoning 2",
           topicTags: ["patient_rights"],
           evidence: { documentId: "y-2", sourceId: "yargitay", sourceUrl: "" },
         },
@@ -119,7 +119,7 @@ describe("preliminaryAssessment — meaningful content", () => {
       }],
       [{
         id: "dec-ok", court: "yargitay" as any,
-        outcome: "Ret", legalReasoning: "Reasoning",
+        outcome: "Ret", legalReasoning: "Komplikasyon ve tıbbi hata değerlendirilmiştir.",
         topicTags: ["patient_rights"],
         evidence: { documentId: "dec-ref", sourceId: "yargitay", sourceUrl: "" },
       }],
@@ -157,13 +157,13 @@ describe("preliminaryAssessment — meaningful content", () => {
       [
         {
           id: "a", court: "yargitay" as any, chamber: "12. Ceza",
-          outcome: "Beraat", legalReasoning: "r1",
+          outcome: "Beraat", legalReasoning: "Malpraktis ve komplikasyon değerlendirilmiştir. r1",
           topicTags: ["patient_rights"],
           evidence: { documentId: "a", sourceId: "yargitay", sourceUrl: "" },
         },
         {
           id: "b", court: "danistay" as any, chamber: "10. Daire",
-          outcome: "Iptal", legalReasoning: "r2",
+          outcome: "Iptal", legalReasoning: "Tıbbi hata ve hekim kusuru değerlendirilmiştir. r2",
           topicTags: ["patient_rights"],
           evidence: { documentId: "b", sourceId: "danistay", sourceUrl: "" },
         },
@@ -189,7 +189,7 @@ describe("preliminaryAssessment — meaningful content", () => {
         court: "yargitay" as any,
         chamber: "Test Dairesi",
         outcome: "<p>Davanın <b>kabulüne</b> karar verildi.</p>",
-        legalReasoning: "Gerekçe metni.",
+        legalReasoning: "Malpraktis ve komplikasyon değerlendirilmiştir. Gerekçe metni.",
         topicTags: [],
         evidence: { documentId: "html-1", sourceId: "yargitay", sourceUrl: "" },
       }],

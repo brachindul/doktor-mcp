@@ -6,7 +6,7 @@
 >
 > **Genel kurallar (her görevde geçerli):**
 > - `npm run build` (tsc) **0 hata** vermeli.
-> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 1013 testi kırma.
+> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 1020 testi kırma.
 > - Yeni davranış eklediysen **yeni test** yaz. Test yoksa görev "done" sayılmaz.
 > - Pakedin/araç JSON şekli (response contract) değişiyorsa README'yi güncelle.
 > - Türkçe kullanıcı mesajları ve İngilizce kod/yorum karışımını koru (mevcut konvansiyon).
@@ -263,8 +263,11 @@
   `verifyBySourceIdDirect`, RG resolver) kullanarak bu girdiler için canlı mevzuat.gov.tr
   sourceId + RG doğrulamasını tamamla; doğrulananları `covered` yap ve aktif mapping'e bağla.
   Doğrulanamayan kalırsa **net gerekçeyle** `needs_manual_review` bırak (uydurma kaynak yok).
-- **Kabul**: En az 3 girdi `covered`'a yükseliyor; `coveredOfficialLegislationCount` artıyor;
-  doğrulanan her girdi gerçek gov.tr sourceId taşıyor; ilgili testler güncel.
+- **Kabul (T7.4 ile güncellendi)**: Dört CLI (`verify:health-legislation`, `verify:discovered`,
+  `verify:official-gazette`, `resolve:rg-leads`) çalıştırıldı. Sonuç: **0 terfi**. Cloudflare
+  anti-bot koruması PDF'lere erişimi engelliyor; Resmî Gazete sayfaları içerik uyuşmazlığı
+  veriyor. Tüm girdiler `needs_manual_review` olarak kaldı, her birine `v0.44.0 verification
+  attempt` notu eklendi. `coveredOfficialLegislationCount` değişmedi. Uydurma kaynak üretilmedi.
 
 ### Should-have
 
@@ -344,7 +347,7 @@
   Hakları'nın hiç gelmediği) durumu hard-fail yapıyor; kök neden ya düzeltildi ya da
   diagnostic'te açık.
 
-### [ ] T7.3 — Emsal relevance eşiğini sıkılaştır (alakasız karar sızıntısı)
+### [x] T7.3 — Emsal relevance eşiğini sıkılaştır (alakasız karar sızıntısı)
 - **Sorun**: Gizlilik sorusuna gelen verified emsaller arasında konuyla **alakasız** kararlar
   var (tapu iptali/tescil — Yargıtay 1. HD; trafikte darp/suçun vasfı — Yargıtay 1. CD), ama
   hepsi "'hasta mahremiyeti' sağlık hukuku aramasıyla eşleşti" etiketiyle assessment'a giriyor.
@@ -363,7 +366,7 @@
   üretilmiyor; ilgili karar → üretiliyor. Canlı smoke'ta gizlilik sorusunun assessment'ında
   konu-dışı daire görünmüyor.
 
-### [ ] T7.4 — T6.3'ü çöz veya kabul kriterini dürüstçe düşür
+### [x] T7.4 — T6.3'ü çöz veya kabul kriterini dürüstçe düşür
 - **Sorun**: T6.3 `[x]` işaretli ama commit'i "0 promoted" diyor; kabul kriteri "en az 3 girdi
   `covered`'a yükselsin" idi — tutturulmadı. İşaret ile gerçek uyuşmuyor.
 - **Yapılacak** (ikisinden biri):
