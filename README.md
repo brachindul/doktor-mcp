@@ -19,7 +19,7 @@ inputs for this project.
 
 ## Source Engine Port
 
-v0.15.2 ports the local-yargi source-engine hardening needed by the live adapters:
+The source-engine layer provides the hardening needed by the live adapters:
 
 - Bedesten requests use a shared `HttpClient` and `RateLimiter` path with bounded retry,
   `Retry-After` handling, exponential fallback backoff, jitter, and request telemetry.
@@ -41,7 +41,7 @@ The live official legislation adapter is wired into optional MCP tool flows:
 - full-text capability: official `MevzuatMetin` document retrieval
 - current extraction proof: PDF text extraction and article splitting for mapped legislation
 
-v0.5 makes health legislation the first live mapping path. Patient-rights and
+Health legislation is the first live mapping path. Patient-rights and
 informed-consent questions use the official generated PDF path for Hasta Haklari
 Yonetmeligi `4847`, including mapped articles `24` and `26`. Health-law mappings also
 cover Tibbi Deontoloji Nizamnamesi, Tababet ve Suabati Sanatlarinin Tarzi Icrasina Dair
@@ -157,7 +157,7 @@ Legislation-facing MCP inputs accept optional `sourceMode`:
 }
 ```
 
-`sourceMode` is `"mock"` by default, so v0.1/v0.2 mock behavior remains the default.
+`sourceMode` is `"mock"` by default, so mock behavior is the default.
 `search_health_legislation`, `get_legislation_provisions`, and
 `prepare_doctor_legal_information_pack` can use `"live"`. A live information pack keeps
 the same MVP shape and adds `sourceUnavailable` only when the official legislation source
@@ -235,7 +235,7 @@ not create legal propositions and never replace the verbatim official provision 
 
 ## Provision Ranking
 
-v0.6 adds deterministic live provision ranking after official article extraction. It
+Live provision ranking runs deterministic scoring after official article extraction. It
 selects a compact set of source articles for the pack; it does not create article text,
 legal advice, or categorical legal conclusions.
 
@@ -264,8 +264,8 @@ and AYM adapters remain mock adapters.
 
 ## Selection Diagnostics
 
-v0.7 adds `selectionDiagnostics` to live legislation MCP responses. It is the short audit
-view for source selection: `sourceTrace` still contains the official request, document,
+Selection diagnostics provide a short audit view for source selection:
+`sourceTrace` still contains the official request, document,
 extraction, candidate, ranking, and unavailable detail, while diagnostics summarize what
 was selected without requiring a full trace read.
 
@@ -310,7 +310,7 @@ Diagnostics are audit metadata only. They do not replace official provision quot
 create legal propositions, and keep KVKK in its supporting-general role. Yargitay,
 Danistay, and AYM adapters remain mock adapters.
 
-## Decision Source Trace (v0.8)
+## Decision Source Trace
 
 `DecisionSourceTrace` audits the decision pipeline for each court decision candidate.
 It is the precedent-side analogue of `LegislationSourceTrace`. Each trace carries:
@@ -330,7 +330,7 @@ It is the precedent-side analogue of `LegislationSourceTrace`. Each trace carrie
 Decision source traces are audit metadata only. They do not produce legal reasoning and
 never add a court decision to the pack unless the decision passes all eligibility criteria.
 
-## Reasoned-Decision Eligibility (v0.8)
+## Reasoned-Decision Eligibility
 
 `assessDecisionEligibility` (in `src/health/decisionEligibility.ts`) applies the
 precedent filter rules and returns a structured `EligibilityResult` with status,
@@ -351,7 +351,7 @@ Only `precedent_usable` decisions enter the `verifiedHighCourtPrecedents` sectio
 pack. `limited_value`, `procedural_only`, `no_reasoning`, and `metadata_only` decisions
 are excluded.
 
-## Precedent Diagnostics (v0.8)
+## Precedent Diagnostics
 
 `PrecedentSelectionDiagnostics` is the compact audit view for decision selection,
 analogous to `LegislationSelectionDiagnostics` on the legislation side. It appears as
@@ -369,9 +369,9 @@ The diagnostic includes:
 Diagnostics summarize selection and exclusion only. They do not provide legal
 interpretation and do not add any decision to the pack.
 
-## Live Yargıtay Adapter (v0.9)
+## Live Yargıtay Adapter
 
-v0.9 adds the first live court decision adapter: `LiveYargitayAdapter`
+The first live court decision adapter: `LiveYargitayAdapter`
 (`src/sources/yargitay/liveYargitayAdapter.ts`). Danıştay and AYM remain mock adapters.
 
 **Source and endpoint:** Targets `https://bedesten.adalet.gov.tr/emsal-karar/searchDocuments` with a filtering by `YARGITAYKARARI`.
@@ -435,11 +435,11 @@ non-parseable response, the adapter returns a structured unavailable result:
 No decisions are invented. The pack continues to run with mock Danıştay and AYM results
 and shows 0 selected precedents in `precedentDiagnostics` for the Yargıtay source.
 
-Danıştay and AYM adapters remain mock adapters in v0.9.
+Danıştay and AYM adapters remain mock adapters.
 
-## Multi-Source Live Precedent Pipeline (v0.10)
+## Multi-Source Live Precedent Pipeline
 
-v0.10 adds the live Danıştay adapter, a centralized health law query expansion module,
+The live Danıştay adapter, centralized health law query expansion module,
 per-source diagnostics (`sourceSummaries`), and a file-based result cache.
 
 ### Live Danıştay Adapter
@@ -466,12 +466,12 @@ optional `precedentSources` array to select which courts are queried in live mod
 ```
 
 Valid values: `"yargitay"`, `"danistay"`, `"aym"`. Default when omitted is all three.
-AYM remains a mock adapter in v0.10.
+AYM remains a mock adapter.
 
 When one source is unavailable, the others continue. The pack is never blocked on a single
 adapter failure.
 
-### Health Law Query Expansion (v0.10)
+### Health Law Query Expansion
 
 `src/health/healthLawQueryExpansion.ts` provides deterministic term mapping shared by
 both the Yargıtay and Danıştay adapters:
@@ -488,7 +488,7 @@ both the Yargıtay and Danıştay adapters:
 `pickHealthLawQuery` returns the highest-priority mapped term for a classified question.
 `pickHealthLawQueries` returns up to N distinct terms for multi-term searches.
 
-### `sourceSummaries` in `precedentDiagnostics` (v0.10)
+### `sourceSummaries` in `precedentDiagnostics`
 
 `PrecedentSelectionDiagnostics` now includes `sourceSummaries[]` with a per-source
 breakdown:
@@ -530,7 +530,7 @@ breakdown:
 `selectedPrecedents[]` and `excludedDecisions[]` entries also now include a `source` field
 (same value as `court`) to identify which adapter produced each decision.
 
-### File-Based Cache (v0.10)
+### File-Based Cache
 
 `PrecedentCache` (`src/sources/precedentCache.ts`) caches live adapter results to
 `.cache/precedents/` with a one-hour TTL. Cache files are keyed by source, query, and
@@ -551,9 +551,9 @@ npm run smoke:precedents -- "aydınlatılmış rıza" --refresh
 
 `.cache/` is in `.gitignore` and is never committed.
 
-## Precedent Source Calibration (v0.12)
+## Precedent Source Calibration
 
-v0.12 introduces deep probe analysis and normalizer hardening. See `docs/LIVE_SOURCE_CALIBRATION.md`
+Deep probe analysis and normalizer hardening. See `docs/LIVE_SOURCE_CALIBRATION.md`
 for the full calibration workflow.
 
 ### Confirmed endpoint behavior (2026-05-22)
@@ -594,7 +594,7 @@ When a live adapter receives a non-JSON response, `DecisionSourceTrace.error` co
 - `fixtures/live-samples/` holds sanitized/synthetic fixtures — safe to commit.
 - See `fixtures/live-samples/README.md` for the sanitized fixture format.
 
-### Pack audit extended checks (v0.12)
+### Pack audit extended checks
 
 `audit:pack` now also checks:
 
@@ -648,9 +648,9 @@ npm run mcp
 
 ## Physician Question Benchmark Suite
 
-v0.16.0 introduced a comprehensive quality evaluation and regression-testing benchmark
-suite specifically focused on typical physician-centric legal questions. v0.17.0 extends
-the same 15-question set with live-source evaluation metrics.
+A comprehensive quality evaluation and regression-testing benchmark
+suite focused on typical physician-centric legal questions, with live-source
+evaluation metrics.
 
 ### Purpose
 - **Quality Measurement**: Systematically evaluate the performance, legislation mapping, precedent count, and schema conformity of 15-20 target questions across 15 separate medical-legal categories.
@@ -705,7 +705,7 @@ Reports include `startedAt`, `completedAt`, `durationMs`, `passedRegressionCount
 `failedRegressionCount`, `liveSourceUnavailableCount`, audit counts, legislation/precent
 coverage counts, and per-question scoring.
 
-v0.17.1 expands live benchmark quality audit fields for every selected verified precedent:
+Reports include live benchmark quality audit fields for every selected verified precedent:
 court, chamber, decision date, docket/decision numbers, access source, document id/source
 id, source URL when available, full-text availability, reasoning detection, eligibility
 status/reasons, health-law relevance score, matched terms, and decision source trace
@@ -732,14 +732,14 @@ Each question receives:
 unavailability can lower quality, but only safety violations or audit errors make an item
 `unsafe`.
 
-Verified precedent scoring is intentionally stricter in v0.17.1. A selected verified
+Verified precedent scoring is intentionally strict. A selected verified
 precedent must be `precedent_usable`, have confirmed full text, have detected legal
 reasoning, and retain a decision source trace. Metadata-only, procedural-only,
 no-reasoning, full-text-unavailable, or mock-access records cannot receive verified
 precedent credit in live mode. Weak health-law relevance caps precedent safety credit and
 is reported as a tuning warning rather than being hidden behind a high aggregate score.
 
-v0.18.0 adds precedent relevance tuning on top of that audit layer. The benchmark now
+The benchmark includes precedent relevance tuning on top of that audit layer. It
 reports weak relevance by question and source, sample decision ids, matched issue terms,
 missing expected issue terms, a `whyWeak` explanation, and suggested follow-up query terms.
 It also separates `goodCleanCount` from `goodWithWarningsCount` and reports average/median
@@ -753,57 +753,6 @@ private-hospital fee disputes, public discipline, intensive care, and pregnancy 
 Live source unavailability remains a metric/warning; unsafe remains reserved for safety
 violations such as mock fallback, missing full text/reasoning/trace, or unusable precedent
 statuses leaking into verified output.
-
-## Release Notes
-
-v0.16.1 is an audit and cleanup release for benchmark artifact hygiene. It keeps benchmark
-exports ignored, tightens scratch/debug/probe/smoke/audit ignore patterns, removes compiler-
-reported dead locals from active adapters and CLIs, and updates live-source descriptions
-without changing the pack/tool JSON shape.
-
-v0.17 should add live benchmark metrics without turning transient live-source failures into
-hard failures. Track legislation ordering, `sourceUnavailable`, precedent safety, and
-`auditOk` as report metrics for those live runs.
-
-v0.17.0 adds those live benchmark/evaluation metrics and separate live report files.
-v0.17.1 audits the unusually strong v0.17.0 live result by tightening verified precedent
-eligibility, source trace checks, mock fallback detection, and benchmark Markdown/JSON audit
-fields. v0.18 should use these reports for query expansion, live quality thresholds, source
-reliability metrics, and legislation-priority tuning while keeping live outages distinct
-from unsafe precedent use.
-
-v0.18.0 implements the first precedent relevance tuning pass: issue-profile based query
-selection, deterministic decision issue-signal scoring, weak relevance explanations, and
-good-vs-good-with-warnings benchmark metrics.
-
-v0.18.1 adds warning taxonomy to benchmark and evaluation reports. Warnings are now split
-into three categories: `informationalWarnings` (live source gaps, missing metadata, source
-availability notes), `tuningWarnings` (weak relevance, missing legislation, priority
-mismatches), and `safetyWarnings` (reserved for safety-adjacent precedent issues). The
-report adds `goodWithInformationalWarningsCount` and `goodWithTuningWarningsCount` so
-informational noise (transient live source quality notes) is visually separated from
-actionable tuning signals. A per-question taxonomy table is added to the Markdown report.
-`goodWithWarningsCount` is preserved for backward compatibility.
-
-v0.19.0 adds source query ranking and reliability metrics. Query attempt telemetry tracks
-source, issueProfile, queryText, queryType, queryRank, timing, resultCount, candidateCount,
-and usableCandidateCount per query attempt. A SOURCE_AFFINITIES table maps 12 issue profiles
-to 4 sources (Yargıtay, Danıştay, AYM, Bedesten) with affinity scores 1–3. The fallback
-query is only attempted when the first query returns 0 results. `rerankByIssueRelevance`
-stably sorts `precedent_usable` candidates by issue relevance score before final selection.
-Per-source and per-issueProfile reliability metrics (p50/p95, successes, verified count,
-avgRelevance) appear in benchmark reports. 59 new pure-function tests.
-
-v0.20.0 adds live performance/cache baseline. A shared `PrecedentCache` can be injected
-into the service; live adapters (Yargıtay, Danıştay) check the cache before each network
-call and write results on success. Adapters expose `lastRequestTelemetry` with cache hit/miss,
-cacheAgeMs, retryCount, backoffMs, retryAfterMs, and timedOut. These fields flow into
-`QueryAttemptTelemetry` so every query attempt carries full cache + HTTP retry provenance.
-A new `benchmark:doctor-questions:performance` command runs two consecutive live benchmark
-passes (cold then warm) over the same shared cache and produces cold/warm comparison,
-per-source latency, cache effectiveness, slow query diagnostics, retry/backoff summary, and
-performance warnings. Reports are written to `exports/doctor-benchmark/performance-benchmark-report.{json,md}`.
-40 new pure-function tests.
 
 ### Performance Benchmark Command
 
@@ -844,3 +793,7 @@ is injected. The cache stores the complete `searchAndNormalize` result per (sour
 pageSize) key. The warm run replay is complete — no network calls are made for cached queries.
 
 `.cache/` is gitignored. Cache entries are not committed.
+
+---
+
+For version history, see [CHANGELOG.md](./CHANGELOG.md).

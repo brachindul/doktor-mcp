@@ -169,18 +169,18 @@
 
 ## Faz 4 — Dokümantasyon ve DX
 
-### T4.1 — README'yi sürümler ve kullanım olarak ayır
+### [x] T4.1 — README'yi sürümler ve kullanım olarak ayır
 - **Sorun**: README çok uzun; sürüm notları ile kullanım iç içe.
 - **Yapılacak**: Sürüm geçmişini `CHANGELOG.md`'ye taşı (zaten var, oraya konsolide et);
   README sadece güncel mimari + kullanım + araç sözleşmesini tutsun.
 - **Kabul**: README belirgin kısalıyor; CHANGELOG tüm sürüm notlarını içeriyor; link'ler kırık değil.
 
-### T4.2 — Mimari diyagram ve veri akışı
+### [x] T4.2 — Mimari diyagram ve veri akışı
 - **Yapılacak**: `docs/ARCHITECTURE.md` ekle: katmanlar (mcp → service → health → sources →
   core/live), mock/live ayrımı, time-budget akışı, güvenlik kapıları. Mermaid diyagramı kullan.
 - **Kabul**: Yeni doküman kod gerçeğiyle uyumlu; dosya/satır referansları doğru.
 
-### T4.3 — Commit author/metadata düzeltme rehberi
+### [x] T4.3 — Commit author/metadata düzeltme rehberi
 - **Sorun**: `git shortlog -sne` boş — author metadata tutarsız.
 - **Yapılacak**: `CONTRIBUTING.md` ekle; commit konvansiyonu, author ayarı, build/test
   ön-koşulları yazılsın. (Geçmişi rewrite etme — sadece ileriye dönük kural.)

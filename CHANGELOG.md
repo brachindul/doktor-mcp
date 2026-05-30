@@ -1565,3 +1565,242 @@ These are documented in `officialLegislationCoverage.knownUncoveredLegislation` 
 - `rankedQueriesForSource`: fallback only when rank-1 returns 0 results.
 - `rerankByIssueRelevance`: stable sort of `precedent_usable` entries.
 - `buildSourceReliabilityMetrics` / `buildIssueProfileReliabilityMetrics` with p50/p95.
+
+---
+
+## [0.18.1] — 2026-05-21 — Benchmark Warning Taxonomy
+
+> Tag: `v0.18.1-benchmark-warning-taxonomy`
+
+### Summary
+
+Adds warning taxonomy to benchmark and evaluation reports. Warnings are now split
+into three categories: `informationalWarnings` (live source gaps, missing metadata,
+source availability notes), `tuningWarnings` (weak relevance, missing legislation,
+priority mismatches), and `safetyWarnings` (reserved for safety-adjacent precedent
+issues). The report adds `goodWithInformationalWarningsCount` and
+`goodWithTuningWarningsCount` so informational noise is visually separated from
+actionable tuning signals. A per-question taxonomy table is added to the Markdown
+report. `goodWithWarningsCount` is preserved for backward compatibility.
+
+---
+
+## [0.18.0] — 2026-05-21 — Precedent Relevance Tuning
+
+> Tag: `v0.18.0-precedent-relevance-tuning`
+
+### Summary
+
+Implements the first precedent relevance tuning pass: issue-profile based query
+selection, deterministic decision issue-signal scoring, weak relevance explanations,
+and good-vs-good-with-warnings benchmark metrics.
+
+The benchmark reports weak relevance by question and source, sample decision ids,
+matched issue terms, missing expected issue terms, a `whyWeak` explanation, and
+suggested follow-up query terms. It also separates `goodCleanCount` from
+`goodWithWarningsCount` and reports average/median health-law relevance scores.
+
+Weak relevance means the decision passed the hard precedent safety gates, but the
+decision text matched only broad health words or did not overlap strongly with the
+question's issue profile. Issue profiles include informed consent,
+malpractice/complication, emergency care, treatment refusal, privacy/records,
+psychiatric privacy, violence/threat, referral, private-hospital fee disputes,
+public discipline, intensive care, and pregnancy emergency.
+
+---
+
+## [0.17.1] — 2026-05-21 — Live Benchmark Audit Tightening
+
+> Tag: `v0.17.1-live-benchmark-audit-tightening`
+
+### Summary
+
+Audits the unusually strong v0.17.0 live result by tightening verified precedent
+eligibility, source trace checks, mock fallback detection, and benchmark Markdown/JSON
+audit fields.
+
+Expands live benchmark quality audit fields for every selected verified precedent:
+court, chamber, decision date, docket/decision numbers, access source, document id/source
+id, source URL when available, full-text availability, reasoning detection, eligibility
+status/reasons, health-law relevance score, matched terms, and decision source trace
+presence. The report does not print full decision text.
+
+---
+
+## [0.17.0] — 2026-05-21 — Live Benchmark Evaluation Metrics
+
+> Tag: `v0.17.0-live-benchmark-evaluation-metrics`
+
+### Summary
+
+Adds live benchmark/evaluation metrics and separate live report files. Live mode
+keeps the same safety invariants, but source outages, empty results, rate limits,
+and `sourceUnavailable` entries are reported as metrics and warnings instead of
+automatic failures.
+
+Mock fallback is a hard regression in live mode. AYM remains disabled/mock-only and
+cannot silently supply live verified precedents. Adds
+`npm run benchmark:doctor-questions:live` command.
+
+---
+
+## [0.16.1] — 2026-05-20 — Benchmark Artifact Hygiene
+
+> Tag: `v0.16.1-benchmark-artifact-hygiene`
+
+### Summary
+
+Audit and cleanup release for benchmark artifact hygiene. Keeps benchmark exports
+ignored, tightens scratch/debug/probe/smoke/audit ignore patterns, removes compiler-
+reported dead locals from active adapters and CLIs, and updates live-source descriptions
+without changing the pack/tool JSON shape.
+
+---
+
+## [0.16.0] — 2026-05-20 — Physician Question Benchmark Suite
+
+> Tag: `v0.16.0-physician-question-benchmark`
+
+### Summary
+
+Introduced a comprehensive quality evaluation and regression-testing benchmark
+suite focused on typical physician-centric legal questions.
+
+- 15-question benchmark set across 15 separate medical-legal categories
+- Quality measurement: legislation mapping, precedent count, schema conformity
+- Regression prevention: KVKK scope, deontology precedence, safety constraints
+- Scoring: `legislationMatchScore`, `priorityScore`, `precedentSafetyScore`,
+  `sourceAvailabilityScore`, `auditScore`, `forbiddenFieldsScore`
+- `qualityBand`: `good`, `acceptable`, `needs_tuning`, `unsafe`
+
+---
+
+## [0.15.2] — 2026-05-20 — Source Engine Port
+
+> Tag: `v0.15.2-source-engine-port`
+
+### Summary
+
+Ports the local-yargi source-engine hardening needed by the live adapters:
+
+- Bedesten requests use a shared `HttpClient` and `RateLimiter` path with bounded retry,
+  `Retry-After` handling, exponential fallback backoff, jitter, and request telemetry.
+- Live source failures stay structured and JSON-only.
+- `src/sources/sourceRegistry.ts` exposes trimmed source capability, rate-limit, and cache
+  policy metadata.
+- Bedesten/Yargitay adapters keep metadata-only decisions out of verified precedent output.
+
+---
+
+## [0.12.0] — 2026-05-20 — Precedent Source Calibration
+
+> Tag: `v0.12.0-precedent-source-calibration`
+
+### Summary
+
+Deep probe analysis and normalizer hardening for precedent sources. Adds probe CLI
+for HTML/SOAP analysis, non-JSON response classification, and pack audit extended
+checks for unavailable sources and decision source trace validation.
+
+---
+
+## [0.10.0] — 2026-05-20 — Multi-Source Live Precedent Pipeline
+
+> Tag: `v0.10.0-multi-source-precedent-pipeline`
+
+### Summary
+
+Adds the live Danıştay adapter, centralized health law query expansion module,
+per-source diagnostics (`sourceSummaries`), and file-based result cache.
+
+- **Live Danıştay Adapter**: targets `karararama.danistay.gov.tr/aramalist`
+- **`precedentSources` parameter**: select which courts are queried in live mode
+- **Health Law Query Expansion**: deterministic term mapping shared by Yargitay and Danıştay
+- **`sourceSummaries`**: per-source breakdown in `precedentDiagnostics`
+- **File-Based Cache**: `.cache/precedents/` with one-hour TTL
+
+---
+
+## [0.9.0] — 2026-05-19 — Live Yargıtay Adapter
+
+> Tag: `v0.9.0-live-yargitay-adapter`
+
+### Summary
+
+First live court decision adapter: `LiveYargitayAdapter` targeting
+`bedesten.adalet.gov.tr/emsal-karar/searchDocuments`.
+
+- JSON POST with health law search term, retries with adaptive back-off for 429/5xx
+- `sourceMode: "live"` precedent behavior in `search_health_precedents` and pack handler
+- Only `precedent_usable` decisions enter `verifiedHighCourtPrecedents`
+- Structured `DecisionSourceTrace` for audit
+- Danıştay and AYM remain mock adapters
+
+---
+
+## [0.8.0] — 2026-05-19 — Decision Source Trace and Precedent Diagnostics
+
+> Tag: `v0.8.0-decision-source-trace`
+
+### Summary
+
+- **Decision Source Trace**: `DecisionSourceTrace` audits the decision pipeline for each court decision candidate
+- **Reasoned-Decision Eligibility**: `assessDecisionEligibility` applies precedent filter rules and returns structured `EligibilityResult`
+- **Precedent Diagnostics**: `PrecedentSelectionDiagnostics` compact audit view for decision selection
+
+---
+
+## [0.7.0] — 2026-05-18 — Selection Diagnostics
+
+> Tag: `v0.7.0-selection-diagnostics`
+
+### Summary
+
+Adds `selectionDiagnostics` to live legislation MCP responses. Compact audit view
+for source selection: legislation role, topic cluster, priority, article numbers,
+rejected article-number summary, and selection reason.
+
+---
+
+## [0.6.0] — 2026-05-18 — Deterministic Provision Ranking
+
+> Tag: `v0.6.0-deterministic-provision-ranking`
+
+### Summary
+
+Adds deterministic live provision ranking after official article extraction.
+Selects a compact set of source articles for the pack based on physician query
+terms, health-law topic cluster, mapping search terms, article heading text,
+keyword matches, mapped article-list bonus, and health-law priority.
+
+---
+
+## [0.5.0] — 2026-05-17 — First Live Legislation Mapping
+
+> Tag: `v0.5.0-first-live-legislation-mapping`
+
+### Summary
+
+Makes health legislation the first live mapping path. Patient-rights and
+informed-consent questions use the official generated PDF path for Hasta Haklari
+Yonetmeligi, including mapped articles 24 and 26. Health-law mappings also cover
+Tibbi Deontoloji Nizamnamesi, Tababet ve Suabati Sanatlarinin Tarzi Icrasina Dair
+Kanun, and Saglik Hizmetleri Temel Kanunu.
+
+---
+
+## [0.1.0] / [0.2.0] — 2026-05-15 — Initial MCP Skeleton
+
+> Tags: `v0.1.0-mcp-skeleton`, `v0.2.0-mock-adapters`
+
+### Summary
+
+Initial MCP server skeleton with:
+- MCP server registration and tool handler scaffolding
+- Type contracts for legislation evidence, court decision evidence, classification,
+  precedent status, and the legal information pack
+- Mock legislation and high court adapters
+- Health-law pipeline: question classifier, legislation mapper, precedent filter, answer composer
+- Local JSON smoke command
+- Vitest coverage for initial source-safety rules
+- `sourceMode` routing (mock by default)
