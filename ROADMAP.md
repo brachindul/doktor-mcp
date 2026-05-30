@@ -280,7 +280,7 @@
   `LiveAymAdapter` iskeleti uydurma karar üretmemeli.
 - **Kabul**: AYM çıktısı her zaman net statü taşıyor; sentetik veri verified bölüme sızmıyor.
 
-#### [ ] T6.6 — Çıktı boyunca tek dil/aksan politikası
+#### [x] T6.6 — Çıktı boyunca tek dil/aksan politikası
 - **Sorun**: `shortAnswer` ASCII'leştirilmiş ("eslestirildi", "degildir") ama
   `preliminaryAssessment` tam Türkçe ("değerlendirilmelidir"). Tutarsız.
 - **Yapılacak**: Hekime dönük tüm metinlerde tek politika seç (tercihen tam Türkçe,

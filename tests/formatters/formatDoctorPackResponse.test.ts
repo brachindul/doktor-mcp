@@ -4,7 +4,7 @@ import type { DoctorLegalInformationPack } from "../../src/contracts/legal.js";
 
 function makeFullPack(overrides: Partial<DoctorLegalInformationPack> = {}): DoctorLegalInformationPack {
   return {
-    shortAnswer: "Bu soru resmi kaynak kayitlariyla eslestirildi.",
+    shortAnswer: "Bu soru resmi kaynak kayıtlarıyla eşleştirildi.",
     legalClassification: {
       criminal: [],
       civilCompensation: ["Tazminat boyutu incelenebilir."],

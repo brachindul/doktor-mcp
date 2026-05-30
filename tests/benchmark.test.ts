@@ -95,7 +95,7 @@ describe("Benchmark Dataset & Runner Tests", () => {
           disciplinaryAdministrative: "",
           patientRights: "",
           privacyKvkk: "",
-          professionalEthics: "Meslek etigi boyutu soru ile eslestirildi."
+          professionalEthics: "Meslek etiği boyutu soru ile eşleştirildi."
         },
         relevantLegislation: [
           {

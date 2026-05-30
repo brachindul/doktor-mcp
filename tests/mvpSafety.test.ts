@@ -53,10 +53,10 @@ describe("MVP legal information pack constraints", () => {
       []
     );
 
-    expect(pack.shortAnswer).toContain("bulunamadi");
+    expect(pack.shortAnswer).toContain("bulunamadı");
     expect(pack.relevantLegislation).toEqual([]);
     expect(pack.verifiedHighCourtPrecedents).toEqual([]);
-    expect(pack.sourceWarnings).toContain("Kaynak yokken madde veya karar uretilmedi.");
+    expect(pack.sourceWarnings).toContain("Kaynak yokken madde veya karar üretilmedi.");
   });
 
   it("does not include risk level or immediate actions in the MVP response", async () => {

@@ -17,12 +17,12 @@ import { deduplicateDecisions } from "./decisionDedup.js";
 export type AssessmentTone = "strict" | "grounded-advisory";
 
 const dimensionLabels = {
-  criminal: "Ceza hukuku boyutu resmi kaynak eslestirmesi bekliyor.",
-  civil_compensation: "Tazminat ve ozel hukuk boyutu olay kayitlariyla birlikte incelenebilir.",
-  disciplinary_administrative: "Disiplin veya idari sorusturma boyutu ayri kaynak taramasi gerektirebilir.",
-  patient_rights: "Hasta haklari boyutu soru ile eslestirildi.",
-  privacy_kvkk: "Saglik verisi ve mahremiyet boyutu soru ile eslestirildi.",
-  professional_ethics: "Meslek etigi boyutu soru ile eslestirildi."
+  criminal: "Ceza hukuku boyutu resmi kaynak eşleştirmesi bekliyor.",
+  civil_compensation: "Tazminat ve özel hukuk boyutu olay kayıtlarıyla birlikte incelenebilir.",
+  disciplinary_administrative: "Disiplin veya idari soruşturma boyutu ayrı kaynak taraması gerektirebilir.",
+  patient_rights: "Hasta hakları boyutu soru ile eşleştirildi.",
+  privacy_kvkk: "Sağlık verisi ve mahremiyet boyutu soru ile eşleştirildi.",
+  professional_ethics: "Meslek etiği boyutu soru ile eşleştirildi."
 } as const;
 
 function classificationSection(classification: ClassifiedMedicalLegalQuestion): LegalClassificationSection {
@@ -174,21 +174,21 @@ export function composeDoctorLegalInformationPack(
   const groundedCount = provisions.length + dedupedPrecedents.length;
   let shortAnswer =
     groundedCount > 0
-      ? "Soru resmi kaynak kayitlariyla eslestirildi; asagidaki paket nihai hukuki kanaat degildir."
-      : "Bu soru icin dogrulanmis mevzuat maddesi veya gerekceli yuksek mahkeme karari bulunamadi.";
+      ? "Soru resmi kaynak kayıtlarıyla eşleştirildi; aşağıdaki paket nihai hukuki kanaat değildir."
+      : "Bu soru için doğrulanmış mevzuat maddesi veya gerekçeli yüksek mahkeme kararı bulunamadı.";
 
   const isExhausted = timeBudget && typeof timeBudget.isExhausted === "function" && timeBudget.isExhausted();
   if (isExhausted && groundedCount > 0) {
-    shortAnswer = "Zaman bütçesi limiti nedeniyle kısmi veri seti oluşturulabildi. Soru resmi kaynak kayitlariyla eslestirildi; asagidaki paket nihai hukuki kanaat degildir.";
+    shortAnswer = "Zaman bütçesi limiti nedeniyle kısmi veri seti oluşturulabildi. Soru resmi kaynak kayıtlarıyla eşleştirildi; aşağıdaki paket nihai hukuki kanaat değildir.";
   }
 
   const hasLiveLegislation = provisions.some((provision) => Boolean(provision.evidence.sourceUrl));
 
   const sourceWarnings = groundedCount > 0
     ? [hasLiveLegislation
-        ? "Mevzuat maddesi canli resmi kaynaktan cikartildi; emsal kaynak modlari diagnostik alaninda izlenir."
-        : "MVP mock kaynaklarla calisir; canli resmi kaynak entegrasyonu bu pack icin kullanilmadi."]
-    : ["Kaynak yokken madde veya karar uretilmedi."];
+        ? "Mevzuat maddesi canlı resmi kaynaktan çıkartıldı; emsal kaynak modları diagnostik alanında izlenir."
+        : "MVP mock kaynaklarla çalışır; canlı resmi kaynak entegrasyonu bu pack için kullanılmadı."]
+    : ["Kaynak yokken madde veya karar üretilmedi."];
 
   if (isExhausted) {
     sourceWarnings.push("Zaman bütçesi sınırı nedeniyle tarama erken sonlandırıldı (timeBudgetExhausted).");
