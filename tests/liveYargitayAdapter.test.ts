@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { LiveYargitayAdapter } from "../src/sources/yargitay/liveYargitayAdapter.js";
-import { PhysicianLegalInformationService } from "../src/app/service.js";
+import { DoktorMcpInformationService } from "../src/app/service.js";
 
 const MOCK_RETRIEVED_AT = "2026-05-22T00:00:00.000Z";
 
@@ -250,7 +250,7 @@ describe("prepare_doctor_legal_information_pack live precedent integration", () 
       sourceTraces: []
     } as never);
 
-    const service = new PhysicianLegalInformationService({ liveYargitay });
+    const service = new DoktorMcpInformationService({ liveYargitay });
     const pack = await service.prepareInformationPack({ question: "aydınlatılmış rıza", sourceMode: "live" });
 
     const precedentIds = pack.verifiedHighCourtPrecedents.map((p) => p.sourceDocumentId);
@@ -275,7 +275,7 @@ describe("prepare_doctor_legal_information_pack live precedent integration", () 
       sourceTraces: []
     } as never);
 
-    const service = new PhysicianLegalInformationService({ liveYargitay });
+    const service = new DoktorMcpInformationService({ liveYargitay });
     const pack = await service.prepareInformationPack({ question: "rıza belgesi", sourceMode: "live" });
 
     expect(pack.precedentDiagnostics).toBeDefined();
@@ -291,7 +291,7 @@ describe("prepare_doctor_legal_information_pack live precedent integration", () 
       selectedResult: null, decisions: [], sourceTraces: []
     } as never);
 
-    const service = new PhysicianLegalInformationService({ liveYargitay });
+    const service = new DoktorMcpInformationService({ liveYargitay });
     const pack = await service.prepareInformationPack({ question: "rıza eksikliği", sourceMode: "live" });
     const json = JSON.stringify(pack).toLocaleLowerCase("tr-TR");
 

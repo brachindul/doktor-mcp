@@ -5,7 +5,7 @@
  *
  * Pure utility module — no network calls, no external dependencies.
  * Inspired by patterns observed in local-yargi's httpClient and rateLimiter;
- * reimplemented fresh for physician-legal-mcp's architecture.
+ * reimplemented fresh for doktor-mcp's architecture.
  * local-yargi is NOT imported and its code is NOT copied verbatim.
  *
  * Key capabilities:

@@ -4,7 +4,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { registerMedicalLegalTools } from "./tools.js";
 
 const server = new McpServer({
-  name: "physician-legal-mcp",
+  name: "doktor-mcp",
   version: "0.1.0"
 });
 

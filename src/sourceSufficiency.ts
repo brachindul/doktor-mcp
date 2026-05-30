@@ -4,7 +4,7 @@
  * v0.24.0 — Source Sufficiency Gate
  *
  * Evaluates whether a retrieved source set is adequate to safely compose a
- * research-grade physician legal information pack.
+ * research-grade doktor legal information pack.
  *
  * This module is a *diagnostic / benchmark* layer.
  * It does NOT modify DoctorLegalInformationPack output format.
@@ -227,7 +227,7 @@ function countIssueSpecificPrecedents(
 
 /**
  * Evaluate whether the retrieved source set is sufficient to compose a
- * physician legal research pack for the given question.
+ * doktor legal research pack for the given question.
  *
  * Returns a `SourceSufficiencyResult` with a `level` of:
  *   - "sufficient"   — all key criteria met

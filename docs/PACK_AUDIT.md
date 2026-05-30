@@ -8,9 +8,9 @@ MVP safety constraints before it is sent to lawyer review.
 ```powershell
 # Generate a pack (mock mode)
 npx tsx -e "
-import { PhysicianLegalInformationService } from './src/app/service.js';
+import { DoktorMcpInformationService } from './src/app/service.js';
 import { writeFile } from 'node:fs/promises';
-const svc = new PhysicianLegalInformationService();
+const svc = new DoktorMcpInformationService();
 const pack = await svc.prepareInformationPack({ question: 'aydınlatılmış rıza' });
 await writeFile('fixtures/sample-pack.json', JSON.stringify(pack, null, 2));
 "

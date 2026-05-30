@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { doctorQuestions, FORBIDDEN_FIELDS_LIST } from "../src/benchmark/doctorQuestions.js";
 import { evaluateBenchmarkItem, runBenchmark, scoreBenchmarkItem } from "../src/benchmark/benchmarkRunner.js";
-import { PhysicianLegalInformationService } from "../src/app/service.js";
+import { DoktorMcpInformationService } from "../src/app/service.js";
 import type { DoctorLegalInformationPack } from "../src/contracts/legal.js";
 import * as fs from "fs";
 import * as path from "path";
@@ -372,7 +372,7 @@ describe("Benchmark Dataset & Runner Tests", () => {
       const tempOutDir = path.join(process.cwd(), "temp-test-benchmark-timeout-live");
 
       // Create a service whose prepareInformationPack hangs forever
-      const hangingService = new PhysicianLegalInformationService();
+      const hangingService = new DoktorMcpInformationService();
       const origPrepare = hangingService.prepareInformationPack.bind(hangingService);
       (hangingService as any).prepareInformationPack = async () => {
         await new Promise(() => {}); // intentional — never resolves
@@ -401,7 +401,7 @@ describe("Benchmark Dataset & Runner Tests", () => {
     it("mock mode timeout >15s produces failed item via evaluateThrownBenchmarkItem", async () => {
       const tempOutDir = path.join(process.cwd(), "temp-test-benchmark-timeout-mock");
 
-      const hangingService = new PhysicianLegalInformationService();
+      const hangingService = new DoktorMcpInformationService();
       (hangingService as any).prepareInformationPack = async () => {
         await new Promise(() => {});
       };
@@ -427,7 +427,7 @@ describe("Benchmark Dataset & Runner Tests", () => {
       const tempOutDir = path.join(process.cwd(), "temp-test-benchmark-timeout-block");
       let callCount = 0;
 
-      const hangingService = new PhysicianLegalInformationService();
+      const hangingService = new DoktorMcpInformationService();
       const origPrepare = hangingService.prepareInformationPack.bind(hangingService);
       (hangingService as any).prepareInformationPack = async (input: any) => {
         callCount++;
@@ -457,7 +457,7 @@ describe("Benchmark Dataset & Runner Tests", () => {
     it("timeout item appears in JSON report as parseable failed item", async () => {
       const tempOutDir = path.join(process.cwd(), "temp-test-benchmark-timeout-json");
 
-      const hangingService = new PhysicianLegalInformationService();
+      const hangingService = new DoktorMcpInformationService();
       (hangingService as any).prepareInformationPack = async () => {
         await new Promise(() => {});
       };
@@ -497,7 +497,7 @@ describe("Benchmark Dataset & Runner Tests", () => {
           sourceMode: "mock",
           limit: 1,
           outDir: tempOutDir,
-          service: new PhysicianLegalInformationService()
+          service: new DoktorMcpInformationService()
         });
 
         expect(report.results.length).toBe(1);
@@ -510,7 +510,7 @@ describe("Benchmark Dataset & Runner Tests", () => {
   });
 
   describe("Specific Regression Guards", () => {
-    const service = new PhysicianLegalInformationService();
+    const service = new DoktorMcpInformationService();
 
     it("should never start with Hasta Hakları Yönetmeliği for patient refusal / noncompliance question", async () => {
       const refusalQuestion = doctorQuestions.find(q => q.id === "refusal-noncompliance");
@@ -571,7 +571,7 @@ describe("Benchmark Dataset & Runner Tests", () => {
       const mockLiveDanistay = { searchHealthPrecedents: async () => [] } as any;
       const mockLiveBedesten = { searchHealthPrecedents: async () => [] } as any;
 
-      const liveService = new PhysicianLegalInformationService({
+      const liveService = new DoktorMcpInformationService({
         liveLegislation: mockLiveLegislation,
         liveYargitay: mockLiveYargitay,
         liveDanistay: mockLiveDanistay,

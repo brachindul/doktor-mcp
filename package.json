@@ -1,10 +1,10 @@
 {
-  "name": "physician-legal-mcp",
+  "name": "doktor-mcp",
   "version": "0.43.0",
-  "description": "Source-grounded MCP skeleton for physician legal information packs.",
+  "description": "Source-grounded MCP skeleton for doktor legal information packs.",
   "type": "module",
   "bin": {
-    "physician-legal-mcp": "dist/mcp/server.js"
+    "doktor-mcp": "dist/mcp/server.js"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

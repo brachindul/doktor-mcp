@@ -10,7 +10,7 @@
  */
 import * as fs from "fs";
 import * as path from "path";
-import { PhysicianLegalInformationService } from "../app/service.js";
+import { DoktorMcpInformationService } from "../app/service.js";
 import { PrecedentCache } from "../sources/precedentCache.js";
 import { doctorQuestions } from "./doctorQuestions.js";
 import type { QueryAttemptTelemetry } from "../contracts/queryTelemetry.js";
@@ -31,7 +31,7 @@ export interface PerformanceBenchmarkOptions {
 }
 
 async function runOnce(
-  service: PhysicianLegalInformationService,
+  service: DoktorMcpInformationService,
   questions: typeof doctorQuestions
 ): Promise<{ durationMs: number; startedAt: string; completedAt: string; telemetry: QueryAttemptTelemetry[] }> {
   const startMs = Date.now();
@@ -75,13 +75,13 @@ export async function runPerformanceBenchmark(options: PerformanceBenchmarkOptio
 
   // ── Cold run ──────────────────────────────────────────────────────────────
   console.log("Starting cold run (cache is empty — all queries hit network)...");
-  const coldService = new PhysicianLegalInformationService({ precedentCache: sharedCache });
+  const coldService = new DoktorMcpInformationService({ precedentCache: sharedCache });
   const cold = await runOnce(coldService, questions);
   console.log(`Cold run complete in ${cold.durationMs}ms. Telemetry: ${cold.telemetry.length} attempts.`);
 
   // ── Warm run ─────────────────────────────────────────────────────────────
   console.log("Starting warm run (cache should be warm from cold run)...");
-  const warmService = new PhysicianLegalInformationService({ precedentCache: sharedCache });
+  const warmService = new DoktorMcpInformationService({ precedentCache: sharedCache });
   const warm = await runOnce(warmService, questions);
   console.log(`Warm run complete in ${warm.durationMs}ms. Telemetry: ${warm.telemetry.length} attempts.`);
 

@@ -10,7 +10,7 @@
  * - sourceSufficiency legislationCoverageGap reason
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { PhysicianLegalInformationService } from "../src/app/service.js";
+import { DoktorMcpInformationService } from "../src/app/service.js";
 import { ResearchTimeBudget } from "../src/live/timeBudget.js";
 import type { LiveOfficialLegislationAdapter } from "../src/sources/legislation/liveOfficialLegislationAdapter.js";
 import type { LiveYargitayAdapter } from "../src/sources/yargitay/liveYargitayAdapter.js";
@@ -76,7 +76,7 @@ describe("Live Legislation Phase Hardening (v0.40.0)", () => {
     const legislation = makeMockLegislation(50); // fast
     const yargitay = makeMockYargitay();
     const danistay = makeMockDanistay();
-    const service = new PhysicianLegalInformationService({
+    const service = new DoktorMcpInformationService({
       liveLegislation: legislation as LiveOfficialLegislationAdapter,
       liveYargitay: yargitay as LiveYargitayAdapter,
       liveDanistay: danistay as LiveDanistayAdapter
@@ -101,7 +101,7 @@ describe("Live Legislation Phase Hardening (v0.40.0)", () => {
     const legislation = makeMockLegislation(LEGISLATION_DELAY);
     const yargitay = makeMockYargitay();
     const danistay = makeMockDanistay();
-    const service = new PhysicianLegalInformationService({
+    const service = new DoktorMcpInformationService({
       liveLegislation: legislation as LiveOfficialLegislationAdapter,
       liveYargitay: yargitay as LiveYargitayAdapter,
       liveDanistay: danistay as LiveDanistayAdapter
@@ -129,7 +129,7 @@ describe("Live Legislation Phase Hardening (v0.40.0)", () => {
     const legislation = makeMockLegislation(500); // slow
     const yargitay = makeMockYargitay();
     const danistay = makeMockDanistay();
-    const service = new PhysicianLegalInformationService({
+    const service = new DoktorMcpInformationService({
       liveLegislation: legislation as LiveOfficialLegislationAdapter,
       liveYargitay: yargitay as LiveYargitayAdapter,
       liveDanistay: danistay as LiveDanistayAdapter
@@ -158,7 +158,7 @@ describe("Live Legislation Phase Hardening (v0.40.0)", () => {
     const legislation = makeMockLegislation(500); // slow
     const yargitay = makeMockYargitay();
     const danistay = makeMockDanistay();
-    const service = new PhysicianLegalInformationService({
+    const service = new DoktorMcpInformationService({
       liveLegislation: legislation as LiveOfficialLegislationAdapter,
       liveYargitay: yargitay as LiveYargitayAdapter,
       liveDanistay: danistay as LiveDanistayAdapter
@@ -190,7 +190,7 @@ describe("Live Legislation Phase Hardening (v0.40.0)", () => {
     const legislation = makeMockLegislation(50);
     const yargitay = makeMockYargitay();
     const danistay = makeMockDanistay();
-    const service = new PhysicianLegalInformationService({
+    const service = new DoktorMcpInformationService({
       liveLegislation: legislation as LiveOfficialLegislationAdapter,
       liveYargitay: yargitay as LiveYargitayAdapter,
       liveDanistay: danistay as LiveDanistayAdapter
@@ -212,7 +212,7 @@ describe("Live Legislation Phase Hardening (v0.40.0)", () => {
     const legislation = makeMockLegislation(50);
     const yargitay = makeMockYargitay();
     const danistay = makeMockDanistay();
-    const service = new PhysicianLegalInformationService({
+    const service = new DoktorMcpInformationService({
       liveLegislation: legislation as LiveOfficialLegislationAdapter,
       liveYargitay: yargitay as LiveYargitayAdapter,
       liveDanistay: danistay as LiveDanistayAdapter
@@ -237,7 +237,7 @@ describe("Live Legislation Phase Hardening (v0.40.0)", () => {
     const legislation = makeMockLegislation(50);
     const yargitay = makeMockYargitay();
     const danistay = makeMockDanistay();
-    const service = new PhysicianLegalInformationService({
+    const service = new DoktorMcpInformationService({
       liveLegislation: legislation as LiveOfficialLegislationAdapter,
       liveYargitay: yargitay as LiveYargitayAdapter,
       liveDanistay: danistay as LiveDanistayAdapter
@@ -254,7 +254,7 @@ describe("Live Legislation Phase Hardening (v0.40.0)", () => {
   });
 
   it("mock mode does not produce timeBudgetTelemetry", async () => {
-    const service = new PhysicianLegalInformationService();
+    const service = new DoktorMcpInformationService();
     const result = await service.prepareInformationPack({
       question: "Hasta rızası nasıl alınır?",
       sourceMode: "mock"

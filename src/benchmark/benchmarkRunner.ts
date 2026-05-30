@@ -1,4 +1,4 @@
-import { PhysicianLegalInformationService } from "../app/service.js";
+import { DoktorMcpInformationService } from "../app/service.js";
 import type { TimeBudgetTelemetry, MinimalPackRescueContext } from "../app/service.js";
 import { ResearchTimeBudget } from "../live/timeBudget.js";
 import { composeDoctorLegalInformationPack } from "../health/answerComposer.js";
@@ -395,11 +395,11 @@ export async function runBenchmark(options: {
   sourceMode: "live" | "mock";
   limit?: number;
   outDir: string;
-  service?: PhysicianLegalInformationService;
+  service?: DoktorMcpInformationService;
   questions?: BenchmarkQuestion[];
 }): Promise<BenchmarkReport> {
   const { sourceMode, limit, outDir, questions } = options;
-  const service = options.service ?? new PhysicianLegalInformationService();
+  const service = options.service ?? new DoktorMcpInformationService();
   const dataset = questions ?? doctorQuestions;
   const questionsToRun = typeof limit === "number" ? dataset.slice(0, limit) : dataset;
   const startedAtMs = Date.now();
@@ -411,7 +411,7 @@ export async function runBenchmark(options: {
 
   for (const question of questionsToRun) {
     const itemStartedAt = Date.now();
-    let enrichedPack: Awaited<ReturnType<PhysicianLegalInformationService["prepareInformationPack"]>>;
+    let enrichedPack: Awaited<ReturnType<DoktorMcpInformationService["prepareInformationPack"]>>;
     try {
       const timeBudget = sourceMode === "live" ? new ResearchTimeBudget() : undefined;
       enrichedPack = await Promise.race([

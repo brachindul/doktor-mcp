@@ -4,7 +4,7 @@ import {
   buildPrecedentSelectionDiagnostics,
   filterReasonedPrecedents
 } from "../src/health/precedentFilter.js";
-import { PhysicianLegalInformationService } from "../src/app/service.js";
+import { DoktorMcpInformationService } from "../src/app/service.js";
 import { mockCourtDecisions } from "../src/sources/mockData.js";
 import type { CourtDecision } from "../src/contracts/legal.js";
 
@@ -165,7 +165,7 @@ describe("buildPrecedentSelectionDiagnostics", () => {
 
 describe("filter_reasoned_precedents tool integration", () => {
   it("prepare_doctor_legal_information_pack includes precedentDiagnostics", async () => {
-    const service = new PhysicianLegalInformationService();
+    const service = new DoktorMcpInformationService();
     const pack = await service.prepareInformationPack({ question: "aydınlatılmış rıza kayıt eksikliği" });
 
     expect(pack).toHaveProperty("precedentDiagnostics");
@@ -176,7 +176,7 @@ describe("filter_reasoned_precedents tool integration", () => {
   });
 
   it("verifiedHighCourtPrecedents contains only precedent_usable decisions", async () => {
-    const service = new PhysicianLegalInformationService();
+    const service = new DoktorMcpInformationService();
     const pack = await service.prepareInformationPack({ question: "riza eksikligi" });
     const ids = pack.verifiedHighCourtPrecedents.map((p) => p.sourceDocumentId);
 
@@ -186,7 +186,7 @@ describe("filter_reasoned_precedents tool integration", () => {
   });
 
   it("excluded decisions appear in precedentDiagnostics.excludedDecisions", async () => {
-    const service = new PhysicianLegalInformationService();
+    const service = new DoktorMcpInformationService();
     const pack = await service.prepareInformationPack({ question: "saglik verisi" });
     const diagnostics = pack.precedentDiagnostics!;
 
@@ -194,7 +194,7 @@ describe("filter_reasoned_precedents tool integration", () => {
   });
 
   it("does not include risk level, immediate actions, or final legal opinion", async () => {
-    const service = new PhysicianLegalInformationService();
+    const service = new DoktorMcpInformationService();
     const pack = await service.prepareInformationPack({ question: "riza eksikligi" });
     const json = JSON.stringify(pack).toLocaleLowerCase("tr-TR");
 

@@ -317,7 +317,7 @@ for (const source of sources) {
       Accept: "application/json, text/plain, */*",
       Origin: "https://mevzuat.adalet.gov.tr",
       Referer: "https://mevzuat.adalet.gov.tr/",
-      "User-Agent": "physician-legal-mcp/0.14 probe-cli"
+      "User-Agent": "doktor-mcp/0.14 probe-cli"
     }, query);
   } else if (source === "danistay") {
     report = await probeSource("danistay", DANISTAY_SEARCH_URL, buildDanistayProbeBody(query), {
@@ -325,7 +325,7 @@ for (const source of sources) {
       Accept: "application/json, text/plain, */*",
       "X-Requested-With": "XMLHttpRequest",
       Referer: "https://karararama.danistay.gov.tr/",
-      "User-Agent": "physician-legal-mcp/0.14 probe-cli"
+      "User-Agent": "doktor-mcp/0.14 probe-cli"
     }, query);
   } else {
     report = {

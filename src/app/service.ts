@@ -124,7 +124,7 @@ export interface PartialDiagnosticPack {
   minimalPackRescueReason: MinimalPackRescueReason | null;
 }
 
-export interface PhysicianLegalInformationServiceOptions {
+export interface DoktorMcpInformationServiceOptions {
   mockLegislation?: MockLegislationAdapter;
   liveLegislation?: LiveOfficialLegislationAdapter;
   liveYargitay?: LiveYargitayAdapter;
@@ -134,7 +134,7 @@ export interface PhysicianLegalInformationServiceOptions {
   precedentCache?: PrecedentCache;
 }
 
-export class PhysicianLegalInformationService {
+export class DoktorMcpInformationService {
   private readonly mockLegislation: MockLegislationAdapter;
   private readonly liveLegislation: LiveOfficialLegislationAdapter;
   private readonly liveYargitay: LiveYargitayAdapter;
@@ -147,7 +147,7 @@ export class PhysicianLegalInformationService {
     new MockAymAdapter()
   ];
 
-  constructor(options: PhysicianLegalInformationServiceOptions = {}) {
+  constructor(options: DoktorMcpInformationServiceOptions = {}) {
     this.mockLegislation = options.mockLegislation ?? new MockLegislationAdapter();
     this.liveLegislation = options.liveLegislation ?? new LiveOfficialLegislationAdapter();
     const cache = options.precedentCache; // undefined = adapters use their own default (disabled)
@@ -430,11 +430,11 @@ export class PhysicianLegalInformationService {
    * is interrupted but precedent search still proceeds.
    */
   private async executeLegislationPhase(
-    classification: Awaited<ReturnType<PhysicianLegalInformationService["classify"]>>,
+    classification: Awaited<ReturnType<DoktorMcpInformationService["classify"]>>,
     _budget: ResearchTimeBudget,
     phaseBudgetMs: number
   ): Promise<{
-    legislation: Awaited<ReturnType<PhysicianLegalInformationService["searchLegislation"]>>;
+    legislation: Awaited<ReturnType<DoktorMcpInformationService["searchLegislation"]>>;
     diagnostics: {
       phaseBudgetExhausted: boolean;
       timedOut: boolean;
@@ -461,12 +461,12 @@ export class PhysicianLegalInformationService {
       this.legislationPhaseDiagnostics.coverageGaps = coverageGaps;
     }
 
-    let legislation: Awaited<ReturnType<PhysicianLegalInformationService["searchLegislation"]>>;
+    let legislation: Awaited<ReturnType<DoktorMcpInformationService["searchLegislation"]>>;
 
     try {
       legislation = await Promise.race([
         this.searchLegislation(classification, "live"),
-        new Promise<Awaited<ReturnType<PhysicianLegalInformationService["searchLegislation"]>>>((_, reject) =>
+        new Promise<Awaited<ReturnType<DoktorMcpInformationService["searchLegislation"]>>>((_, reject) =>
           setTimeout(() => reject(new Error(`LEGISLATION_PHASE_TIMEOUT:${phaseBudgetMs}`)), phaseBudgetMs)
         )
       ]);
@@ -719,7 +719,7 @@ function isLiveResult(value: unknown): value is LiveLegislationResult {
   return !Array.isArray(value);
 }
 
-function isLiveUnavailable(value: Awaited<ReturnType<PhysicianLegalInformationService["searchLegislation"]>>) {
+function isLiveUnavailable(value: Awaited<ReturnType<DoktorMcpInformationService["searchLegislation"]>>) {
   return isLiveResult(value) && value.status === "unavailable";
 }
 

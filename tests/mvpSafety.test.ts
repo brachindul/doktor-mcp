@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PhysicianLegalInformationService } from "../src/app/service.js";
+import { DoktorMcpInformationService } from "../src/app/service.js";
 import { composeDoctorLegalInformationPack } from "../src/health/answerComposer.js";
 import { filterReasonedPrecedents, selectVerifiedPrecedents } from "../src/health/precedentFilter.js";
 import { classifyMedicalLegalQuestion } from "../src/health/questionClassifier.js";
@@ -37,7 +37,7 @@ describe("MVP legal information pack constraints", () => {
   });
 
   it("copies legislation quotes verbatim from the source provision text", async () => {
-    const service = new PhysicianLegalInformationService();
+    const service = new DoktorMcpInformationService();
     const pack = await service.prepareInformationPack({ question: "Aydinlatilmis riza kaydi" });
     const sourceProvision = mockLegislationProvisions.find(
       (provision) => provision.documentId === "leg-patient-rights-24"
@@ -60,7 +60,7 @@ describe("MVP legal information pack constraints", () => {
   });
 
   it("does not include risk level or immediate actions in the MVP response", async () => {
-    const service = new PhysicianLegalInformationService();
+    const service = new DoktorMcpInformationService();
     const pack = await service.prepareInformationPack({ question: "Riza eksikligi iddiasi" });
     const json = JSON.stringify(pack).toLocaleLowerCase("tr-TR");
 

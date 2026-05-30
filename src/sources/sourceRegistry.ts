@@ -1,6 +1,6 @@
 /**
  * Source capability registry ported from local-yargi's source registry
- * concept and trimmed to the physician-legal-mcp set. Adapters do NOT branch
+ * concept and trimmed to the doktor-mcp set. Adapters do NOT branch
  * on this; the registry is informational for tooling and MCP capability
  * reporting.
  */

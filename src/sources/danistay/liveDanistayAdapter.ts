@@ -79,7 +79,7 @@ export class LiveDanistayAdapter implements PrecedentSourceAdapter {
         "Content-Type": "application/json; charset=UTF-8",
         "X-Requested-With": "XMLHttpRequest",
         Referer: `${BASE_URL}/`,
-        "User-Agent": "physician-legal-mcp/0.14 danistay-emsal-check"
+        "User-Agent": "doktor-mcp/0.14 danistay-emsal-check"
       },
       body: JSON.stringify(buildSearchBody(query))
     });
@@ -260,7 +260,7 @@ export class LiveDanistayAdapter implements PrecedentSourceAdapter {
         headers: {
           Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
           Referer: `${BASE_URL}/`,
-          "User-Agent": "physician-legal-mcp/0.14 danistay-emsal-check"
+          "User-Agent": "doktor-mcp/0.14 danistay-emsal-check"
         }
       });
       if (isUnavailable(response)) return null;

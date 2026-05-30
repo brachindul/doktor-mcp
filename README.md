@@ -1,6 +1,6 @@
-# Physician Legal MCP
+# Doktor MCP
 
-`physician-legal-mcp` is a standalone TypeScript/Node.js MCP skeleton for source-grounded
+`doktor-mcp` is a standalone TypeScript/Node.js MCP skeleton for source-grounded
 legal information packs aimed at physicians. It does not tell a physician what to do and
 does not provide a final legal opinion. It matches a question to official legislation text
 and reasoned high court decision text available through source adapters.

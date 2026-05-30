@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { PhysicianLegalInformationService } from "../src/app/service.js";
+import { DoktorMcpInformationService } from "../src/app/service.js";
 import { LiveYargitayAdapter } from "../src/sources/yargitay/liveYargitayAdapter.js";
 import { LiveDanistayAdapter } from "../src/sources/danistay/liveDanistayAdapter.js";
 
@@ -65,7 +65,7 @@ function makeService(overrides: { yargitayDecisions?: object[]; danistayDecision
     );
   }
 
-  return new PhysicianLegalInformationService({ liveYargitay, liveDanistay });
+  return new DoktorMcpInformationService({ liveYargitay, liveDanistay });
 }
 
 describe("multi-source precedent live mode", () => {
@@ -186,7 +186,7 @@ describe("multi-source precedent live mode", () => {
   });
 
   it("mock mode returns decisions from all three mock adapters with sourceSummaries", async () => {
-    const service = new PhysicianLegalInformationService();
+    const service = new DoktorMcpInformationService();
     const pack = await service.prepareInformationPack({ question: "rıza", sourceMode: "mock" });
 
     expect(pack.precedentDiagnostics).toBeDefined();

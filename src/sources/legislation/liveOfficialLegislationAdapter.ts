@@ -407,7 +407,7 @@ function officialHeaders(contentType?: string): Record<string, string> {
     Accept: "application/pdf, application/json;q=0.9, text/html;q=0.8",
     ...(contentType ? { "Content-Type": contentType } : {}),
     Referer: `${BASE_URL}/`,
-    "User-Agent": "physician-legal-mcp/0.2 official-legislation-check"
+    "User-Agent": "doktor-mcp/0.2 official-legislation-check"
   };
 }
 

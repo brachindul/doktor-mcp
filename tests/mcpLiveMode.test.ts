@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { PhysicianLegalInformationService } from "../src/app/service.js";
+import { DoktorMcpInformationService } from "../src/app/service.js";
 import { createMedicalLegalToolHandlers } from "../src/mcp/tools.js";
 import type { LegislationProvision } from "../src/contracts/legal.js";
 import { LiveOfficialLegislationAdapter } from "../src/sources/legislation/liveOfficialLegislationAdapter.js";
@@ -91,7 +91,7 @@ describe("MCP legislation sourceMode", () => {
       sourceTrace: [liveProvision.sourceTrace!]
     });
     const liveGet = vi.spyOn(liveLegislation, "getLegislationProvisions").mockResolvedValue([liveProvision]);
-    const handlers = createMedicalLegalToolHandlers(new PhysicianLegalInformationService({ liveLegislation }));
+    const handlers = createMedicalLegalToolHandlers(new DoktorMcpInformationService({ liveLegislation }));
 
     const search = await handlers.search_health_legislation({
       question: "kişisel sağlık verisi",
@@ -128,7 +128,7 @@ describe("MCP legislation sourceMode", () => {
       provisions: [liveProvision],
       sourceTrace: [liveProvision.sourceTrace!]
     });
-    const handlers = createMedicalLegalToolHandlers(new PhysicianLegalInformationService({
+    const handlers = createMedicalLegalToolHandlers(new DoktorMcpInformationService({
       liveLegislation,
       liveYargitay: { searchHealthPrecedents: async () => [] } as any,
       liveDanistay: { searchHealthPrecedents: async () => [] } as any,
@@ -153,7 +153,7 @@ describe("MCP legislation sourceMode", () => {
   it("carries live unavailable without inventing legislation or MVP-excluded headings", async () => {
     const liveLegislation = new LiveOfficialLegislationAdapter();
     vi.spyOn(liveLegislation, "getMappedHealthProvisions").mockResolvedValue(unavailable);
-    const handlers = createMedicalLegalToolHandlers(new PhysicianLegalInformationService({
+    const handlers = createMedicalLegalToolHandlers(new DoktorMcpInformationService({
       liveLegislation,
       liveYargitay: { searchHealthPrecedents: async () => [] } as any,
       liveDanistay: { searchHealthPrecedents: async () => [] } as any,

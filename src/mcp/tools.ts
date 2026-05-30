@@ -1,7 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
-import { PhysicianLegalInformationService } from "../app/service.js";
+import { DoktorMcpInformationService } from "../app/service.js";
 import type { CourtDecision, DoctorLegalInformationPack } from "../contracts/legal.js";
 import { buildPrecedentSelectionDiagnostics } from "../health/precedentFilter.js";
 import { formatDoctorPackResponse, detectForbiddenOutputPhrases } from "./formatDoctorPackResponse.js";
@@ -66,7 +66,7 @@ function formatPackResponse(pack: DoctorLegalInformationPack, options: {
   }
 }
 
-export function createMedicalLegalToolHandlers(service = new PhysicianLegalInformationService()) {
+export function createMedicalLegalToolHandlers(service = new DoktorMcpInformationService()) {
   return {
     classify_medical_legal_question: async (input: unknown) => service.classify(questionSchema.parse(input).question),
     search_health_legislation: async (input: unknown) => {
@@ -97,12 +97,12 @@ export function createMedicalLegalToolHandlers(service = new PhysicianLegalInfor
 
 export function registerMedicalLegalTools(
   server: McpServer,
-  service = new PhysicianLegalInformationService()
+  service = new DoktorMcpInformationService()
 ): void {
   const handlers = createMedicalLegalToolHandlers(service);
 
   server.registerTool("classify_medical_legal_question", {
-    description: "Classifies a physician legal information question for source mapping.",
+    description: "Classifies a doktor legal information question for source mapping.",
     inputSchema: legislationQuestionSchema.shape
   }, async (input) => jsonResult(await handlers.classify_medical_legal_question(input)));
 
@@ -127,7 +127,7 @@ export function registerMedicalLegalTools(
   }, async (input) => jsonResult(await handlers.filter_reasoned_precedents(input)));
 
   server.registerTool("prepare_doctor_legal_information_pack", {
-    description: "Prepares a source-grounded physician legal information pack without a final legal opinion.",
+    description: "Prepares a source-grounded doktor legal information pack without a final legal opinion.",
     inputSchema: packInputSchema.shape
   }, async (input) => jsonResult(await handlers.prepare_doctor_legal_information_pack(input)));
 }
