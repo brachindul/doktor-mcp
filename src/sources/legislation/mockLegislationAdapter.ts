@@ -11,7 +11,9 @@ const ethicsPriorityMap: Record<string, number> = {
   "Is Sagligi ve Guvenligi Kanunu": 65,
   "Organ ve Doku Nakli Kanunu": 70,
   "Uremeye Yardimci Tedavi Yonetmeligi": 80,
-  "Geleneksel ve Tamamlayici Tip Uygulamalari Yonetmeligi": 90
+  "Geleneksel ve Tamamlayici Tip Uygulamalari Yonetmeligi": 90,
+  "Sağlık Bakanlığı Atama ve Yer Değiştirme Yönetmeliği": 30,
+  "Tıpta ve Diş Hekimliğinde Uzmanlık Eğitimi Yönetmeliği": 25
 };
 
 const standardPriorityMap: Record<string, number> = {
@@ -23,7 +25,9 @@ const standardPriorityMap: Record<string, number> = {
   "Is Sagligi ve Guvenligi Kanunu": 65,
   "Organ ve Doku Nakli Kanunu": 70,
   "Uremeye Yardimci Tedavi Yonetmeligi": 80,
-  "Geleneksel ve Tamamlayici Tip Uygulamalari Yonetmeligi": 90
+  "Geleneksel ve Tamamlayici Tip Uygulamalari Yonetmeligi": 90,
+  "Sağlık Bakanlığı Atama ve Yer Değiştirme Yönetmeliği": 15,
+  "Tıpta ve Diş Hekimliğinde Uzmanlık Eğitimi Yönetmeliği": 12
 };
 
 export class MockLegislationAdapter implements LegislationSourceAdapter {

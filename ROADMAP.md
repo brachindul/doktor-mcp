@@ -6,7 +6,7 @@
 >
 > **Genel kurallar (her görevde geçerli):**
 > - `npm run build` (tsc) **0 hata** vermeli.
-> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 1068 testi kırma.
+> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 1070 testi kırma.
 > - Yeni davranış eklediysen **yeni test** yaz. Test yoksa görev "done" sayılmaz.
 > - Pakedin/araç JSON şekli (response contract) değişiyorsa README'yi güncelle.
 > - Türkçe kullanıcı mesajları ve İngilizce kod/yorum karışımını koru (mevcut konvansiyon).
@@ -521,7 +521,7 @@ tamamlanmadan sıradakine geçme; önce düzelt.
 - **Kabul**: En az Atama Yönetmeliği'nin metni canlı olarak çıkarılıp en az 1 madde
   döndürülüyor; smoke `npm run verify:health-legislation` ile gösteriliyor. Build+test yeşil.
 
-### [ ] T9.2 — Yeni kamu/eğitim yönetmelikleri için mock provision ekle
+### [x] T9.2 — Yeni kamu/eğitim yönetmelikleri için mock provision ekle
 - **Sorun**: `mockLegislationAdapter`/`mockData`'da yeni yönetmelikler için hüküm yok; mock
   modda hiç görünmüyorlar, offline demo/test imkânsız.
 - **Yapılacak**: En az şu girdiler için gerçek madde metniyle (resmî kaynaktan birebir alıntı,

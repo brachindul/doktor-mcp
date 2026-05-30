@@ -134,6 +134,66 @@ export const mockLegislationProvisions: LegislationProvision[] = [
     dimensions: ["professional_ethics", "disciplinary_administrative"],
     evidence: evidence("legislation", "leg-getat-5", true),
     inForce: "unknown"
+  },
+  {
+    documentId: "leg-atama-1",
+    legislationName: "Sağlık Bakanlığı Atama ve Yer Değiştirme Yönetmeliği",
+    articleNumber: "1",
+    verbatimText:
+      "Bu Yönetmeliğin amacı; sağlık hizmetlerinin yurt genelinde etkin ve verimli bir şekilde yürütülebilmesi için Sağlık Bakanlığında görev yapan sağlık hizmetleri ve yardımcı sağlık hizmetleri sınıfı personelinin atama ve yer değiştirmelerine ilişkin usul ve esasları düzenlemektir.",
+    connection: "Atama ve yer değiştirme usulleri bu yönetmelikle düzenlenir; tayin talepleri ve itiraz süreçleri bu kapsamda değerlendirilir.",
+    dimensions: ["disciplinary_administrative", "professional_ethics"],
+    evidence: evidence("legislation", "leg-atama-1", true),
+    inForce: true,
+    lastAmendedDate: "2024-11-27"
+  },
+  {
+    documentId: "leg-atama-2",
+    legislationName: "Sağlık Bakanlığı Atama ve Yer Değiştirme Yönetmeliği",
+    articleNumber: "2",
+    verbatimText:
+      "Bu Yönetmelik; Sağlık Bakanlığı taşra teşkilatında görev yapan sağlık hizmetleri ve yardımcı sağlık hizmetleri sınıfı personelini kapsar. Ancak, Bakanlık merkez teşkilatından taşra teşkilatına, taşra teşkilatından merkez teşkilatına yapılacak atamalar ve görevlendirmeler ile eğitim ve araştırma hastanelerinde görev yapan eğitim görevlisi, başasistan ve asistanları kapsamaz.",
+    connection: "Kapsam belirlemesi; hangi personelin bu yönetmelik hükümlerine tabi olduğunu netleştirir.",
+    dimensions: ["disciplinary_administrative"],
+    evidence: evidence("legislation", "leg-atama-2", true),
+    inForce: true,
+    lastAmendedDate: "2024-11-27"
+  },
+  {
+    documentId: "leg-atama-5",
+    legislationName: "Sağlık Bakanlığı Atama ve Yer Değiştirme Yönetmeliği",
+    articleNumber: "5",
+    verbatimText:
+      "Bu Yönetmelik tüm atama ve yer değiştirmelerde; a) Kadro imkânları göz önünde bulundurulması, b) Ekonomik, sosyal ve kültürel şartlar ile ulaşım şartları yönünden benzerlik ve yakınlık gösteren illerin gruplandırılarak işlem yapılması, c) Personelin hizmet bölgeleri ve grupları arasında, hizmet gerekleri de dikkate alınarak, adil ve dengeli dağılımın sağlanması, ç) Personel hareketlerinde hizmet puanının belirleyici olması, d) PDC'de belirlenen sayılardaki aktif çalışanların dikkate alınarak idarenin hizmet ihtiyacının karşılanması, e) Atamalarda hizmet birimlerinin ihtiyacına göre sertifika, diploma gibi özel nitelikler aranılarak, nitelikli personel eliyle hizmet sunumunun sağlanması, f) Personelin başvuru tarihinde yürürlükte olan usul ve esaslar çerçevesinde işlem yapılması ilkelerini esas alır.",
+    connection: "Temel ilkeler; atama ve yer değiştirme taleplerinin değerlendirilmesinde dikkate alınan kriterleri belirler.",
+    dimensions: ["disciplinary_administrative", "professional_ethics"],
+    evidence: evidence("legislation", "leg-atama-5", true),
+    inForce: true,
+    lastAmendedDate: "2024-11-27"
+  },
+  {
+    documentId: "leg-tuey-1",
+    legislationName: "Tıpta ve Diş Hekimliğinde Uzmanlık Eğitimi Yönetmeliği",
+    articleNumber: "1",
+    verbatimText:
+      "Bu Yönetmeliğin amacı; tıp ve diş hekimliği alanlarında uzmanlık eğitimi, uzmanlık belgelerinin verilmesi ve Tıpta Uzmanlık Kurulunun çalışma usul ve esaslarını düzenlemektir. Bu Yönetmelik; Tıpta Uzmanlık Kurulu ile tıp ve diş hekimliği alanlarında eğitim vermeye yetkili kurum ve uzmanlık eğitimi ile ilgili programları ve kişileri kapsar.",
+    connection: "Tıpta uzmanlık eğitiminin yasal çerçevesi; asistan hakları, eğitim süreleri ve uzmanlık belgeleri bu yönetmelikle düzenlenir.",
+    dimensions: ["professional_ethics", "disciplinary_administrative"],
+    evidence: evidence("legislation", "leg-tuey-1", true),
+    inForce: true,
+    lastAmendedDate: "2023-10-07"
+  },
+  {
+    documentId: "leg-tuey-2",
+    legislationName: "Tıpta ve Diş Hekimliğinde Uzmanlık Eğitimi Yönetmeliği",
+    articleNumber: "2",
+    verbatimText:
+      "Bu Yönetmelik, 11/4/1928 tarihli ve 1219 sayılı Tababet ve Şuabatı San'atlarının Tarzı İcrasına Dair Kanun ile 1 sayılı Cumhurbaşkanlığı Teşkilatı Hakkında Cumhurbaşkanlığı Kararnamesinin 369 uncu ve 508 inci maddelerine dayanılarak hazırlanmıştır.",
+    connection: "Dayanak maddesi; yönetmeliğin hukuki temelini ve kanuni dayanağını gösterir.",
+    dimensions: ["professional_ethics"],
+    evidence: evidence("legislation", "leg-tuey-2", true),
+    inForce: true,
+    lastAmendedDate: "2023-10-07"
   }
 ];
 
