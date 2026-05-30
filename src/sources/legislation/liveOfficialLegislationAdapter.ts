@@ -244,17 +244,17 @@ export class LiveOfficialLegislationAdapter implements LegislationSourceAdapter 
       }, "mevzuat-landing");
 
       if (!isUnavailable(landingResponse) && landingResponse.ok) {
-        const html = await landingResponse.text();
-        // Try to find PDF URL in landing page HTML
-        const pdfMatch = html.match(/href="(\/File\/GeneratePdf[^"]+)"/i)
-          ?? html.match(/href="(\/MevzuatMetin[^"]+\.pdf)"/i);
-
-        if (pdfMatch) {
-          const pdfUrl = new URL(pdfMatch[1], BASE_URL).toString();
-          // Retry with the extracted URL and full browser headers
-          response = await this.fetchWithAdaptiveBackoff(pdfUrl, {
-            headers: officialHeaders()
-          }, "mevzuat-pdf-fallback");
+        const contentType = landingResponse.headers.get("content-type") ?? "";
+        // Only parse HTML landing pages — skip if we got PDF or other binary
+        if (contentType.toLocaleLowerCase("en-US").includes("text/html")) {
+          const html = await landingResponse.text();
+          const extractedUrl = extractPdfUrlFromLandingPage(html);
+          if (extractedUrl) {
+            // Retry with the extracted URL and full browser headers
+            response = await this.fetchWithAdaptiveBackoff(extractedUrl, {
+              headers: officialHeaders()
+            }, "mevzuat-pdf-fallback");
+          }
         }
       }
     }
@@ -452,6 +452,43 @@ function mapHintToSearchResult(hint: HealthLegislationHint): OfficialLegislation
     legislationType: hint.legislationType,
     legislationArrangement: hint.legislationArrangement
   };
+}
+
+/**
+ * Extract a valid PDF download URL from mevzuat.gov.tr landing page HTML.
+ *
+ * The landing page contains full-URL links like:
+ *   https://www.mevzuat.gov.tr/MevzuatMetin/yonetmelik/7.5.17232.pdf
+ *   https://www.mevzuat.gov.tr/File/GeneratePdf?mevzuatNo=17232&...
+ *
+ * Priorities:
+ *   1. MevzuatMetin/...pdf (static PDF)
+ *   2. File/GeneratePdf (dynamic PDF generator)
+ *   3. Any .pdf href (broader catch)
+ */
+function extractPdfUrlFromLandingPage(html: string): string | null {
+  // 1. Full-URL or relative MevzuatMetin PDF links (highest priority — static file)
+  const metinFull = html.match(/href="(https?:\/\/www\.mevzuat\.gov\.tr\/MevzuatMetin[^"]+\.pdf)"/i);
+  if (metinFull) return metinFull[1];
+
+  const metinRelative = html.match(/href="(\/MevzuatMetin[^"]+\.pdf)"/i);
+  if (metinRelative) return new URL(metinRelative[1], BASE_URL).toString();
+
+  // 2. GeneratePdf links (dynamic PDF — full URL or relative)
+  const genFull = html.match(/href="(https?:\/\/www\.mevzuat\.gov\.tr\/File\/GeneratePdf[^"]+)"/i);
+  if (genFull) return genFull[1];
+
+  const genRelative = html.match(/href="(\/File\/GeneratePdf[^"]+)"/i);
+  if (genRelative) return new URL(genRelative[1], BASE_URL).toString();
+
+  // 3. Any other .pdf link on the page (broader catch)
+  const anyPdf = html.match(/href="([^"]+\.pdf)"/i);
+  if (anyPdf) {
+    const raw = anyPdf[1];
+    return raw.startsWith("http") ? raw : new URL(raw, BASE_URL).toString();
+  }
+
+  return null;
 }
 
 function officialPdfUrl(type: string, arrangement: string, number: string) {

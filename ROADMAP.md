@@ -6,7 +6,7 @@
 >
 > **Genel kurallar (her görevde geçerli):**
 > - `npm run build` (tsc) **0 hata** vermeli.
-> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 1064 testi kırma.
+> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 1068 testi kırma.
 > - Yeni davranış eklediysen **yeni test** yaz. Test yoksa görev "done" sayılmaz.
 > - Pakedin/araç JSON şekli (response contract) değişiyorsa README'yi güncelle.
 > - Türkçe kullanıcı mesajları ve İngilizce kod/yorum karışımını koru (mevcut konvansiyon).
@@ -511,7 +511,7 @@ tamamlanmadan sıradakine geçme; önce düzelt.
 > (canlı: `mevzuat.gov.tr source_error`; mock: provision yok). Bu faz özelliği gerçekten
 > kullanılabilir yapar.
 
-### [ ] T9.1 — mevzuat.gov.tr canlı fetch'i gerçekten çöz
+### [x] T9.1 — mevzuat.gov.tr canlı fetch'i gerçekten çöz
 - **Sorun**: T8.2 header/fallback ekledi ama canlı hâlâ `source_error`; yeni girdiler
   `covered` olamadı.
 - **Yapılacak**: `mevzuat:7.5.17232` (Atama) canlı çekilip metni çıkana kadar fetch yolunu
