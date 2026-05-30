@@ -74,7 +74,7 @@
 - **Kabul**: Yeni test dosyası `tests/forbiddenPhraseCalibration.test.ts` hem hard-blocked
   hem izinli örnekleri kapsasın. README'nin "Intentionally Out Of Scope" bölümü güncellensin.
 
-### T1.2 — `shortAnswer` ve yeni `preliminaryAssessment` alanı
+### [x] T1.2 — `shortAnswer` ve yeni `preliminaryAssessment` alanı
 - **Dosya**: `src/contracts/legal.ts`, `src/health/answerComposer.ts`.
 - **Yapılacak**: Pakede opsiyonel `preliminaryAssessment` alanı ekle: kaynaklara dayalı,
   koşullu dille yazılmış, her cümlesi bir mevzuat maddesine veya emsal karara referans veren

@@ -176,6 +176,39 @@ export interface LegalClassificationSection {
   professionalEthics: string[];
 }
 
+/**
+ * Individual assessment sentence tied to a source reference.
+ * Each sentence MUST reference a legislation provision or precedent ruling.
+ * Uses conditional language — never categorical final judgments.
+ * @since v0.44.0
+ */
+export interface AssessmentSentence {
+  /** The assessment text. Must use conditional language. */
+  text: string;
+  /** Reference to the source: legislation provision ID or precedent decision ID. */
+  sourceRef: string;
+  /** Human-readable label for the source (e.g., "Hasta Hakları Yönetmeliği md. 5"). */
+  sourceLabel: string;
+}
+
+/**
+ * Source-grounded preliminary assessment.
+ * Each sentence MUST reference a legislation provision or precedent ruling.
+ * No sentence without a sourceRef is allowed.
+ * Uses conditional language — never categorical final judgments.
+ * @since v0.44.0
+ */
+export interface PreliminaryAssessment {
+  /**
+   * Overall summary in conditional, source-grounded language.
+   * Example: "Kaynaklar, bu durumun Hasta Hakları Yönetmeliği'nin X maddesine göre
+   * değerlendirilebileceğini göstermektedir."
+   */
+  summary: string;
+  /** Individual assessment sentences, each tied to a source reference. */
+  sentences: AssessmentSentence[];
+}
+
 export interface DoctorLegalInformationPack {
   shortAnswer: string;
   legalClassification: LegalClassificationSection;
@@ -196,6 +229,14 @@ export interface DoctorLegalInformationPack {
   sourceTrace?: LegislationSourceTrace[];
   selectionDiagnostics?: LegislationSelectionDiagnostics;
   precedentDiagnostics?: PrecedentSelectionDiagnostics;
+  /**
+   * Optional source-grounded preliminary assessment.
+   * Each sentence MUST reference a legislation provision or precedent ruling.
+   * No sentence without a sourceRef is allowed.
+   * Uses conditional language — never categorical final judgments.
+   * @since v0.44.0
+   */
+  preliminaryAssessment?: PreliminaryAssessment;
 }
 
 export interface PrepareInformationPackInput {

@@ -5,6 +5,8 @@ import type {
   LegalClassificationSection,
   LegislationProvision,
   LegislationSelectionDiagnostics,
+  PreliminaryAssessment,
+  AssessmentSentence,
   SourceUnavailable
 } from "../contracts/legal.js";
 import { assessPrecedentRelevance } from "./precedentRelevance.js";
@@ -80,6 +82,43 @@ function inferAccessSource(decision: CourtDecision): string {
   return decision.evidence.source;
 }
 
+function buildPreliminaryAssessment(pack: DoctorLegalInformationPack): PreliminaryAssessment | null {
+  const sentences: AssessmentSentence[] = [];
+
+  // From legislation: one sentence per relevant provision that has a verbatim quote
+  for (const prov of pack.relevantLegislation) {
+    if (!prov.verbatimQuote?.trim()) continue;
+    const sourceLabel =
+      prov.sourceTrace?.matchedHealthMapping?.title
+      ?? prov.sourceTrace?.query
+      ?? prov.sourceDocumentId
+      ?? "unknown";
+    sentences.push({
+      text: `Bu durum, ${sourceLabel} hükümlerine göre değerlendirilebilir.`,
+      sourceRef: prov.sourceDocumentId ?? sourceLabel,
+      sourceLabel
+    });
+  }
+
+  // From precedents: one sentence per verified precedent
+  for (const prec of pack.verifiedHighCourtPrecedents) {
+    const sourceLabel = prec.courtAndChamber ?? prec.sourceDocumentId ?? "unknown";
+    sentences.push({
+      text: `Emsal kararlar benzer olaylarda ${sourceLabel} kararının işaret ettiği yönde eğilim göstermektedir.`,
+      sourceRef: prec.sourceDocumentId ?? sourceLabel,
+      sourceLabel
+    });
+  }
+
+  if (sentences.length === 0) return null;
+
+  // Build summary from the first few sentences
+  const summarySources = sentences.slice(0, 3).map(s => s.sourceLabel).join(", ");
+  const summary = `Mevcut kaynaklar (${summarySources}) ışığında, bu hukuki durum ilgili mevzuat ve emsal kararlar çerçevesinde değerlendirilmelidir. Nihai hukuki kanaat oluşturmak için bir uzmana danışılması önerilir.`;
+
+  return { summary, sentences };
+}
+
 export function composeDoctorLegalInformationPack(
   classification: ClassifiedMedicalLegalQuestion,
   provisions: LegislationProvision[],
@@ -111,29 +150,47 @@ export function composeDoctorLegalInformationPack(
     sourceWarnings.push("Zaman bütçesi sınırı nedeniyle tarama erken sonlandırıldı (timeBudgetExhausted).");
   }
 
+  // Build optional preliminary assessment from available sources
+  const relevantLegislation = provisions.map((provision) => ({
+    legislationName: provision.legislationName,
+    articleNumber: provision.articleNumber,
+    verbatimQuote: provision.verbatimText,
+    connection: provision.connection,
+    sourceDocumentId: provision.evidence.documentId,
+    ...(provision.sourceTrace ? { sourceTrace: provision.sourceTrace } : {}),
+    ...(provision.ranking ? { ranking: provision.ranking } : {})
+  }));
+  const verifiedHighCourtPrecedents = precedents.map((precedent) => formatPrecedent(precedent, classification));
+  const legalClassification = classificationSection(classification);
+  const missingInformation = classification.missingInformation;
+  const lawyerReviewPoints = [
+    "Somut olay belgeleri ile resmi kaynak eslestirmesinin avukat tarafindan kontrolu",
+    "Guncel mevzuat metni ve karar tam metninin canli kaynaktan yeniden dogrulanmasi"
+  ];
+
+  const preliminaryAssessment = buildPreliminaryAssessment({
+    shortAnswer,
+    legalClassification,
+    relevantLegislation,
+    verifiedHighCourtPrecedents,
+    missingInformation,
+    lawyerReviewPoints,
+    sourceWarnings,
+  } as DoctorLegalInformationPack);
+
   return {
     shortAnswer,
-    legalClassification: classificationSection(classification),
-    relevantLegislation: provisions.map((provision) => ({
-      legislationName: provision.legislationName,
-      articleNumber: provision.articleNumber,
-      verbatimQuote: provision.verbatimText,
-      connection: provision.connection,
-      sourceDocumentId: provision.evidence.documentId,
-      ...(provision.sourceTrace ? { sourceTrace: provision.sourceTrace } : {}),
-      ...(provision.ranking ? { ranking: provision.ranking } : {})
-    })),
-    verifiedHighCourtPrecedents: precedents.map((precedent) => formatPrecedent(precedent, classification)),
-    missingInformation: classification.missingInformation,
-    lawyerReviewPoints: [
-      "Somut olay belgeleri ile resmi kaynak eslestirmesinin avukat tarafindan kontrolu",
-      "Guncel mevzuat metni ve karar tam metninin canli kaynaktan yeniden dogrulanmasi"
-    ],
+    legalClassification,
+    relevantLegislation,
+    verifiedHighCourtPrecedents,
+    missingInformation,
+    lawyerReviewPoints,
     sourceWarnings,
     ...(sourceUnavailable.length > 0 ? { sourceUnavailable } : {}),
     ...(provisions.some((provision) => provision.sourceTrace)
       ? { sourceTrace: provisions.flatMap((provision) => provision.sourceTrace ? [provision.sourceTrace] : []) }
       : {}),
-    ...(selectionDiagnostics ? { selectionDiagnostics } : {})
+    ...(selectionDiagnostics ? { selectionDiagnostics } : {}),
+    ...(preliminaryAssessment ? { preliminaryAssessment } : {})
   };
 }
