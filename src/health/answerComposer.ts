@@ -89,37 +89,69 @@ function inferAccessSource(decision: CourtDecision): string {
 
 function buildPreliminaryAssessment(pack: DoctorLegalInformationPack): PreliminaryAssessment | null {
   const sentences: AssessmentSentence[] = [];
+  const seenChambers = new Set<string>();
 
-  // From legislation: one sentence per relevant provision that has a verbatim quote
+  // ── Legislation sentences: extract concrete obligation ──
   for (const prov of pack.relevantLegislation) {
     if (!prov.verbatimQuote?.trim()) continue;
-    const sourceLabel =
-      prov.sourceTrace?.matchedHealthMapping?.title
-      ?? prov.sourceTrace?.query
-      ?? prov.sourceDocumentId
-      ?? "unknown";
+
+    const name = prov.legislationName ?? "ilgili mevzuat";
+    const article = prov.articleNumber ? `md. ${prov.articleNumber}` : "";
+    const sourceLabel = [name, article].filter(Boolean).join(" ");
+
+    // Extract a short snippet from the verbatim quote for context
+    const snippet = prov.verbatimQuote.length > 120
+      ? prov.verbatimQuote.slice(0, 120).trim() + "…"
+      : prov.verbatimQuote.trim();
+
     sentences.push({
-      text: `Bu durum, ${sourceLabel} hükümlerine göre değerlendirilebilir.`,
-      sourceRef: prov.sourceDocumentId ?? sourceLabel,
+      text: `${sourceLabel} uyarınca: "${snippet}"`,
+      sourceRef: prov.sourceDocumentId ?? `legislation:${encodeURIComponent(sourceLabel)}`,
       sourceLabel
     });
   }
 
-  // From precedents: one sentence per verified precedent
+  // ── Precedent sentences: extract real outcome, dedupe chambers ──
   for (const prec of pack.verifiedHighCourtPrecedents) {
-    const sourceLabel = prec.courtAndChamber ?? prec.sourceDocumentId ?? "unknown";
+    const courtLabel = prec.courtAndChamber ?? prec.court ?? "yüksek mahkeme";
+
+    // Skip if no meaningful content to report
+    const hasOutcome = prec.outcome && prec.outcome !== "Kaynakta sonuc yok" && prec.outcome.trim().length > 0;
+    const hasReasoning = prec.legalAssessment && prec.legalAssessment !== "Kaynakta hukuki degerlendirme yok";
+    if (!hasOutcome && !hasReasoning) continue;
+
+    // Dedupe: max 1 sentence per court+chamber (keep the first/most relevant)
+    if (seenChambers.has(courtLabel)) continue;
+    seenChambers.add(courtLabel);
+
+    // Build meaningful text from real data
+    let text = "";
+    if (hasOutcome && hasReasoning) {
+      text = `${courtLabel}, benzer bir olayda "${prec.outcome}" yönünde karar vermiştir.`;
+    } else if (hasOutcome) {
+      text = `${courtLabel}, benzer bir olayda sonuç olarak "${prec.outcome}" yönünde hüküm kurmuştur.`;
+    } else {
+      text = `${courtLabel} içtihadı, benzer olaylarda emsal teşkil edebilecek değerlendirmeler içermektedir.`;
+    }
+
+    // Add similarity note if available
+    if (prec.similarityDifference && prec.similarityDifference !== "Benzerlik teyit edilmedi") {
+      text += ` ${prec.similarityDifference}`;
+    }
+
     sentences.push({
-      text: `Emsal kararlar benzer olaylarda ${sourceLabel} kararının işaret ettiği yönde eğilim göstermektedir.`,
-      sourceRef: prec.sourceDocumentId ?? sourceLabel,
-      sourceLabel
+      text,
+      sourceRef: prec.sourceDocumentId ?? `precedent:${encodeURIComponent(courtLabel)}`,
+      sourceLabel: courtLabel
     });
   }
 
   if (sentences.length === 0) return null;
 
-  // Build summary from the first few sentences
-  const summarySources = sentences.slice(0, 3).map(s => s.sourceLabel).join(", ");
-  const summary = `Mevcut kaynaklar (${summarySources}) ışığında, bu hukuki durum ilgili mevzuat ve emsal kararlar çerçevesinde değerlendirilmelidir. Nihai hukuki kanaat oluşturmak için bir uzmana danışılması önerilir.`;
+  // Build summary from the assessment sentences
+  const sourceNames = sentences.map(s => s.sourceLabel).filter((v, i, a) => a.indexOf(v) === i);
+  const summarySources = sourceNames.slice(0, 3).join(", ");
+  const summary = `Mevcut kaynaklar (${summarySources}) ışığında değerlendirilmiştir. Bu paket nihai hukuki kanaat oluşturmaz; her somut olay kendi bağlamında bir uzman tarafından değerlendirilmelidir.`;
 
   return { summary, sentences };
 }

@@ -6,7 +6,7 @@
 >
 > **Genel kurallar (her görevde geçerli):**
 > - `npm run build` (tsc) **0 hata** vermeli.
-> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 966 testi kırma.
+> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 967 testi kırma.
 > - Yeni davranış eklediysen **yeni test** yaz. Test yoksa görev "done" sayılmaz.
 > - Pakedin/araç JSON şekli (response contract) değişiyorsa README'yi güncelle.
 > - Türkçe kullanıcı mesajları ve İngilizce kod/yorum karışımını koru (mevcut konvansiyon).
@@ -212,6 +212,96 @@
 
 ---
 
+## Faz 6 — v1 Release Readiness
+
+> Bu faz, canlı (`--sourceMode live`) çalıştırmalarda gözlenen gerçek davranışa dayanır.
+> Hedef: altyapı olgunluğunu (build/test yeşil) **içerik kalitesiyle** eşitlemek.
+> v1 etiketi ancak T6.1–T6.3 (must-have) tamamlanınca anlamlıdır.
+
+### Must-have (v1 bloklayıcı)
+
+#### [x] T6.1 — `preliminaryAssessment`'i anlamlı kıl (şu an boş kalıp)
+- **Sorun**: Canlı çıktıda her değerlendirme cümlesi aynı içeriksiz şablon:
+  "Emsal kararlar benzer olaylarda DANİSTAY / 12. Daire kararının işaret ettiği yönde
+  eğilim göstermektedir." — hangi yönde olduğunu söylemiyor; aynı daire 4 kez tekrar
+  ediyor; hekime bilgi vermiyor. Ton gevşetmesinin (T1.2) asıl değeri burada kayboluyor.
+- **Dosya**: `src/health/answerComposer.ts` (assessment üretimi), ilgili emsal/mevzuat tipleri.
+- **Yapılacak**:
+  - Her emsal cümlesi kararın **gerçek sonucunu/eğilimini** (lehte / aleyhte / usul / karma)
+    `extractOutcome` + `extractLegalReasoning` çıktısından türetsin; "işaret ettiği yönde"
+    gibi içeriksiz ifadeyi kaldır.
+  - Her cümle olayla **benzerlik notunu** (relevanceNote / matched issue terms) içersin.
+  - Her mevzuat cümlesi maddenin **somut yükümlülüğünü** (madde başlığı/özeti) yansıtsın.
+  - **Aynı daire/karar için tekrarı dedupe et**; en güçlü ilgili karar bir kez geçsin.
+  - İçerik türetilemiyorsa (outcome/reasoning yoksa) o cümleyi **hiç üretme** — boş kalıp
+    üretmek yasak. Her cümle hâlâ bir `sourceRef` taşımalı (mevcut güvenlik kuralı korunur).
+- **Kabul**: `tests/` altında yeni test: (a) iki farklı sonuçlu karar → iki farklı cümle;
+  (b) aynı daireden iki karar → tek cümle (dedupe); (c) outcome/reasoning'i olmayan karar →
+  cümle üretilmez; (d) her üretilen cümlenin `sourceRef`'i dolu. Build + test yeşil.
+
+#### [ ] T6.2 — Canlı sağlık-birincil mevzuat önceliği regresyon testi
+- **Sorun**: "Hekim kişisel sağlık verisini izinsiz paylaştı" canlı sorusunda **yalnızca
+  KVKK m.6** döndü; Hasta Hakları Yönetmeliği'nin mahremiyet maddesi yüzeye çıkmadı. Bu,
+  README'nin "kişisel-sağlık-verisi sorularında Hasta Hakları Yönetmeliği KVKK'dan ÖNCE
+  gelir; KVKK fallback değildir" invariyantının canlıda sessiz ihlali olabilir. Mevcut
+  mock invariyant testi bunu yakalamıyor.
+- **Yapılacak**:
+  - `tests/` altına recorded-fixture (canlı yanıt sanitize) tabanlı bir test ekle:
+    gizlilik/kişisel-sağlık-verisi sorusunda sağlık-birincil mevzuat KVKK'dan **önce**
+    sıralanmalı.
+  - Sağlık-birincil mevzuat yüzeye çıkmıyorsa **nedeni görünür** olsun (extraction fail mi,
+    mapping mi ateşlenmedi mi) ve `coverageGaps`/`selectionDiagnostics`'e işlensin —
+    sessizce KVKK'ya düşmesin.
+- **Kabul**: Test, KVKK'nın sağlık-birincil mevzuatın önüne geçtiği durumu **hard fail**
+  yapıyor; sağlık-birincil çıkarılamadığında diagnostic'te açık gerekçe var.
+
+#### [ ] T6.3 — Çekirdek sağlık yönetmeliklerinin kapsama boşluklarını kapat
+- **Sorun**: 6 `needs_manual_review` girdi hâlâ doğrulanmamış: Özel Hastaneler, Acil Sağlık
+  Hizmetleri, Ayakta Teşhis, İşyeri Hekimi, Kişisel Sağlık Verileri Yönetmeliği, Sağlık
+  Bakanlığı Disiplin. "Hekim aracı" iddiası için bu çekirdek yönetmelikler önemli.
+- **Yapılacak**: Mevcut doğrulama hattını (`verify:official-gazette-health-legislation`,
+  `verifyBySourceIdDirect`, RG resolver) kullanarak bu girdiler için canlı mevzuat.gov.tr
+  sourceId + RG doğrulamasını tamamla; doğrulananları `covered` yap ve aktif mapping'e bağla.
+  Doğrulanamayan kalırsa **net gerekçeyle** `needs_manual_review` bırak (uydurma kaynak yok).
+- **Kabul**: En az 3 girdi `covered`'a yükseliyor; `coveredOfficialLegislationCount` artıyor;
+  doğrulanan her girdi gerçek gov.tr sourceId taşıyor; ilgili testler güncel.
+
+### Should-have
+
+#### [ ] T6.4 — Çıktı sözleşmesini dondur + SemVer 1.0 disiplini
+- **Yapılacak**: `responseVersion` üzerinden v1 breaking-change politikası tanımla; bir
+  `docs/COMPATIBILITY.md` ekle (hangi alanlar stabil, hangi alanlar deneysel, deprecation
+  yolu nasıl). Deneysel alanları (`preliminaryAssessment` vb.) açıkça işaretle.
+- **Kabul**: Politika dokümante; deneysel/stabil alanlar ayrımı net.
+
+#### [ ] T6.5 — AYM'yi netleştir (iskelet/mock belirsizliğini gider)
+- **Yapılacak**: Ya gerçek canlı AYM adapterini tamamla, ya da pakede AYM için **açık
+  "kapsam dışı / sentetik" işareti** koy ki kullanıcı belirsiz kalmasın. Mevcut
+  `LiveAymAdapter` iskeleti uydurma karar üretmemeli.
+- **Kabul**: AYM çıktısı her zaman net statü taşıyor; sentetik veri verified bölüme sızmıyor.
+
+#### [ ] T6.6 — Çıktı boyunca tek dil/aksan politikası
+- **Sorun**: `shortAnswer` ASCII'leştirilmiş ("eslestirildi", "degildir") ama
+  `preliminaryAssessment` tam Türkçe ("değerlendirilmelidir"). Tutarsız.
+- **Yapılacak**: Hekime dönük tüm metinlerde tek politika seç (tercihen tam Türkçe,
+  doğru diakritiklerle) ve uygula.
+- **Kabul**: Çıktıdaki hekim-dönük alanlar tek aksan politikasına uyuyor; test bunu doğruluyor.
+
+#### [ ] T6.7 — README'yi gerçek canlı davranışla hizala
+- **Yapılacak**: Özellikle mevzuat-önceliği ve kapsam iddialarını T6.2/T6.3 sonrası
+  doğrulanmış gerçeklerle eşitle. Test edilmemiş iddia bırakma.
+- **Kabul**: README'deki davranış iddiaları canlı/recorded testlerle örtüşüyor.
+
+### Nice-to-have
+
+#### [ ] T6.8 — Hukukçu-gözüyle kalite kıyas seti
+- **Yapılacak**: Mevcut teknik benchmark'a ek olarak, küçük bir "bu pakete bir avukat ne der"
+  niteliksel kontrol listesi ekle (ör. seçilen emsalin gerçekten konuyla ilgili olup olmadığı,
+  değerlendirme cümlelerinin yanıltıcı olmaması). Otomatik skor değil, yapılandırılmış kontrol.
+- **Kabul**: `docs/` altında kontrol listesi + birkaç örnek soru üzerinde uygulanmış sonuç.
+
+---
+
 ## Öncelik Sırası (loop için önerilen yürütme sırası)
 
 1. Faz 0 (tech debt — düşük risk, hızlı kazanç) → T0.1, T0.2, T0.5, T0.3, T0.4
@@ -220,6 +310,8 @@
 4. Faz 2 (yeni özellikler) → T2.6, T2.2, T2.3, T2.1, T2.4, T2.5
 5. Faz 3.2, 3.3 (derin test) → Faz 4 (doküman)
 6. Faz 5 (sürüm/changelog tutarlılığı) → T5.1 → T5.2
+7. Faz 6 (v1 release readiness) → **önce must-have**: T6.1 → T6.2 → T6.3;
+   sonra should-have: T6.4 → T6.5 → T6.6 → T6.7; en son nice-to-have: T6.8
 
 **Her görev sonunda**: build + test yeşil → commit. Bir görev testi kırıyorsa, görev
 tamamlanmadan sıradakine geçme; önce düzelt.

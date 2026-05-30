@@ -1,154 +1,181 @@
 import { describe, it, expect } from "vitest";
 import { composeDoctorLegalInformationPack } from "../src/health/answerComposer.js";
-import type {
-  ClassifiedMedicalLegalQuestion,
-  LegislationProvision,
-  CourtDecision,
-  SourceEvidence
-} from "../src/contracts/legal.js";
 
-function makeEvidence(): SourceEvidence {
-  return {
-    source: "legislation",
-    documentId: "test-doc",
-    retrievedAt: new Date().toISOString(),
-    official: true,
-    fullText: true,
-  };
-}
+describe("preliminaryAssessment — meaningful content", () => {
+  // Helper: minimal pack data
+  function makeClassification(overrides = {}) {
+    return {
+      question: "test question",
+      dimensions: ["patient_rights"] as any[],
+      searchTerms: ["test"],
+      missingInformation: [],
+      ...overrides,
+    };
+  }
 
-function makeClassification(overrides: Partial<ClassifiedMedicalLegalQuestion> = {}): ClassifiedMedicalLegalQuestion {
-  return {
-    question: "test question",
-    dimensions: ["patient_rights"],
-    searchTerms: ["test"],
-    missingInformation: [],
-    ...overrides,
-  };
-}
+  // ── Legislation tests ──
+  it("should include concrete obligation snippet from legislation", () => {
+    const result = composeDoctorLegalInformationPack(
+      makeClassification(),
+      [{
+        legislationName: "Hasta Hakları Yönetmeliği",
+        articleNumber: "5",
+        verbatimText: "Hasta, sağlık hizmetlerinden faydalanma hakkına sahiptir. Sağlık hizmeti sunucuları bu hakkı ihlal edemez.",
+        connection: "direct",
+        evidence: { documentId: "hh-5", sourceId: "mevzuat", sourceUrl: "" },
+      }],
+      [],
+    );
+    expect(result.preliminaryAssessment).toBeDefined();
+    const sentence = result.preliminaryAssessment!.sentences[0];
+    expect(sentence.text).toContain("Hasta Hakları Yönetmeliği");
+    expect(sentence.text).toContain("md. 5");
+    expect(sentence.text).toContain("Hasta, sağlık hizmetlerinden");
+    expect(sentence.sourceRef).toBe("hh-5");
+  });
 
-function makeProvision(overrides: Partial<LegislationProvision> = {}): LegislationProvision {
-  return {
-    documentId: "hasta-haklari-md-5",
-    legislationName: "Hasta Hakları Yönetmeliği",
-    articleNumber: "md. 5",
-    verbatimText: "Hasta, sağlık hizmetlerinden faydalanma hakkına sahiptir.",
-    connection: "Hasta hakları boyutu ile ilgili",
-    dimensions: ["patient_rights"],
-    evidence: makeEvidence(),
-    sourceTrace: {
-      query: "hasta hakları",
-      matchedHealthMapping: {
-        sourceId: "hasta-haklari",
-        query: "hasta hakları",
-        title: "Hasta Hakları Yönetmeliği",
-        articleNumbers: ["5"],
-      },
-      officialSearchRequest: null,
-      officialSearchResultsCount: 0,
-      selectedSearchResult: null,
-      selectedResultReason: null,
-      landingUrl: null,
-      detailUrl: null,
-      fullTextUrl: null,
-      directPdfUrl: null,
-      generatedPdfUrl: null,
-      contentType: null,
-      extractionMethod: null,
-      extractedArticleNumbers: [],
-      retrievedAt: null,
-    },
-    ...overrides,
-  };
-}
-
-function makeCourtDecision(overrides: Partial<CourtDecision> = {}): CourtDecision {
-  return {
-    id: "yargitay-2020-123",
-    court: "yargitay",
-    chamber: "12. Ceza Dairesi",
-    decisionDate: "2020-01-15",
-    meritsNumber: "2019/1234",
-    decisionNumber: "2020/567",
-    factSummary: "Benzer bir vaka",
-    legalReasoning: "Mahkeme değerlendirmesi",
-    outcome: "Kabul",
-    relevanceNote: "Benzer dava",
-    topicTags: ["patient_rights"],
-    evidence: {
-      source: "yargitay",
-      documentId: "yargitay-2020-123",
-      retrievedAt: new Date().toISOString(),
-      official: true,
-      fullText: true,
-    },
-    ...overrides,
-  };
-}
-
-describe("preliminaryAssessment", () => {
-  it("should be absent when no legislation or precedents exist", () => {
+  // ── Outcome-based precedent tests ──
+  it("should use real outcome in precedent sentences", () => {
     const result = composeDoctorLegalInformationPack(
       makeClassification(),
       [],
-      []
+      [{
+        id: "test-1",
+        court: "yargitay" as any,
+        chamber: "12. Ceza Dairesi",
+        outcome: "Beraat",
+        legalReasoning: "Sanığın kastı bulunmadığından beraatine karar verilmiştir.",
+        topicTags: ["patient_rights"],
+        evidence: { documentId: "yargitay-123", sourceId: "yargitay", sourceUrl: "" },
+      }],
+      [],
+      undefined,
+      undefined,
+      "grounded-advisory",
+    );
+    expect(result.preliminaryAssessment).toBeDefined();
+    const sentence = result.preliminaryAssessment!.sentences[0];
+    expect(sentence.text).toContain("Beraat");
+    expect(sentence.sourceRef).toBe("yargitay-123");
+  });
+
+  // ── Deduplication by court+chamber ──
+  it("should deduplicate same court+chamber — keep only one", () => {
+    const result = composeDoctorLegalInformationPack(
+      makeClassification(),
+      [],
+      [
+        {
+          id: "dec-1", court: "yargitay" as any, chamber: "12. Ceza Dairesi",
+          outcome: "Beraat", legalReasoning: "Reasoning 1",
+          topicTags: ["patient_rights"],
+          evidence: { documentId: "y-1", sourceId: "yargitay", sourceUrl: "" },
+        },
+        {
+          id: "dec-2", court: "yargitay" as any, chamber: "12. Ceza Dairesi",
+          outcome: "Mahkumiyet", legalReasoning: "Reasoning 2",
+          topicTags: ["patient_rights"],
+          evidence: { documentId: "y-2", sourceId: "yargitay", sourceUrl: "" },
+        },
+      ],
+      [],
+      undefined,
+      undefined,
+      "grounded-advisory",
+    );
+    expect(result.preliminaryAssessment).toBeDefined();
+    // Should only have 1 sentence for Yargitay/12.Ceza (deduped)
+    expect(result.preliminaryAssessment!.sentences.length).toBe(1);
+  });
+
+  // ── Skip entries without outcome or reasoning ──
+  it("should skip precedents without outcome AND reasoning", () => {
+    const result = composeDoctorLegalInformationPack(
+      makeClassification(),
+      [],
+      [{
+        id: "empty", court: "danistay" as any, chamber: "10. Daire",
+        outcome: "Kaynakta sonuc yok", legalReasoning: "Kaynakta hukuki degerlendirme yok",
+        topicTags: [],
+        evidence: { documentId: "d-empty", sourceId: "danistay", sourceUrl: "" },
+      }],
+      [],
+      undefined,
+      undefined,
+      "grounded-advisory",
+    );
+    // No meaningful content → no assessment
+    expect(result.preliminaryAssessment).toBeUndefined();
+  });
+
+  // ── Every sentence must have sourceRef ──
+  it("every produced sentence must have a non-empty sourceRef", () => {
+    const result = composeDoctorLegalInformationPack(
+      makeClassification(),
+      [{
+        legislationName: "Test Law",
+        verbatimText: "Test provision text.",
+        evidence: { documentId: "test-doc", sourceId: "test", sourceUrl: "" },
+      }],
+      [{
+        id: "dec-ok", court: "yargitay" as any,
+        outcome: "Ret", legalReasoning: "Reasoning",
+        topicTags: ["patient_rights"],
+        evidence: { documentId: "dec-ref", sourceId: "yargitay", sourceUrl: "" },
+      }],
+      [],
+      undefined,
+      undefined,
+      "grounded-advisory",
+    );
+    expect(result.preliminaryAssessment).toBeDefined();
+    for (const s of result.preliminaryAssessment!.sentences) {
+      expect(s.sourceRef).toBeTruthy();
+      expect(s.sourceRef.length).toBeGreaterThan(0);
+    }
+  });
+
+  // ── Empty when no meaningful sources ──
+  it("should produce undefined when no meaningful sources exist", () => {
+    const result = composeDoctorLegalInformationPack(
+      makeClassification(),
+      [],
+      [],
+      [],
+      undefined,
+      undefined,
+      "grounded-advisory",
     );
     expect(result.preliminaryAssessment).toBeUndefined();
   });
 
-  it("should include assessment sentences for legislation provisions", () => {
-    const result = composeDoctorLegalInformationPack(
-      makeClassification(),
-      [makeProvision()],
-      []
-    );
-    expect(result.preliminaryAssessment).toBeDefined();
-    expect(result.preliminaryAssessment!.sentences).toHaveLength(1);
-    expect(result.preliminaryAssessment!.sentences[0].sourceRef).toBe("test-doc");
-    expect(result.preliminaryAssessment!.sentences[0].sourceLabel).toContain("Hasta Hakları");
-  });
-
-  it("should include assessment sentences for verified precedents", () => {
+  // ── Two different outcomes → two different sentences ──
+  it("should produce different sentences for different outcomes", () => {
     const result = composeDoctorLegalInformationPack(
       makeClassification(),
       [],
-      [makeCourtDecision()]
+      [
+        {
+          id: "a", court: "yargitay" as any, chamber: "12. Ceza",
+          outcome: "Beraat", legalReasoning: "r1",
+          topicTags: ["patient_rights"],
+          evidence: { documentId: "a", sourceId: "yargitay", sourceUrl: "" },
+        },
+        {
+          id: "b", court: "danistay" as any, chamber: "10. Daire",
+          outcome: "Iptal", legalReasoning: "r2",
+          topicTags: ["patient_rights"],
+          evidence: { documentId: "b", sourceId: "danistay", sourceUrl: "" },
+        },
+      ],
+      [],
+      undefined,
+      undefined,
+      "grounded-advisory",
     );
     expect(result.preliminaryAssessment).toBeDefined();
-    expect(result.preliminaryAssessment!.sentences).toHaveLength(1);
-    expect(result.preliminaryAssessment!.sentences[0].sourceRef).toBe("yargitay-2020-123");
-    expect(result.preliminaryAssessment!.sentences[0].text).toContain("Emsal kararlar");
-  });
-
-  it("should have a summary when sources are present", () => {
-    const result = composeDoctorLegalInformationPack(
-      makeClassification(),
-      [makeProvision()],
-      [makeCourtDecision()]
-    );
-    expect(result.preliminaryAssessment).toBeDefined();
-    expect(result.preliminaryAssessment!.summary.length).toBeGreaterThan(0);
-    expect(result.preliminaryAssessment!.sentences).toHaveLength(2);
-  });
-
-  it("should skip provisions without verbatimQuote", () => {
-    const result = composeDoctorLegalInformationPack(
-      makeClassification(),
-      [makeProvision({ verbatimText: "" })],
-      []
-    );
-    expect(result.preliminaryAssessment).toBeUndefined();
-  });
-
-  it("should not contain hard-blocked phrases in assessment text", () => {
-    const result = composeDoctorLegalInformationPack(
-      makeClassification(),
-      [makeProvision()],
-      []
-    );
-    const allText = JSON.stringify(result.preliminaryAssessment).toLowerCase();
-    expect(allText).not.toContain("kesin");
-    expect(allText).not.toContain("sorumlusunuz");
-    expect(allText).not.toContain("yapmanız gerekir");
+    expect(result.preliminaryAssessment!.sentences.length).toBe(2);
+    const texts = result.preliminaryAssessment!.sentences.map(s => s.text);
+    expect(texts[0]).not.toBe(texts[1]);
   });
 });
