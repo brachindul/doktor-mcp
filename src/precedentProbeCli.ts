@@ -9,6 +9,7 @@
 
 import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
+import { readConfig } from "./core/runtimeConfig.js";
 
 export interface HtmlAnalysis {
   title: string | null;
@@ -199,7 +200,7 @@ export async function probeSource(
       method: "POST",
       headers,
       body: JSON.stringify(body),
-      signal: AbortSignal.timeout(15000)
+      signal: AbortSignal.timeout(readConfig().fetchTimeoutMs)
     });
 
     const contentType = response.headers.get("content-type") ?? null;

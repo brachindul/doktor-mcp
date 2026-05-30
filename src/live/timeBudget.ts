@@ -1,3 +1,5 @@
+import { readConfig } from "../core/runtimeConfig.js";
+
 export type ResearchPhase = "legislation" | "precedent";
 
 export interface ResearchBudgetSnapshot {
@@ -30,13 +32,14 @@ export class ResearchTimeBudget {
     sourceBudgets?: Record<string, number>;
     nowProvider?: () => number;
   } = {}) {
-    this.deadlineMs = options.deadlineMs ?? 30_000;
+    const config = readConfig().timeBudget;
+    this.deadlineMs = options.deadlineMs ?? config.deadlineMs;
     this.nowProvider = options.nowProvider ?? Date.now;
     this.startedAt = this.nowProvider();
-    this.reserveMs = options.reserveMs ?? 3_000;
+    this.reserveMs = options.reserveMs ?? config.reserveMs;
     this.sourceBudgets = options.sourceBudgets ?? {
-      legislation: 8_000,
-      precedent: 15_000
+      legislation: config.legislationPhaseBudgetMs,
+      precedent: config.precedentPhaseBudgetMs
     };
   }
 

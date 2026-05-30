@@ -1,4 +1,4 @@
-import { readRateLimitConfig } from "./runtimeConfig.js";
+import { readConfig } from "./runtimeConfig.js";
 
 export type SleepFn = (ms: number) => Promise<void>;
 
@@ -191,7 +191,7 @@ function clampRecoveryFactor(value: number): number {
   return value;
 }
 
-const rateLimitConfig = readRateLimitConfig();
+const rateLimitConfig = readConfig().rateLimit;
 
 export const bedestenRateLimiter = new RateLimiter({
   minIntervalMs: rateLimitConfig.bedestenMinIntervalMs,

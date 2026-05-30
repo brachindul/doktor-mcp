@@ -6,7 +6,7 @@
 >
 > **Genel kurallar (her görevde geçerli):**
 > - `npm run build` (tsc) **0 hata** vermeli.
-> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 874 testi kırma.
+> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 889 testi kırma.
 > - Yeni davranış eklediysen **yeni test** yaz. Test yoksa görev "done" sayılmaz.
 > - Pakedin/araç JSON şekli (response contract) değişiyorsa README'yi güncelle.
 > - Türkçe kullanıcı mesajları ve İngilizce kod/yorum karışımını koru (mevcut konvansiyon).
@@ -130,7 +130,7 @@
   İsteğe bağlı bir `prompts` girişi: "hekim hukuki soru formatı" şablonu.
 - **Kabul**: `resources/list` ve `resources/read` çalışıyor; envanter doğru dönüyor; test yazılı.
 
-### T2.6 — Yapılandırma katmanı (env / runtime config) sağlamlaştırma
+### [x] T2.6 — Yapılandırma katmanı (env / runtime config) sağlamlaştırma
 - **Dosya**: `src/core/runtimeConfig.ts`.
 - **Yapılacak**: Time-budget, retry sayısı, cache TTL, `assessmentTone`, `sourceMode`
   varsayılanlarını tek config nesnesinde topla; env değişkenleriyle override edilebilsin
