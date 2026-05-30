@@ -30,6 +30,7 @@
     "resolve:health-legislation-rg-leads": "tsx src/resolveHealthLegislationRgLeadsCli.ts",
     "verify:official-gazette-health-legislation": "tsx src/verifyOfficialGazetteHealthLegislationCli.ts",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "test:watch": "vitest"
   },
   "keywords": [],
@@ -42,6 +43,7 @@
   },
   "devDependencies": {
     "@types/node": "^25.9.1",
+    "@vitest/coverage-v8": "^4.1.7",
     "tsx": "^4.22.3",
     "typescript": "^6.0.3",
     "vitest": "^4.1.7"

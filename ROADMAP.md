@@ -153,7 +153,7 @@
   çıkmadan gerçek parse yollarını kapsa.
 - **Kabul**: Her live adapter için en az 1 happy-path + 1 non-JSON/hata-path testi.
 
-### T3.3 — Coverage ölçümü ve eşik
+### [x] T3.3 — Coverage ölçümü ve eşik
 - **Yapılacak**: `vitest --coverage` ekle (`@vitest/coverage-v8`). `npm run test:coverage`
   script'i. Kritik modüller (`health/`, `live/`, `sources/`) için bilgi amaçlı rapor üret;
   hard eşik koyma (CI'yi kırma), sadece raporla.
