@@ -44,7 +44,10 @@ export type HealthLegislationCategory =
   | "complementary_medicine"  // GETAT and alternative medicine
   | "diagnostics"             // Laboratory and radiology regulations
   | "discipline"              // Disciplinary and administrative proceedings
-  | "insurance";              // Professional liability insurance
+  | "insurance"               // Professional liability insurance
+  | "medical_education"       // Medical education and specialization training
+  | "service_quality"         // Healthcare service quality and safety
+  | "forensic_administrative";// Clinical-forensic and death procedures
 
 export interface HealthLegislationInventoryEntry {
   /** Stable key for dedup and reference */
@@ -920,35 +923,74 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     key: "yatakli-tedavi-isletme-yonetmeligi",
     title: "Yataklı Tedavi Kurumları İşletme Yönetmeliği",
     titleNormalized: "yatakli tedavi kurumlari isletme yonetmeligi",
-    category: "private_health_facility",
+    category: "service_quality",
     relevanceLevel: "supporting",
     officialSourceRequired: true,
-    officialSourceStatus: "deferred",
+    officialSourceStatus: "candidate",
     relatedIssueIds: ["private_health_facility"],
-    relatedTopicClusters: ["private_health_facility"],
-    searchTerms: ["yataklı tedavi kurumu", "hastane işletme"],
-    coverageStatus: "deferred",
+    relatedTopicClusters: ["hospital_management", "healthcare_quality"],
+    searchTerms: ["yataklı tedavi kurumu", "hastane işletme", "yataklı tedavi işletmesi"],
+    coverageStatus: "candidate",
+    expectedLegislationType: "yonetmelik",
+    aliases: [
+      "Yataklı Tedavi Kurumları İşletme Yönetmeliği",
+      "Yataklı Tedavi İşletme Yönetmeliği",
+      "Hastane İşletme Yönetmeliği"
+    ],
+    markerTerms: [
+      "yataklı tedavi", "hastane işletme", "yatak kapasitesi",
+      "hemşirelik hizmeti", "taburcu"
+    ],
+    negativeMarkerTerms: [
+      "özel hastane",
+      "özel sağlık kuruluşu"
+    ],
+    knownWrongMatches: [
+      "mevzuat:7.5.29092"   // Özel Hastaneler Yönetmeliği — different regulation
+    ],
     notes: [
-      "Governs inpatient facility operations — partially superseded by newer regulations.",
-      "Deferred: official currency and sourceId unverified; may overlap with Özel Hastaneler Yönetmeliği."
+      "Governs inpatient facility operations — may be partially superseded by newer regulations.",
+      "v0.44.0: Activated from deferred to candidate. sourceId needs manual review.",
+      "Search query for verification: 'Yataklı Tedavi Kurumları İşletme Yönetmeliği'",
+      "needs live verification: sourceId unknown; blocked by Cloudflare anti-bot.",
+      "Dikkat: Yeni hastane yönetmelikleriyle çakışabilir; kaynak doğrulaması gerekli."
     ]
   },
 
   {
     key: "hekim-mesleki-sorumluluk-sigortasi",
-    title: "Hekim Mesleki Mali Sorumluluk Sigortası İlgili Düzenlemeler",
-    titleNormalized: "hekim mesleki mali sorumluluk sigortasi",
+    title: "Tıbbi Kötü Uygulamaya İlişkin Zorunlu Mali Sorumluluk Sigortası Genel Şartları",
+    titleNormalized: "tibbi kotu uygulamaya iliskin zorunlu mali sorumluluk sigortasi genel sartlari",
     category: "insurance",
     relevanceLevel: "specialized",
     officialSourceRequired: true,
-    officialSourceStatus: "deferred",
-    relatedIssueIds: [],
-    relatedTopicClusters: [],
-    searchTerms: ["mesleki sorumluluk sigortası", "hekim sigortası", "tıbbi kötü uygulama sigortası"],
-    coverageStatus: "deferred",
+    officialSourceStatus: "candidate",
+    relatedIssueIds: ["financial_liability", "malpractice_insurance"],
+    relatedTopicClusters: ["financial_liability"],
+    searchTerms: ["tıbbi kötü uygulama", "mali sorumluluk sigortası", "zorunlu sigorta", "malpractice insurance"],
+    coverageStatus: "candidate",
+    expectedLegislationType: "yonetmelik",
+    aliases: [
+      "Tıbbi Kötü Uygulama Zorunlu Mali Sorumluluk Sigortası",
+      "Zorunlu Mali Sorumluluk Sigortası Genel Şartları",
+      "Tıbbi Kötü Uygulama Sigortası"
+    ],
+    markerTerms: [
+      "tıbbi kötü uygulama", "mali sorumluluk", "sigorta",
+      "zorunlu sigorta", "poliçe", "teminat"
+    ],
+    negativeMarkerTerms: [
+      "aracılık", "acente", "trafik sigortası"
+    ],
+    knownWrongMatches: [
+      "mevzuat:1.5.5684"   // Karayolu Trafik Sigortası — different insurance type
+    ],
     notes: [
       "Multiple scattered regulatory instruments; no single canonical mevzuat entry identified.",
-      "Deferred: requires dedicated sourceId research before activation."
+      "v0.44.0: Activated from deferred to candidate. sourceId needs manual review.",
+      "needs live verification: sourceId unknown; blocked by Cloudflare anti-bot.",
+      "Search query for verification: 'Tıbbi Kötü Uygulama Zorunlu Mali Sorumluluk Sigortası'",
+      "Requires dedicated sourceId research before activation."
     ]
   },
 
@@ -967,6 +1009,325 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     notes: [
       "Governs radiology department standards.",
       "Deferred: specialty-specific, low frequency in benchmark questions."
+    ]
+  },
+
+  // ── T8.3: Education / Service Quality / Financial / Clinical-Forensic ──────
+
+  // ── B: Education ──────────────────────────────────────────────────────────
+
+  {
+    key: "tuey-uzmanlik-egitimi",
+    title: "Tıpta ve Diş Hekimliğinde Uzmanlık Eğitimi Yönetmeliği (TUEY)",
+    titleNormalized: "tipta ve dis hekimliginde uzmanlik egitimi yonetmeligi",
+    category: "medical_education",
+    relevanceLevel: "supporting",
+    officialSourceRequired: true,
+    officialSourceStatus: "candidate",
+    mevzuatSourceId: "mevzuat:7.5.39700",
+    legislationNumber: "39700",
+    relatedIssueIds: ["medical_education", "specialization"],
+    relatedTopicClusters: ["medical_education"],
+    searchTerms: ["TUEY", "uzmanlık eğitimi", "ihtisas", "asistan", "asistanlık", "tıpta uzmanlık"],
+    coverageStatus: "candidate",
+    expectedLegislationType: "yonetmelik",
+    aliases: [
+      "Tıpta Uzmanlık Eğitimi Yönetmeliği",
+      "Diş Hekimliğinde Uzmanlık Eğitimi Yönetmeliği",
+      "Tıpta ve Diş Hekimliğinde Uzmanlık Eğitimi Yönetmeliği"
+    ],
+    markerTerms: [
+      "uzmanlık eğitimi", "asistan", "ihtisas", "TUEY",
+      "uzmanlık dalı", "eğitim programı", "yeterlik"
+    ],
+    negativeMarkerTerms: [
+      "hemşire", "ebelik", "laborant"
+    ],
+    notes: [
+      "Governs medical and dental specialization training programs in Turkey.",
+      "sourceId mevzuat:7.5.39700 provided from ROADMAP; needs live verification.",
+      "v0.44.0: Added as candidate. sourceId from ROADMAP but live search blocked by Cloudflare.",
+      "needs_manual_review: sourceId mevzuat:7.5.39700 should be verified via mevzuat.gov.tr."
+    ]
+  },
+
+  {
+    key: "saglik-uzmanligi-yonetmeligi",
+    title: "Sağlık Uzmanlığı Yönetmeliği",
+    titleNormalized: "saglik uzmanligi yonetmeligi",
+    category: "medical_education",
+    relevanceLevel: "specialized",
+    officialSourceRequired: true,
+    officialSourceStatus: "candidate",
+    relatedIssueIds: ["medical_education", "specialization"],
+    relatedTopicClusters: ["medical_education"],
+    searchTerms: ["sağlık uzmanlığı", "uzmanlık yönetmeliği", "sağlık uzmanı"],
+    coverageStatus: "candidate",
+    expectedLegislationType: "yonetmelik",
+    aliases: [
+      "Sağlık Uzmanlığı Yönetmeliği",
+      "Sağlık Uzmanı Yönetmeliği"
+    ],
+    markerTerms: [
+      "sağlık uzmanlığı", "uzman", "uzmanlık eğitimi",
+      "yeterlik", "sağlık bakanlığı"
+    ],
+    negativeMarkerTerms: [
+      "tıpta uzmanlık", "diş hekimliği uzmanlık"
+    ],
+    notes: [
+      "Governs health specialization training for non-physician health professionals.",
+      "sourceId: needs_manual_review — live search blocked by Cloudflare.",
+      "Search query for verification: 'Sağlık Uzmanlığı Yönetmeliği'",
+      "v0.44.0: Added as candidate. sourceId unknown; needs manual mevzuat.gov.tr lookup."
+    ]
+  },
+
+  // ── C: Service Quality & Safety ───────────────────────────────────────────
+
+  {
+    key: "hasta-calisan-guvenligi-yonetmeligi",
+    title: "Hasta ve Çalışan Güvenliğinin Sağlanmasına Dair Yönetmelik",
+    titleNormalized: "hasta ve calisan guvenliginin saglanmasina dair yonetmelik",
+    category: "service_quality",
+    relevanceLevel: "supporting",
+    officialSourceRequired: true,
+    officialSourceStatus: "candidate",
+    relatedIssueIds: ["patient_safety", "employee_safety"],
+    relatedTopicClusters: ["patient_safety"],
+    searchTerms: ["hasta güvenliği", "çalışan güvenliği", "hasta ve çalışan güvenliği"],
+    coverageStatus: "candidate",
+    expectedLegislationType: "yonetmelik",
+    expectedRgDate: "2011-04-06",
+    expectedRgNumber: "27897",
+    aliases: [
+      "Hasta ve Çalışan Güvenliği Yönetmeliği",
+      "Hasta Güvenliği Yönetmeliği",
+      "Çalışan Güvenliği Yönetmeliği"
+    ],
+    markerTerms: [
+      "hasta güvenliği", "çalışan güvenliği", "kazanın önlenmesi",
+      "olay bildirimi", "güvenlik culture", "hasta güvensizliği"
+    ],
+    notes: [
+      "Governs patient and employee safety measures in healthcare facilities.",
+      "RG: 06.04.2011 / 27897 — needs mevzuat.gov.tr sourceId resolution.",
+      "sourceId: needs_manual_review — live search blocked by Cloudflare.",
+      "Search query for verification: 'Hasta ve Çalışan Güvenliğinin Sağlanmasına Dair Yönetmelik'",
+      "v0.44.0: Added as candidate. sourceId unknown; needs manual mevzuat.gov.tr lookup."
+    ]
+  },
+
+  {
+    key: "saglik-hizmeti-kalitesi-yonetmeligi",
+    title: "Sağlık Hizmeti Kalitesinin Geliştirilmesi ve Değerlendirilmesine Dair Yönetmelik",
+    titleNormalized: "saglik hizmeti kalitesinin gelistirilmesi ve degerlendirilmesine dair yonetmelik",
+    category: "service_quality",
+    relevanceLevel: "supporting",
+    officialSourceRequired: true,
+    officialSourceStatus: "candidate",
+    relatedIssueIds: ["healthcare_quality", "quality_assurance"],
+    relatedTopicClusters: ["healthcare_quality"],
+    searchTerms: ["sağlık hizmeti kalitesi", "kalite geliştirme", "kalite değerlendirme"],
+    coverageStatus: "candidate",
+    expectedLegislationType: "yonetmelik",
+    aliases: [
+      "Sağlık Hizmeti Kalitesi Yönetmeliği",
+      "Kalite Geliştirilmesi ve Değerlendirilmesi Yönetmeliği",
+      "Sağlık Hizmeti Kalite Yönetmeliği"
+    ],
+    markerTerms: [
+      "kalite geliştirme", "kalite değerlendirme", "sağlık hizmeti kalitesi",
+      "kalite standartları", "hasta memnuniyeti", "kalite göstergeleri"
+    ],
+    notes: [
+      "Governs healthcare service quality improvement and evaluation standards.",
+      "sourceId: needs_manual_review — live search blocked by Cloudflare.",
+      "Search query for verification: 'Sağlık Hizmeti Kalitesinin Geliştirilmesi ve Değerlendirilmesine Dair Yönetmelik'",
+      "v0.44.0: Added as candidate. sourceId unknown; needs manual mevzuat.gov.tr lookup."
+    ]
+  },
+
+  // ── D: Financial / Administrative ─────────────────────────────────────────
+
+  {
+    key: "saglik-tesisleri-ek-odeme-yonetmeligi",
+    title: "Sağlık Bakanlığına Bağlı Sağlık Tesislerinde Görevli Personele Ek Ödeme Yönetmeliği",
+    titleNormalized: "saglik bakanligina bagli saglik tesislerinde gorevli personele ek odeme yonetmeligi",
+    category: "discipline",
+    relevanceLevel: "supporting",
+    officialSourceRequired: true,
+    officialSourceStatus: "candidate",
+    relatedIssueIds: ["public_employment", "financial"],
+    relatedTopicClusters: ["public_employment", "financial_liability"],
+    searchTerms: ["ek ödeme", "döner sermaye", "performans", "sağlık tesisleri ek ödeme"],
+    coverageStatus: "candidate",
+    expectedLegislationType: "yonetmelik",
+    aliases: [
+      "Ek Ödeme Yönetmeliği",
+      "Sağlık Tesisleri Ek Ödeme Yönetmeliği",
+      "Personele Ek Ödeme Yönetmeliği"
+    ],
+    markerTerms: [
+      "ek ödeme", "döner sermaye", "performans",
+      "sağlık tesisi", "personele ödeme", "taban aylık"
+    ],
+    negativeMarkerTerms: [
+      "memur maaş", "emekli aylık"
+    ],
+    knownWrongMatches: [
+      "mevzuat:1.5.657"   // Devlet Memurları Kanunu (genel)
+    ],
+    notes: [
+      "Governs additional payment (ek ödeme) and performance-based pay for MoH staff.",
+      "sourceId: needs_manual_review — live search blocked by Cloudflare.",
+      "Search query for verification: 'Sağlık Bakanlığına Bağlı Sağlık Tesislerinde Görevli Personele Ek Ödeme Yönetmeliği'",
+      "v0.44.0: Added as candidate. sourceId unknown; needs manual mevzuat.gov.tr lookup."
+    ]
+  },
+
+  // ── E: Clinical-Forensic ──────────────────────────────────────────────────
+
+  {
+    key: "aile-hekimligi-uygulama-yonetmeligi",
+    title: "Aile Hekimliği Uygulama Yönetmeliği",
+    titleNormalized: "aile hekimligi uygulama yonetmeligi",
+    category: "physician_practice",
+    relevanceLevel: "supporting",
+    officialSourceRequired: true,
+    officialSourceStatus: "candidate",
+    relatedIssueIds: ["primary_care", "family_medicine", "forensic_duties"],
+    relatedTopicClusters: ["primary_care"],
+    searchTerms: ["aile hekimliği uygulama", "aile hekimi yönetmeliği", "birinci basamak uygulama"],
+    coverageStatus: "candidate",
+    expectedLegislationType: "yonetmelik",
+    aliases: [
+      "Aile Hekimliği Uygulama Yönetmeliği",
+      "Aile Hekimliği Yönetmeliği",
+      "Aile Hekimliği Uygulama Esasları"
+    ],
+    markerTerms: [
+      "aile hekimliği", "birinci basamak", "koruyucu sağlık",
+      "aile sağlığı merkezi", "nüfus", "kayıtlı hasta"
+    ],
+    negativeMarkerTerms: [
+      "aile hekimliği kanunu",
+      "5258"
+    ],
+    knownWrongMatches: [
+      "mevzuat:1.5.5258"   // Aile Hekimliği Kanunu — kanun, not yönetmelik
+    ],
+    notes: [
+      "Governs family medicine practice procedures, patient registration, and primary care scope.",
+      "Distinct from Aile Hekimliği Kanunu (5258) which is the enabling statute.",
+      "sourceId: needs_manual_review — live search blocked by Cloudflare.",
+      "Search query for verification: 'Aile Hekimliği Uygulama Yönetmeliği'",
+      "v0.44.0: Added as candidate. sourceId unknown; needs manual mevzuat.gov.tr lookup."
+    ]
+  },
+
+  {
+    key: "cenaze-nakil-defin-yonetmeligi",
+    title: "Mezarlık Yerlerinin İnşaası ile Cenaze Nakil ve Defin İşlemleri Hakkında Yönetmelik",
+    titleNormalized: "mezarak yerlerinin insaasi ile cenaze nakil ve defin islemleri hakkinda yonetmelik",
+    category: "forensic_administrative",
+    relevanceLevel: "specialized",
+    officialSourceRequired: true,
+    officialSourceStatus: "candidate",
+    relatedIssueIds: ["forensic_duties", "death_procedures"],
+    relatedTopicClusters: ["death_procedures"],
+    searchTerms: ["cenaze nakil", "defin işlemleri", "ölüm belgesi", "mezarlık"],
+    coverageStatus: "candidate",
+    expectedLegislationType: "yonetmelik",
+    aliases: [
+      "Cenaze Nakil ve Defin İşlemleri Yönetmeliği",
+      "Mezarlık Yerlerinin İnşaası Yönetmeliği",
+      "Cenaze Defin Yönetmeliği"
+    ],
+    markerTerms: [
+      "cenaze nakil", "defin", "ölüm belgesi", "mezarlık",
+      "cenaze", "defin ruhsatı", "ölüm raporu"
+    ],
+    notes: [
+      "Governs cemetery construction and body transport/burial procedures.",
+      "Relevant for physicians issuing death certificates and forensic procedures.",
+      "sourceId: needs_manual_review — live search blocked by Cloudflare.",
+      "Search query for verification: 'Mezarlık Yerlerinin İnşaası ile Cenaze Nakil ve Defin İşlemleri Hakkında Yönetmelik'",
+      "v0.44.0: Added as candidate. sourceId unknown; needs manual mevzuat.gov.tr lookup."
+    ]
+  },
+
+  // ── Kanun Katmanı (yönetmelik değil — ayrı not) ───────────────────────────
+
+  {
+    key: "umumi-hifzissihha-kanunu",
+    title: "Umumi Hıfzıssıhha Kanunu",
+    titleNormalized: "umumi hifzissihha kanunu",
+    category: "physician_practice",
+    relevanceLevel: "supporting",
+    officialSourceRequired: true,
+    officialSourceStatus: "candidate",
+    mevzuatSourceId: "mevzuat:1.3.1593",
+    legislationNumber: "1593",
+    relatedIssueIds: ["public_health", "sanitation", "epidemic"],
+    relatedTopicClusters: ["public_health"],
+    searchTerms: ["hıfzıssıhha", "umumi hıfzıssıhha", "1593", "salgın", "bulaşıcı hastalık"],
+    coverageStatus: "candidate",
+    expectedLegislationType: "kanun",
+    aliases: [
+      "Umumi Hıfzıssıhha Kanunu (1593)",
+      "Hıfzıssıhha Kanunu",
+      "Umumi Hıfzıssıhha"
+    ],
+    markerTerms: [
+      "hıfzıssıhha", "salgın", "bulaşıcı hastalık", "karantina",
+      "umumi sağlık", "izolasyon", "aşı zorunluluğu"
+    ],
+    notes: [
+      "Kanun düzeyinde — yönetmelik envanterine değil kanun katmanına ait.",
+      "Governs public health, sanitation, epidemic control, and quarantine measures.",
+      "sourceId mevzuat:1.3.1593 provided from ROADMAP; needs live verification.",
+      "v0.44.0: Added as candidate. sourceId from ROADMAP but live search blocked by Cloudflare.",
+      "needs_manual_review: sourceId mevzuat:1.3.1593 should be verified via mevzuat.gov.tr."
+    ]
+  },
+
+  {
+    key: "devlet-hizmeti-yukumlulugu-dhy",
+    title: "Devlet Hizmeti Yükümlülüğü (DHY) — 3359 sayılı Kanun Ek 7-8",
+    titleNormalized: "devlet hizmeti yukumlulugu dhy 3359 sayili kanun ek 7 8",
+    category: "physician_practice",
+    relevanceLevel: "supporting",
+    officialSourceRequired: true,
+    officialSourceStatus: "candidate",
+    legislationNumber: "3359",
+    relatedIssueIds: ["public_employment", "compulsory_service"],
+    relatedTopicClusters: ["public_employment"],
+    searchTerms: ["DHY", "devlet hizmeti yükümlülüğü", "mecburi hizmet", "3359 ek madde", "zorunlu hizmet"],
+    coverageStatus: "candidate",
+    expectedLegislationType: "kanun",
+    aliases: [
+      "Devlet Hizmeti Yükümlülüğü",
+      "DHY",
+      "Mecburi Hizmet",
+      "3359 Ek Madde 7-8"
+    ],
+    markerTerms: [
+      "devlet hizmeti yükümlülüğü", "DHY", "mecburi hizmet",
+      "zorunlu hizmet", "ek madde 7", "ek madde 8", "3359"
+    ],
+    negativeMarkerTerms: [
+      "sağlık hizmetleri temel kanunu genel",
+      "özel hastane"
+    ],
+    knownWrongMatches: [],
+    notes: [
+      "Kanun düzeyinde — yönetmelik envanterine değil kanun katmanına ait.",
+      "Governs compulsory public health service obligations (DHY) under Ek Madde 7-8 of Law 3359.",
+      "Shares sourceId with saglik-hizmetleri-temel-kanunu (mevzuat:1.5.3359) — this entry focuses specifically on DHY provisions.",
+      "sourceId mevzuat:1.5.3359 confirmed via ROADMAP; DHY provisions are within the same law.",
+      "v0.44.0: Added as candidate. sourceId confirmed; DHY-specific provisions documented.",
+      "needs_manual_review: verify that Ek Madde 7-8 provisions are current and not superseded."
     ]
   }
 ];

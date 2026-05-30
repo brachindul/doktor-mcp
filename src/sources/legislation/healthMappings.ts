@@ -631,5 +631,116 @@ export const healthLegislationHints: HealthLegislationHint[] = [
     legislationArrangement: "5",
     articleNumbers: ["3", "5"],
     dimensions: ["disciplinary_administrative"] as any
+  } as any,
+
+  // ── T8.3: Education / Service Quality / Financial / Clinical-Forensic ──────
+
+  // Tıpta ve Diş Hekimliğinde Uzmanlık Eğitimi Yönetmeliği (TUEY)
+  // sourceId: mevzuat:7.5.39700 (from ROADMAP; needs live verification)
+  {
+    topicCluster: "medical_education" as any,
+    legislationRole: "health_primary" as any,
+    healthLawPriority: 32,
+    selectionReason: "Uzmanlık eğitimi, asistan hakları ve eğitim süreci bu yönetmelikle düzenlenir.",
+    terms: ["tuey", "uzmanlık", "ihtisas", "asistan", "asistanlık", "tıpta uzmanlık"],
+    query: "Tıpta Uzmanlık Eğitimi Yönetmeliği",
+    title: "Tıpta ve Diş Hekimliğinde Uzmanlık Eğitimi Yönetmeliği",
+    sourceId: "needs_manual_review:tuey",
+    legislationNumber: "39700",
+    legislationType: "7",
+    legislationArrangement: "5",
+    articleNumbers: [],
+    dimensions: ["professional_ethics"] as any
+  } as any,
+
+  // Sağlık Uzmanlığı Yönetmeliği
+  // sourceId needs_manual_review — use live search to confirm
+  // Search query: "Sağlık Uzmanlığı Yönetmeliği"
+  {
+    topicCluster: "medical_education" as any,
+    legislationRole: "supporting_general" as any,
+    healthLawPriority: 40,
+    selectionReason: "Sağlık dışı hekim uzmanlık alanlarında eğitim süreci bu yönetmelikle düzenlenir.",
+    terms: ["sağlık uzmanlığı", "uzmanlık yönetmeliği", "sağlık uzmanı"],
+    query: "Sağlık Uzmanlığı Yönetmeliği",
+    title: "Sağlık Uzmanlığı Yönetmeliği",
+    sourceId: "needs_manual_review:saglik-uzmanligi",
+    legislationNumber: "",
+    legislationType: "7",
+    legislationArrangement: "5",
+    articleNumbers: [],
+    dimensions: ["professional_ethics"] as any
+  } as any,
+
+  // Hasta ve Çalışan Güvenliğinin Sağlanmasına Dair Yönetmelik
+  // sourceId needs_manual_review — RG 06.04.2011 / 27897
+  {
+    topicCluster: "patient_safety" as any,
+    legislationRole: "health_primary" as any,
+    healthLawPriority: 20,
+    selectionReason: "Hasta ve çalışan güvenliği standartları, kaza önleme ve olay bildirme usulleri bu yönetmelikle düzenlenir.",
+    terms: ["hasta güvenliği", "çalışan güvenliği", "kazanın önlenmesi", "olay bildirimi", "güvenlik culture"],
+    query: "Hasta ve Çalışan Güvenliğinin Sağlanmasına Dair Yönetmelik",
+    title: "Hasta ve Çalışan Güvenliğinin Sağlanmasına Dair Yönetmelik",
+    sourceId: "needs_manual_review:hasta-calisan-guvenligi",
+    legislationNumber: "27897",
+    legislationType: "7",
+    legislationArrangement: "5",
+    articleNumbers: [],
+    dimensions: ["patient_rights"] as any
+  } as any,
+
+  // Sağlık Hizmeti Kalitesinin Geliştirilmesi ve Değerlendirilmesine Dair Yönetmelik
+  // sourceId needs_manual_review — use live search to confirm
+  {
+    topicCluster: "healthcare_quality" as any,
+    legislationRole: "supporting_general" as any,
+    healthLawPriority: 35,
+    selectionReason: "Sağlık hizmeti kalite geliştirme ve değerlendirme standartları bu yönetmelikle düzenlenir.",
+    terms: ["kalite geliştirme", "kalite değerlendirme", "sağlık kalitesi", "kalite standartları"],
+    query: "Sağlık Hizmeti Kalitesinin Geliştirilmesi ve Değerlendirilmesine Dair Yönetmelik",
+    title: "Sağlık Hizmeti Kalitesinin Geliştirilmesi ve Değerlendirilmesine Dair Yönetmelik",
+    sourceId: "needs_manual_review:saglik-kalitesi",
+    legislationNumber: "",
+    legislationType: "7",
+    legislationArrangement: "5",
+    articleNumbers: [],
+    dimensions: ["patient_rights"] as any
+  } as any,
+
+  // Ek Ödeme Yönetmeliği
+  // sourceId needs_manual_review — use live search to confirm
+  {
+    topicCluster: "public_employment" as any,
+    legislationRole: "supporting_general" as any,
+    healthLawPriority: 35,
+    selectionReason: "Kamu hekimlerinin ek ödeme ve performans hakları bu yönetmelikle belirlenir.",
+    terms: ["ek ödeme", "ek odeme", "performans", "döner sermaye", "doner sermaye"],
+    query: "Ek Ödeme Yönetmeliği Sağlık Tesisleri",
+    title: "Sağlık Bakanlığına Bağlı Sağlık Tesislerinde Görevli Personele Ek Ödeme Yönetmeliği",
+    sourceId: "needs_manual_review:ek-odeme",
+    legislationNumber: "",
+    legislationType: "7",
+    legislationArrangement: "5",
+    articleNumbers: [],
+    dimensions: ["disciplinary_administrative"] as any
+  } as any,
+
+  // Umumi Hıfzıssıhha Kanunu (1593) — kanun katmanı
+  // sourceId: mevzuat:1.3.1593 (from ROADMAP; needs live verification)
+  {
+    topicCluster: "public_health" as any,
+    legislationRole: "health_primary" as any,
+    healthLawPriority: 25,
+    selectionReason: "Umumi hıfzıssıhha, salgın hastalık ve karantina tedbirleri bu kanunla düzenlenir.",
+    terms: ["hıfzıssıhha", "umumi hıfzıssıhha", "salgın", "karantina", "bulaşıcı hastalık", "aşı zorunluluğu"],
+    query: "Umumi Hıfzıssıhha Kanunu",
+    title: "Umumi Hıfzıssıhha Kanunu",
+    sourceId: "needs_manual_review:hifzissihha",
+    legislationNumber: "1593",
+    legislationType: "1",
+    legislationArrangement: "3",
+    articleNumbers: [],
+    dimensions: ["disciplinary_administrative"] as any
   } as any
 ];

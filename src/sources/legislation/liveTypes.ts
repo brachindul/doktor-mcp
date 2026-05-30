@@ -74,7 +74,15 @@ export interface HealthLegislationHint {
     | "professional_scope_of_practice"
     | "public_employment"
     | "transfer_assignment"
-    | "disciplinary_administrative";
+    | "disciplinary_administrative"
+    | "medical_education"
+    | "patient_safety"
+    | "healthcare_quality"
+    | "hospital_management"
+    | "financial_liability"
+    | "primary_care"
+    | "death_procedures"
+    | "public_health";
   legislationRole: "health_primary" | "supporting_general";
   healthLawPriority: number;
   selectionReason: string;

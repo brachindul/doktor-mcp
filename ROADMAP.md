@@ -6,7 +6,7 @@
 >
 > **Genel kurallar (her görevde geçerli):**
 > - `npm run build` (tsc) **0 hata** vermeli.
-> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 1031 testi kırma.
+> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 1048 testi kırma.
 > - Yeni davranış eklediysen **yeni test** yaz. Test yoksa görev "done" sayılmaz.
 > - Pakedin/araç JSON şekli (response contract) değişiyorsa README'yi güncelle.
 > - Türkçe kullanıcı mesajları ve İngilizce kod/yorum karışımını koru (mevcut konvansiyon).
@@ -451,7 +451,7 @@ tamamlanmadan sıradakine geçme; önce düzelt.
   router kamu-özlük sorgularını (tayin, yer değiştirme, disiplin soruşturması) doğru kümeye
   yönlendiriyor; testler yeşil.
 
-### [ ] T8.3 — Eğitim / hizmet / mali / klinik-adli yönetmelikleri ekle (B–E grupları)
+### [x] T8.3 — Eğitim / hizmet / mali / klinik-adli yönetmelikleri ekle (B–E grupları)
 - **Yapılacak**: Aşağıdakileri ekle ve canlı gov.tr ile doğrula; doğrulanamayanı dürüstçe
   `needs_manual_review` bırak (uydurma yok):
   - **Tıpta ve Diş Hekimliğinde Uzmanlık Eğitimi Yönetmeliği (TUEY)** — `mevzuat:7.5.39700`
