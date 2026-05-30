@@ -6,7 +6,7 @@
 >
 > **Genel kurallar (her görevde geçerli):**
 > - `npm run build` (tsc) **0 hata** vermeli.
-> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 1048 testi kırma.
+> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 1064 testi kırma.
 > - Yeni davranış eklediysen **yeni test** yaz. Test yoksa görev "done" sayılmaz.
 > - Pakedin/araç JSON şekli (response contract) değişiyorsa README'yi güncelle.
 > - Türkçe kullanıcı mesajları ve İngilizce kod/yorum karışımını koru (mevcut konvansiyon).
@@ -470,7 +470,7 @@ tamamlanmadan sıradakine geçme; önce düzelt.
 - **Kabul**: Girdiler envanterde uygun `coverageStatus` ile; canlı doğrulanabilenler `covered`;
   her yeni girdinin health mapping'i var; testler yeşil.
 
-### [ ] T8.4 — Kamu hekimi sorgu yönlendirme + canlı regresyon testi
+### [x] T8.4 — Kamu hekimi sorgu yönlendirme + canlı regresyon testi
 - **Yapılacak**: `medicalIssueRouter`'a kamu hekimi sorgu kümelerini ekle (tayin, mecburi
   hizmet, disiplin soruşturması, ek ödeme/performans, nöbet/icap, görevde yükselme) ve
   bunları doğru yönetmeliğe map et. Canlı/recorded-fixture regresyon testi yaz: ör.

@@ -640,23 +640,41 @@ const ISSUE_DEFINITIONS: IssueDefinition[] = [
       "kadro ataması",
       "açıktan kura",
       "görevde yükselme",
-      "unvan değişikliği"
+      "unvan değişikliği",
+      // v0.23.1 — public-physician query profiles
+      "tayin talebim reddedildi",
+      "tayin istemi",
+      "atama başvurusu",
+      "nakil talebi",
+      "ek ödeme yapılmadı",
+      "ek ödemem eksik",
+      "döner sermaye ödenmedi",
+      "performans puanı",
+      "mecburi hizmet",
+      "devlet hizmeti yükümlülüğü",
+      "zorunlu hizmet"
     ],
     terms: [
       "tayin", "atama", "nakil", "yer değiştirme", "yer degistirme", "mazeret",
-      "kadro", "görevde yükselme", "terfi", "açıktan kura"
+      "kadro", "görevde yükselme", "terfi", "açıktan kura",
+      // v0.23.1 — public-physician query profiles
+      "ek ödeme", "performans", "döner sermaye", "mecburi hizmet", "dhy", "zorunlu hizmet"
     ],
     suggestedTopicClusters: ["public_employment", "transfer_assignment"],
     suggestedCourtSearchTerms: [
       "tayin iptali saglik", "atama islemi hekim",
       "yer degistirme dava", "kamu gorevlisi tayin",
-      "saglik personeli atama iptali"
+      "saglik personeli atama iptali",
+      "ek odeme eksikligi saglik", "doner sermaye odenmedi",
+      "mecburi hizmet sureci saglik", "dhy yukumlulugu hekim"
     ],
     missingInfoHints: [
       "Hekimin kamu mu, özel mi kuruluşa tabi olduğu",
       "Tayin/atamanın hangi mevzuata dayandığı (4924, 657, özel yasa)",
       "İşleme karşı idari dava açılıp açılmadığı",
-      "Sözleşmeli mi, kadrolu mu personel olduğu"
+      "Sözleşmeli mi, kadrolu mu personel olduğu",
+      "Ek ödemeye ilişkin mevzuat dayanağı (Ek Ödeme Yönetmeliği)",
+      "Mecburi hizmet süresinin ne kadar kaldığı"
     ]
   },
   {
