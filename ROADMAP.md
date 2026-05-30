@@ -294,7 +294,7 @@
 
 ### Nice-to-have
 
-#### [ ] T6.8 — Hukukçu-gözüyle kalite kıyas seti
+#### [x] T6.8 — Hukukçu-gözüyle kalite kıyas seti
 - **Yapılacak**: Mevcut teknik benchmark'a ek olarak, küçük bir "bu pakete bir avukat ne der"
   niteliksel kontrol listesi ekle (ör. seçilen emsalin gerçekten konuyla ilgili olup olmadığı,
   değerlendirme cümlelerinin yanıltıcı olmaması). Otomatik skor değil, yapılandırılmış kontrol.
