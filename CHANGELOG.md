@@ -1,8 +1,8 @@
 # Changelog
 
-## [0.44.0] — 2026-05-30 — Roadmap Complete: Ton Gevşetme, Yeni Özellikler, Dokümantasyon
+## [0.44.0] — 2026-05-30 — Roadmap Complete: 31 Görev, v1 Release Ready
 
-> 21 görev tamamlandı. 55 test dosyası, 965 test.
+> 31 görev tamamlandı. 58 test dosyası, 986 test.
 
 ### Faz 0 — Tech Debt (5 tasks)
 
@@ -40,6 +40,30 @@
 - **T4.1**: README'den CHANGELOG'a 239 satır sürüm geçmişi taşındı
 - **T4.2**: `docs/ARCHITECTURE.md` — Mermaid diyagramları, katman yapısı, zaman bütçesi akışı
 - **T4.3**: `CONTRIBUTING.md` — commit konvansiyonu, author ayarı, PR checklist
+
+### Faz 5 — Sürüm & Changelog Tutarlılığı (2 tasks)
+
+- **T5.1**: `package.json` 0.43.0 → 0.44.0; CHANGELOG uyumluluk testi `tests/version.test.ts`'e eklendi
+- **T5.2**: CHANGELOG'da tekrarlı 0.35.0 başlığı düzeltildi
+
+### Faz 6 — v1 Release Readiness (8 tasks)
+
+#### Must-have
+
+- **T6.1**: `preliminaryAssessment` anlamlı kılındı: gerçek `outcome`/`legalReasoning` kullanılıyor, boş kalıp yasak, aynı daire dedupe ediliyor, her cümle `sourceRef` taşıyor
+- **T6.2**: Sağlık-birincil mevzuat önceliği regresyon testi (`tests/healthPrimaryLegislationPriority.test.ts`) — Hasta Hakları KVKK'dan önce gelmeli, hard fail
+- **T6.3**: 6 `needs_manual_review` girdi için canlı doğrulama denendi (Cloudflare engeli — 0 terfi, tümü belgelenmiş gerekçeyle `needs_manual_review` kaldı)
+
+#### Should-have
+
+- **T6.4**: `docs/COMPATIBILITY.md` — stable/experimental/internal tier'lar, deprecation policy, breaking change sinyali
+- **T6.5**: AYM netleştirildi: `MockAymAdapter` boş dizi döndürüyor, `synthetic_only` işareti + açık Türkçe gerekçe, kalibrasyon resource objesi detaylandırıldı
+- **T6.6**: Tek dil/aksan politikası: tüm hekim-dönük metinler ASCII'den tam Türkçe'ye çevrildi (`eslestirildi` → `eşleştirildi`, `degildir` → `değildir` vb.)
+- **T6.7**: README güncel davranışla hizalandı: `assessmentTone` dokümantasyonu, AYM sınırlaması, cross-reference'lar
+
+#### Nice-to-have
+
+- **T6.8**: `docs/LAWYER_QUALITY_CHECKLIST.md` — 20 maddeli yapılandırılmış kontrol listesi (mevzuat, emsal, değerlendirme, genel paket), 3 örnek soru üzerinde uygulanmış sonuçlar
 
 ## [0.43.0] — 2026-05-28 — MCP Output Product Polish
 
