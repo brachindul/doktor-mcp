@@ -194,6 +194,30 @@ export const mockLegislationProvisions: LegislationProvision[] = [
     evidence: evidence("legislation", "leg-tuey-2", true),
     inForce: true,
     lastAmendedDate: "2023-10-07"
+  },
+  {
+    documentId: "leg-657-125",
+    legislationName: "657 Sayılı Devlet Memurları Kanunu",
+    articleNumber: "125",
+    verbatimText:
+      "Devlet memurluğundan çıkarma cezası; a) 657 sayılı Kanunun 48 inci maddesinde sayılan şartlardan herhangi birini taşımadığının sonradan anlaşılması, b) Görevin gerektirdiği bilgi ve vasıfları sonradan kaybetmesi, hallerinde uygulanır.",
+    connection: "Disiplin cezaları ve memur hakları 657 sayılı kanunla düzenlenir; disiplin soruşturmalarında bu madde esas alınır.",
+    dimensions: ["disciplinary_administrative"],
+    evidence: evidence("legislation", "leg-657-125", true),
+    inForce: true,
+    lastAmendedDate: "2024-07-15"
+  },
+  {
+    documentId: "leg-ekodeme-5",
+    legislationName: "Ek Ödeme Yönetmeliği",
+    articleNumber: "5",
+    verbatimText:
+      "Sağlık Bakanlığı ve bağlı kuruluşlarında döner sermaye gelirlerinden ek ödeme yapılması suretiyle personele ek gelir sağlanır. Ek ödeme miktarı ve usulü bu yönetmelikle belirlenir.",
+    connection: "Döner sermaye ek ödemeleri bu yönetmelikle düzenlenir; ödenmeyen ek ödeme itiraz süreçleri bu kapsamda değerlendirilir.",
+    dimensions: ["disciplinary_administrative", "professional_ethics"],
+    evidence: evidence("legislation", "leg-ekodeme-5", true),
+    inForce: true,
+    lastAmendedDate: "2024-09-01"
   }
 ];
 

@@ -9,6 +9,8 @@ const termDimensions: Array<{ terms: string[]; dimensions: LegalDimension[] }> =
   { terms: ["mahrem", "mahremiyet", "sir", "sır", "gizlilik", "kayit", "kayıt", "epikriz", "rapor", "dosya", "arsiv", "arşiv"], dimensions: ["patient_rights"] },
   { terms: ["ceza", "taksir", "yaralama"], dimensions: ["criminal"] },
   { terms: ["disiplin", "idari", "sorusturma"], dimensions: ["disciplinary_administrative"] },
+  { terms: ["tayin", "atama", "yer değiştirme", "yer degistirme", "nakil", "mecburi hizmet"], dimensions: ["disciplinary_administrative"] },
+  { terms: ["ek ödeme", "ek odeme", "döner sermaye", "doner sermaye"], dimensions: ["disciplinary_administrative"] },
   { terms: ["etik", "meslek", "acil", "sevk", "nobet", "nöbet", "yetki", "görev", "gorev", "brans", "branş", "klinik", "hastane", "otopsi", "ölüm", "olum", "defin"], dimensions: ["professional_ethics", "patient_rights"] },
   { terms: ["hekim", "tibbi", "tıbbi", "mudahale", "müdahale"], dimensions: ["patient_rights"] },
   { terms: ["redde", "reddet", "kabul etme", "iliskisini sonlandir", "ilişkisini sonlandır", "tedaviyi birak", "tedaviyi bırak", "tedaviyi sonlandir", "kacinma", "kaçınma", "bakmama"], dimensions: ["professional_ethics", "civil_compensation"] },

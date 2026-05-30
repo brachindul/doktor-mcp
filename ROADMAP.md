@@ -6,7 +6,7 @@
 >
 > **Genel kurallar (her görevde geçerli):**
 > - `npm run build` (tsc) **0 hata** vermeli.
-> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 1070 testi kırma.
+> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 1077 testi kırma.
 > - Yeni davranış eklediysen **yeni test** yaz. Test yoksa görev "done" sayılmaz.
 > - Pakedin/araç JSON şekli (response contract) değişiyorsa README'yi güncelle.
 > - Türkçe kullanıcı mesajları ve İngilizce kod/yorum karışımını koru (mevcut konvansiyon).
@@ -530,7 +530,7 @@ tamamlanmadan sıradakine geçme; önce düzelt.
 - **Kabul**: Mock modda kamu sorgusu bu yönetmelikleri provision olarak döndürüyor; metinler
   resmî kaynakla birebir; test var.
 
-### [ ] T9.3 — Uçtan uca pack testi (router değil, tam paket)
+### [x] T9.3 — Uçtan uca pack testi (router değil, tam paket)
 - **Yapılacak**: `prepareInformationPack` üzerinden hard-fail testler:
   - mock: "tayin talebim reddedildi" → `relevantLegislation`'da Atama Yönetmeliği **birincil**.
   - mock: "hakkımda disiplin soruşturması açıldı" → Disiplin Amirleri Yönetmeliği birincil.
