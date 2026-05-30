@@ -6,7 +6,7 @@
 >
 > **Genel kurallar (her görevde geçerli):**
 > - `npm run build` (tsc) **0 hata** vermeli.
-> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 940 testi kırma.
+> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 944 testi kırma.
 > - Yeni davranış eklediysen **yeni test** yaz. Test yoksa görev "done" sayılmaz.
 > - Pakedin/araç JSON şekli (response contract) değişiyorsa README'yi güncelle.
 > - Türkçe kullanıcı mesajları ve İngilizce kod/yorum karışımını koru (mevcut konvansiyon).
@@ -124,7 +124,7 @@
   Erişilemeyen link `linkStatus: "unreachable"` işaretlensin, paket bloklanmasın.
 - **Kabul**: Time-budget aşılmıyor; başarısız link paketi düşürmüyor; test mock fetch ile yazılı.
 
-### T2.5 — MCP `resources` ve `prompts` desteği
+### [x] T2.5 — MCP `resources` ve `prompts` desteği
 - **Yapılacak**: MCP server'a salt-okunur `resources` ekle: mevcut sağlık-mevzuatı envanteri
   (`HEALTH_LEGISLATION_INVENTORY`) ve kaynak kalibrasyon statüsü resource olarak sunulsun.
   İsteğe bağlı bir `prompts` girişi: "hekim hukuki soru formatı" şablonu.
