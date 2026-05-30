@@ -135,7 +135,7 @@ describe("detectForbiddenOutputPhrases", () => {
 
   it("detects multiple forbidden phrases", () => {
     const pack = makeFullPack({
-      shortAnswer: "Risk seviyesi yüksek. Derhal şunu yapın."
+      shortAnswer: "Kesin hukuki kanaat. Derhal şunu yapın."
     });
     const found = detectForbiddenOutputPhrases(pack as unknown as Record<string, unknown>);
     expect(found.length).toBeGreaterThanOrEqual(2);

@@ -125,11 +125,12 @@ verified precedent entry must survive the reasoned-precedent filter.
 The MVP does not include:
 
 - a live AYM high court client
-- risk level scoring
+- categorical risk level scoring ("risk seviyesi yüksek/düşük") without source reference or conditional language
 - immediate action instructions
 - petition or defense drafting
 - final legal conclusions
-- statements such as "liability exists" or "liability does not exist"
+- categorical statements such as "liability exists" or "liability does not exist"
+- The tool may provide source-grounded conditional assessments (e.g., "kaynaklar şu yönde eğilim gösteriyor") but never categorical final judgments
 - model-only legal propositions that are not confirmed by MCP source records
 
 Rate limiting is reserved for live clients: the intended behavior is practical public-source

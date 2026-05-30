@@ -41,14 +41,15 @@ export interface DoctorPackResponse {
 
 // ─── Safety language guards ────────────────────────────────────────────────
 
-const FORBIDDEN_OUTPUT_PHRASES = [
+/**
+ * Hard-blocked phrases: categorical final judgments that MUST NOT appear in output.
+ * These are absolute, guaranteed statements that cross into legal advice territory.
+ */
+const HARD_BLOCKED_PHRASES = [
   "kesin olarak sorumlusunuz",
   "kesin beraat eder",
   "derhal şunu yapın",
   "derhal sunu yapin",
-  "risk seviyesi yüksek",
-  "risk seviyesi dusuk",
-  "risk seviyesi düşük",
   "savunma dilekçesi şöyle olmalı",
   "savunma dilekcesi soyle olmali",
   "şu cezayı alırsınız",
@@ -62,13 +63,27 @@ const FORBIDDEN_OUTPUT_PHRASES = [
 ];
 
 /**
- * Check if any forbidden output phrases appear in the pack.
- * Returns list of forbidden phrases found.
+ * Allowed assessment phrases (no longer blocked since v0.44.0).
+ * These express conditional, source-grounded evaluation — not categorical judgment.
+ * Examples: risk assessment with source reference, tendency indication.
+ */
+export const ALLOWED_ASSESSMENT_PHRASES = [
+  "risk seviyesi yüksek",
+  "risk seviyesi dusuk",
+  "risk seviyesi düşük"
+];
+
+/**
+ * Check if any hard-blocked output phrases appear in the pack.
+ * Returns list of hard-blocked phrases found.
+ *
+ * Since v0.44.0: risk-level phrases moved to ALLOWED_ASSESSMENT_PHRASES
+ * and are no longer blocked. Only categorical final judgments remain blocked.
  */
 export function detectForbiddenOutputPhrases(pack: unknown): string[] {
   const allText = collectAllText(pack as Record<string, unknown>).toLowerCase();
   const found: string[] = [];
-  for (const phrase of FORBIDDEN_OUTPUT_PHRASES) {
+  for (const phrase of HARD_BLOCKED_PHRASES) {
     if (allText.includes(phrase)) {
       found.push(phrase);
     }

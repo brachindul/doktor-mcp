@@ -6,7 +6,7 @@
 >
 > **Genel kurallar (her görevde geçerli):**
 > - `npm run build` (tsc) **0 hata** vermeli.
-> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 841 testi kırma.
+> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 854 testi kırma.
 > - Yeni davranış eklediysen **yeni test** yaz. Test yoksa görev "done" sayılmaz.
 > - Pakedin/araç JSON şekli (response contract) değişiyorsa README'yi güncelle.
 > - Türkçe kullanıcı mesajları ve İngilizce kod/yorum karışımını koru (mevcut konvansiyon).
@@ -64,7 +64,7 @@
 > "emsal kararlar benzer olaylarda şu sonuca ulaşmış" gibi **kaynak-bağlı, koşullu
 > değerlendirme** serbest olmalı.
 
-### T1.1 — Yasaklı ifade listesini yeniden kalibre et
+### [x] T1.1 — Yasaklı ifade listesini yeniden kalibre et
 - **Dosya**: `src/mcp/formatDoctorPackResponse.ts` (`detectForbiddenOutputPhrases`).
 - **Yapılacak**: Yasaklı listesini ikiye ayır:
   - **Hard-blocked** (kalır): kategorik nihai hüküm — "kesinlikle sorumludur",
