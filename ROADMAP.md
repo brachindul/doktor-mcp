@@ -6,7 +6,7 @@
 >
 > **Genel kurallar (her görevde geçerli):**
 > - `npm run build` (tsc) **0 hata** vermeli.
-> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 920 testi kırma.
+> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 940 testi kırma.
 > - Yeni davranış eklediysen **yeni test** yaz. Test yoksa görev "done" sayılmaz.
 > - Pakedin/araç JSON şekli (response contract) değişiyorsa README'yi güncelle.
 > - Türkçe kullanıcı mesajları ve İngilizce kod/yorum karışımını koru (mevcut konvansiyon).
@@ -118,7 +118,7 @@
   olanı seç. Diagnostics'e `dedupedCount` ekle.
 - **Kabul**: Test: aynı doc id farklı kaynaklardan → tek kayıt; en zengin metin seçiliyor.
 
-### T2.4 — Çıktı için resmî kaynak URL doğrulaması (link-rot guard)
+### [x] T2.4 — Çıktı için resmî kaynak URL doğrulaması (link-rot guard)
 - **Yapılacak**: `officialGazetteDocumentVerifier.ts` mantığını pack çıktısındaki her
   `sourceUrl` için opsiyonel HEAD-check ile genişlet (live mod, time-budget içinde).
   Erişilemeyen link `linkStatus: "unreachable"` işaretlensin, paket bloklanmasın.
