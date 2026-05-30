@@ -6,7 +6,7 @@
 >
 > **Genel kurallar (her görevde geçerli):**
 > - `npm run build` (tsc) **0 hata** vermeli.
-> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 897 testi kırma.
+> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 913 testi kırma.
 > - Yeni davranış eklediysen **yeni test** yaz. Test yoksa görev "done" sayılmaz.
 > - Pakedin/araç JSON şekli (response contract) değişiyorsa README'yi güncelle.
 > - Türkçe kullanıcı mesajları ve İngilizce kod/yorum karışımını koru (mevcut konvansiyon).
@@ -112,7 +112,7 @@
   Çıkarılamıyorsa `inForce: "unknown"` döndür — asla "yürürlükte" varsayma.
 - **Kabul**: Provision tipi yeni alanları taşıyor; pack audit yürürlük bilinmiyorsa uyarı veriyor.
 
-### T2.3 — Provision/karar deduplication ve çapraz-kaynak birleştirme
+### [x] T2.3 — Provision/karar deduplication ve çapraz-kaynak birleştirme
 - **Yapılacak**: Aynı kararın hem Yargıtay hem Bedesten yolundan gelmesi durumunda
   `buildDecisionKey` ile dedupe et; çakışan metinlerde en zengin (tam metin + gerekçeli)
   olanı seç. Diagnostics'e `dedupedCount` ekle.

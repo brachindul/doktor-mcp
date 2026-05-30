@@ -315,6 +315,8 @@ export interface PrecedentSelectionDiagnostics {
   query: string;
   selectedPrecedentCount: number;
   excludedDecisionCount: number;
+  /** Number of decisions removed during cross-source deduplication. */
+  dedupedCount?: number;
   sourceSummaries: PrecedentSourceSummary[];
   selectedPrecedents: Array<{
     source: PrecedentSource;

@@ -5,11 +5,13 @@ import type {
   LegalClassificationSection,
   LegislationProvision,
   LegislationSelectionDiagnostics,
+  PrecedentSelectionDiagnostics,
   PreliminaryAssessment,
   AssessmentSentence,
   SourceUnavailable
 } from "../contracts/legal.js";
 import { assessPrecedentRelevance } from "./precedentRelevance.js";
+import { deduplicateDecisions } from "./decisionDedup.js";
 
 /** Controls whether the pack includes a source-grounded preliminary assessment. */
 export type AssessmentTone = "strict" | "grounded-advisory";
@@ -132,7 +134,12 @@ export function composeDoctorLegalInformationPack(
   assessmentTone?: AssessmentTone
 ): DoctorLegalInformationPack {
   const tone = assessmentTone ?? "grounded-advisory";
-  const groundedCount = provisions.length + precedents.length;
+
+  // Deduplicate decisions that appear from multiple sources (e.g. same case from Yargitay and Bedesten).
+  // Keep the richest version (full text + reasoning).
+  const { decisions: dedupedPrecedents, dedupedCount } = deduplicateDecisions(precedents);
+
+  const groundedCount = provisions.length + dedupedPrecedents.length;
   let shortAnswer =
     groundedCount > 0
       ? "Soru resmi kaynak kayitlariyla eslestirildi; asagidaki paket nihai hukuki kanaat degildir."
@@ -168,7 +175,7 @@ export function composeDoctorLegalInformationPack(
     ...(provision.lastAmendedDate !== undefined ? { lastAmendedDate: provision.lastAmendedDate } : {}),
     ...(provision.repealed !== undefined ? { repealed: provision.repealed } : {})
   }));
-  const verifiedHighCourtPrecedents = precedents.map((precedent) => formatPrecedent(precedent, classification));
+  const verifiedHighCourtPrecedents = dedupedPrecedents.map((precedent) => formatPrecedent(precedent, classification));
   const legalClassification = classificationSection(classification);
   const missingInformation = classification.missingInformation;
   const lawyerReviewPoints = [
@@ -190,7 +197,7 @@ export function composeDoctorLegalInformationPack(
     } as DoctorLegalInformationPack);
   }
 
-  return {
+  const pack: DoctorLegalInformationPack = {
     shortAnswer,
     legalClassification,
     relevantLegislation,
@@ -205,4 +212,11 @@ export function composeDoctorLegalInformationPack(
     ...(selectionDiagnostics ? { selectionDiagnostics } : {}),
     ...(preliminaryAssessment ? { preliminaryAssessment } : {})
   };
+
+  // Attach dedup diagnostics (will be merged with full precedentDiagnostics by caller)
+  if (dedupedCount > 0) {
+    pack.precedentDiagnostics = { dedupedCount } as PrecedentSelectionDiagnostics;
+  }
+
+  return pack;
 }

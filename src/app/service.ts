@@ -312,6 +312,10 @@ export class DoktorMcpInformationService {
         undefined,
         input.assessmentTone
       );
+      // Merge dedupedCount from pack's cross-source deduplication into precedentDiagnostics
+      if (pack.precedentDiagnostics?.dedupedCount) {
+        precedentDiagnostics.dedupedCount = pack.precedentDiagnostics.dedupedCount;
+      }
       const selectionDiagnostics = buildLegislationSelectionDiagnostics({
         query: input.question,
         sourceMode: "live",
@@ -358,6 +362,10 @@ export class DoktorMcpInformationService {
       undefined,
       input.assessmentTone
     );
+    // Merge dedupedCount from pack's cross-source deduplication into precedentDiagnostics
+    if (pack.precedentDiagnostics?.dedupedCount) {
+      precedentDiagnostics.dedupedCount = pack.precedentDiagnostics.dedupedCount;
+    }
     const selectionDiagnostics = undefined;
 
     return {
