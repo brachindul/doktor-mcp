@@ -393,6 +393,16 @@
 8. Faz 7 (Faz 6 kalite açıkları — v1 bloklayıcı) → T7.1 → T7.2 → T7.3 → T7.4
 
 9. Faz 8 (kamu hekimi mevzuat genişlemesi) → T8.2 (önce engel) → T8.1 → T8.3 → T8.4
+10. Faz 9 (kamu retrieval gerçekten çalışsın — BLOKLAYICI) → T9.1 → T9.2 → T9.3 → T9.4
+11. Faz 10 (emsal ilgililik kalitesi) → T10.1 → T10.2 → T10.3
+12. Faz 11 (kanun katmanı) → T11.1 → T11.2 → T11.3
+13. Faz 12 (retrieval sağlamlığı) → T12.1 → T12.2 → T12.3 → T12.4
+14. Faz 13 (çıktı/ürün kalitesi) → T13.1 → T13.2 → T13.3
+15. Faz 14 (test/CI/kod kalitesi) → T14.1 → T14.2 → T14.3 → T14.4
+16. Faz 15 (güvenlik/uyum) → T15.1 → T15.2 → T15.3
+17. Faz 16 (gözlemlenebilirlik/DX) → T16.1 → T16.2 → T16.3
+18. Faz 17 (klinik kapsam genişlemesi) → T17.1 → T17.2
+19. Faz 18 (v1.0.0 sürüm hazırlığı) → T18.1 → T18.2 → T18.3
 
 **Her görev sonunda**: build + test yeşil → commit. Bir görev testi kırıyorsa, görev
 tamamlanmadan sıradakine geçme; önce düzelt.
@@ -478,3 +488,254 @@ tamamlanmadan sıradakine geçme; önce düzelt.
   disiplin soruşturması açıldı" → Disiplin Amirleri Yönetmeliği birincil.
 - **Kabul**: En az 4 kamu-hekimi sorgu profili için doğru birincil yönetmelik dönüyor;
   test hard-fail invariyantı içeriyor; build + test yeşil. README/CHANGELOG güncel.
+
+---
+
+> ## ⚙️ Faz 9+ için genel yürütme notu (otonom gece koşusu)
+>
+> Bundan sonraki tüm fazlar **uçtan uca (end-to-end) doğrulama** ilkesine tabidir:
+> - **İzole test maskelemesi YASAK.** Bir özelliği yalnızca alt-fonksiyon (router, mapper)
+>   seviyesinde test etme; **tam pakette** (`prepareInformationPack`) doğrula. Kullanıcının
+>   gerçekte aldığı çıktı neyse onu test et.
+> - **Dürüst işaretleme.** Bir görevi ancak "Kabul"un TAMAMI gerçekten karşılanıyorsa `[x]`
+>   yap. Kısmense `[ ]` bırak + commit mesajında nedenini yaz.
+> - **Uydurma yok.** Mevzuat/karar/sourceId/metin asla uydurma. Doğrulanamayan girdi
+>   gerekçeyle `needs_manual_review`/`candidate` kalır.
+> - **Her görev = ayrı commit**, build + test yeşil olmadan commit etme.
+
+---
+
+## Faz 9 — Kamu Mevzuat Retrieval'i Gerçekten Çalıştır (Faz 8 kapanışı, BLOKLAYICI)
+
+> Faz 8 metadata/iskele kurdu ama canlı incelemede kamu sorgusu hiç yönetmelik döndürmedi
+> (canlı: `mevzuat.gov.tr source_error`; mock: provision yok). Bu faz özelliği gerçekten
+> kullanılabilir yapar.
+
+### [ ] T9.1 — mevzuat.gov.tr canlı fetch'i gerçekten çöz
+- **Sorun**: T8.2 header/fallback ekledi ama canlı hâlâ `source_error`; yeni girdiler
+  `covered` olamadı.
+- **Yapılacak**: `mevzuat:7.5.17232` (Atama) canlı çekilip metni çıkana kadar fetch yolunu
+  düzelt. Sırasıyla dene: (a) doğru başlıklarla doğrudan PDF; (b) landing sayfasından gerçek
+  PDF/doc linki ayrıştırıp indirme; (c) `resmigazete.gov.tr` ikincil yolu. Gerçek engel varsa
+  `source_blocked_cloudflare` ile net raporla — ama önce (b) ve (c) tüketilsin.
+- **Kabul**: En az Atama Yönetmeliği'nin metni canlı olarak çıkarılıp en az 1 madde
+  döndürülüyor; smoke `npm run verify:health-legislation` ile gösteriliyor. Build+test yeşil.
+
+### [ ] T9.2 — Yeni kamu/eğitim yönetmelikleri için mock provision ekle
+- **Sorun**: `mockLegislationAdapter`/`mockData`'da yeni yönetmelikler için hüküm yok; mock
+  modda hiç görünmüyorlar, offline demo/test imkânsız.
+- **Yapılacak**: En az şu girdiler için gerçek madde metniyle (resmî kaynaktan birebir alıntı,
+  uydurma değil) mock provision ekle: Atama ve Yer Değiştirme (eş/mazeret/2 yıl maddeleri),
+  Disiplin Amirleri, Hasta ve Çalışan Güvenliği, TUEY. Mock fixture'a kaydet.
+- **Kabul**: Mock modda kamu sorgusu bu yönetmelikleri provision olarak döndürüyor; metinler
+  resmî kaynakla birebir; test var.
+
+### [ ] T9.3 — Uçtan uca pack testi (router değil, tam paket)
+- **Yapılacak**: `prepareInformationPack` üzerinden hard-fail testler:
+  - mock: "tayin talebim reddedildi" → `relevantLegislation`'da Atama Yönetmeliği **birincil**.
+  - mock: "hakkımda disiplin soruşturması açıldı" → Disiplin Amirleri Yönetmeliği birincil.
+  - canlı/recorded: aynı sorgular için en az birincil yönetmelik geliyor.
+- **Kabul**: Testler tam pakette doğruluyor (izole router değil); birincil yanlışsa hard-fail.
+
+### [ ] T9.4 — Faz 8 işaretlerini ve coverage durumunu dürüstçe düzelt
+- **Yapılacak**: T8.1/T8.4 kabul gerçeğe göre güncellensin; `coverageStatus` gerçek
+  doğrulama durumunu yansıtsın; CHANGELOG'a "kamu retrieval Faz 9'da tamamlandı" düzeltmesi.
+- **Kabul**: İşaret ↔ gerçek tutarlı; covered sayısı gerçek doğrulananları yansıtıyor.
+
+---
+
+## Faz 10 — Emsal (Precedent) İlgililik Kalitesi
+
+> Canlı incelemede gizlilik sorusunda assessment'a 0 emsal cümlesi girdi (hiçbiri eşik üstü
+> ilgili değildi) ve kamu sorgusunda Danıştay idari kararları konuyla zayıf eşleşti. Emsal
+> arama/sıralama kalitesi v1 sonrası en büyük ürün açığı.
+
+### [ ] T10.1 — Konu-bazlı emsal sorgu genişlemesi (kamu + gizlilik)
+- **Yapılacak**: `healthLawQueryExpansion`'a kamu hekimi ve gizlilik eksenleri ekle:
+  tayin/yer değiştirme → idari dava terimleri; disiplin → "disiplin cezası iptali";
+  gizlilik → "özel hayatın gizliliği sağlık verisi". Danıştay'ı idari uyuşmazlıklarda
+  birincil kaynağa al (mevcut `prioritizeSourcesByIssue`'yu genişlet).
+- **Kabul**: Recorded-fixture testi: kamu/gizlilik sorgularında ilgili daire kararları
+  zayıf-ilgili olanların önüne geçiyor.
+
+### [ ] T10.2 — İlgililik skorlamasını iyileştir (issue-signal ağırlıkları)
+- **Yapılacak**: `precedentRelevance` issue-signal sözlüğünü genişlet; gövde metninde konu
+  terimlerinin yoğunluğuna göre ağırlık ver; sadece geniş "sağlık" kelimesi yakalayan kararın
+  skorunu düşür. Eşik (`assessment.minRelevanceScore`) ve sıralama bu sinyale dayansın.
+- **Kabul**: Bilinen alakasız fixture (tapu/trafik) skoru eşik altında; ilgili fixture üstünde.
+
+### [ ] T10.3 — "Neden bu emsal" şeffaflığı çıktıya
+- **Yapılacak**: Her verified emsal için `relevanceExplanation` (eşleşen issue terimleri +
+  kısa gerekçe) hekim-dönük çıktıya eklensin; Markdown renderer göstersin.
+- **Kabul**: Çıktıda her emsal neden seçildiğini taşıyor; test var.
+
+---
+
+## Faz 11 — Kanun (Statute) Katmanı
+
+> Envanter şu an kanun ile yönetmeliği karıştırıyor (DHY, Umumi Hıfzıssıhha, 657 aslında
+> kanun). Kamu hekimi için 657 kritik. Düzgün bir kanun katmanı gerekli.
+
+### [ ] T11.1 — Kanun/yönetmelik tip ayrımı
+- **Yapılacak**: Envantere `legislationType: "kanun" | "yonetmelik" | "nizamname" | "teblig"`
+  alanı ekle; sourceId tertip kodundan (1=kanun, 7=yönetmelik) türet/teyit et; çıktı ve
+  diagnostics tipi göstersin.
+- **Kabul**: Her girdi doğru tiplenmiş; test var.
+
+### [ ] T11.2 — Çekirdek kanunları ekle/doğrula
+- **Yapılacak**: **657 Devlet Memurları Kanunu** (`mevzuat:1.5.657` — kamu hekimi için temel,
+  disiplin/özlük), **Umumi Hıfzıssıhha Kanunu 1593** (`mevzuat:1.3.1593`), **5237 TCK**'nın
+  hekimi ilgilendiren maddeleri (taksirle yaralama/öldürme, görevi kötüye kullanma — madde
+  bazlı), **DHY** (3359 Ek Madde 3–6). Canlı doğrula; doğrulanamayanı dürüstçe işaretle.
+- **Kabul**: En az 657 + 1593 canlı doğrulanmış; TCK madde-bazlı eşleşme çalışıyor; test var.
+
+### [ ] T11.3 — Kanun + yönetmelik birlikte sıralama
+- **Yapılacak**: Pack ordering: konuya göre birincil yönetmelik → ilgili kanun → destekleyici
+  genel kanun. Disiplin sorgusunda Disiplin Amirleri Yön. + 657 disiplin maddeleri birlikte.
+- **Kabul**: Uçtan uca test: disiplin sorgusu hem yönetmeliği hem 657'yi doğru sırada döndürüyor.
+
+---
+
+## Faz 12 — Retrieval Sağlamlığı ve Canlı Kaynak Dayanıklılığı
+
+### [ ] T12.1 — Mevzuat sonuç önbelleği (legislation cache)
+- **Yapılacak**: `PrecedentCache` mantığını mevzuat tarafına da getir: doğrulanmış sourceId →
+  çıkarılmış madde metni dosya önbelleği (TTL'li, `.cache/legislation/`). Canlı çağrı öncesi
+  önbelleği kontrol et.
+- **Kabul**: İkinci çağrı önbellekten geliyor; telemetri hit/miss gösteriyor; test var.
+
+### [ ] T12.2 — Yapılandırılmış hata taksonomisini tamamla
+- **Yapılacak**: Tüm canlı kaynaklar için tutarlı `errorCode` seti (network, timeout,
+  blocked_cloudflare, non_json, parse, not_found, empty). Her kod için `recommendedNextStep`.
+- **Kabul**: Hata kodları dokümante (`docs/ERROR_CODES.md`); test her kodu üretebiliyor.
+
+### [ ] T12.3 — Offline snapshot/demo modu
+- **Yapılacak**: Kaydedilmiş gerçek yanıtlardan (`fixtures/live-samples/`) beslenen bir
+  `sourceMode: "snapshot"` ekle: ağ olmadan gerçekçi çıktı üretir (demo/sunum/test için).
+  Mock'tan farkı: gerçek sanitize edilmiş kaynak metinleri.
+- **Kabul**: `smoke:mcp --sourceMode snapshot` ağsız çalışıyor, gerçek metin döndürüyor; test var.
+
+### [ ] T12.4 — Canlı kaynak sağlık kontrolü CLI
+- **Yapılacak**: `npm run health:sources` — tüm canlı kaynakları (mevzuat, bedesten,
+  danistay) yoklayıp erişilebilirlik + gecikme + engel durumu raporlar.
+- **Kabul**: Tek komut tüm kaynakların güncel statüsünü yazıyor; uydurma yok.
+
+---
+
+## Faz 13 — Çıktı / Ürün Kalitesi
+
+### [ ] T13.1 — `preliminaryAssessment`'i madde-atıflı zenginleştir
+- **Yapılacak**: Mevzuat cümleleri madde numarasını ve somut yükümlülüğü (alıntıdan
+  türetilmiş, uydurma değil) belirtsin; emsal cümleleri daire + tarih + kısa sonuç içersin.
+- **Kabul**: Cümleler madde/karar künyesi taşıyor; her cümlede `sourceRef`; test var.
+
+### [ ] T13.2 — `missingInformation` ve `lawyerReviewPoints` otomatik kalitesi
+- **Yapılacak**: Konuya göre anlamlı eksik-bilgi ve avukat-inceleme noktaları üret (ör. kamu
+  disiplininde: savunma süresi, zamanaşımı, yetkili kurul). Şablon değil, konu-duyarlı.
+- **Kabul**: Farklı konularda farklı, isabetli noktalar; test konu-duyarlılığı doğruluyor.
+
+### [ ] T13.3 — Markdown renderer'ı çok-eksenli pakete uyarla
+- **Yapılacak**: Klinik + idari/özlük eksenlerini ayrı başlıklarla göster; kanun/yönetmelik
+  ayrımını işaretle; emsal ilgililik notunu ekle.
+- **Kabul**: Render deterministik, yeni alanları gösteriyor; test güncel.
+
+---
+
+## Faz 14 — Test, CI ve Kod Kalitesi Altyapısı
+
+### [ ] T14.1 — GitHub Actions CI
+- **Yapılacak**: `.github/workflows/ci.yml` — push/PR'da `npm ci`, `npm run build`,
+  `npm test`, `npm run test:coverage`. Canlı testleri ağ gerektirmeyecek şekilde ayır
+  (live testler `describe.skipIf(!process.env.LIVE)` ile koşullu).
+- **Kabul**: CI workflow var; mock/offline testler CI'da yeşil; canlı testler opt-in.
+
+### [ ] T14.2 — Lint + format (ESLint + Prettier)
+- **Yapılacak**: ESLint (typescript-eslint) + Prettier ekle; `npm run lint`, `npm run format`;
+  mevcut kodu uyumlu hale getir (davranış değişmeden). CI'a lint adımı ekle.
+- **Kabul**: `npm run lint` 0 hata; format tutarlı; build+test yeşil.
+
+### [ ] T14.3 — Record/replay test harness'ı (canlı adapterler)
+- **Yapılacak**: Canlı adapter yanıtlarını kaydedip (sanitize) replay eden ortak bir harness;
+  böylece canlı yollar ağsız, deterministik test edilir. Mevcut fixture testlerini buna taşı.
+- **Kabul**: Her canlı adapter için record/replay testi var; ağsız çalışıyor.
+
+### [ ] T14.4 — "İzole-test maskelemesi" koruması (e2e smoke gate)
+- **Yapılacak**: Her büyük özellik için en az bir `prepareInformationPack` seviyesinde e2e
+  smoke testi zorunlu; bir kontrol listesi/CI adımı bunu hatırlatsın. Geçmiş izole-test
+  maskelemelerini (T6.2, T8.4) e2e ile kapat.
+- **Kabul**: Kamu + klinik + gizlilik için e2e smoke testleri mevcut ve yeşil.
+
+---
+
+## Faz 15 — Güvenlik ve Uyum
+
+### [ ] T15.1 — SSRF / URL güvenliği
+- **Yapılacak**: Link checker ve resmî doc verifier yalnızca izinli gov.tr host'larına istek
+  atsın (allowlist); redirect'leri host bazında doğrula; iç ağ/localhost adreslerini reddet.
+- **Kabul**: Allowlist dışı/iç-ağ URL reddediliyor; test kötü URL'leri kapsıyor.
+
+### [ ] T15.2 — PII/gizlilik hijyeni
+- **Yapılacak**: Hiçbir hasta/kişisel veri log'a veya cache anahtarına sızmasın; soru metni
+  cache key'inde hash'lensin; telemetri PII içermesin.
+- **Kabul**: Test: PII içeren soru → cache key/log'da ham metin yok.
+
+### [ ] T15.3 — Bağımlılık denetimi ve sabitleme
+- **Yapılacak**: `npm audit` temizliği; sürümleri makul sabitle; gereksiz bağımlılıkları at;
+  `package.json` `engines` ekle.
+- **Kabul**: `npm audit` kritik/yüksek 0; build+test yeşil.
+
+---
+
+## Faz 16 — Gözlemlenebilirlik ve Geliştirici Deneyimi
+
+### [ ] T16.1 — Tek-komut teşhis CLI'ı
+- **Yapılacak**: `npm run doctor:diagnose -- "<soru>" --sourceMode live` — soruyu tüm
+  katmanlardan geçirip sınıflandırma, yönlendirme, mevzuat seçimi, emsal seçimi ve tüm
+  trace'leri okunaklı tek raporda gösterir (debug için).
+- **Kabul**: Komut tüm hattı tek çıktıda gösteriyor; JSON + okunaklı özet.
+
+### [ ] T16.2 — Bayrak-arkası yapılandırılmış log
+- **Yapılacak**: `DOKTOR_MCP_LOG=debug` ile yapılandırılmış (JSON) log; MCP stdio çıktısını
+  kirletmeyecek şekilde stderr'e; varsayılan kapalı.
+- **Kabul**: Log açık/kapalı çalışıyor; MCP JSON çıktısı kirlenmiyor; test var.
+
+### [ ] T16.3 — Kapsam matrisi otomatik üretimi
+- **Yapılacak**: Envanterden `docs/COVERAGE_MATRIX.md` üreten bir script: her mevzuat, tipi,
+  kaynak statüsü, coverageStatus, sourceId/RG. CI'da güncelliğini kontrol et.
+- **Kabul**: Matris script'le üretiliyor; CHANGELOG/README ile tutarlı.
+
+---
+
+## Faz 17 — Klinik Mevzuat Kapsam Genişlemesi
+
+### [ ] T17.1 — Eksik klinik yönetmelikleri ekle (canlı doğrulamalı)
+- **Yapılacak**: Kan ve Kan Ürünleri Yön., Diyaliz Merkezleri Yön., Yoğun Bakım/Enfeksiyon
+  Kontrol düzenlemeleri, Radyasyon Güvenliği Yön., Beşeri Tıbbi Ürünler/Reçete düzenlemeleri,
+  Bağışıklama/aşı düzenlemeleri. Her birini gov.tr ile doğrula; doğrulanamayanı dürüstçe işaretle.
+- **Kabul**: Her yeni girdi health mapping + (mümkünse) canlı `covered`; uçtan uca test örnekleri.
+
+### [ ] T17.2 — Branş-özel görev/sorumluluk eşlemeleri
+- **Yapılacak**: Sık branşlar için (acil, aile hekimliği, anestezi, radyoloji, psikiyatri)
+  konu kümeleri ve birincil mevzuat eşlemeleri; soru sınıflandırıcıya branş ipuçları.
+- **Kabul**: Branş sorguları doğru birincil mevzuata gidiyor; uçtan uca test.
+
+---
+
+## Faz 18 — v1.0.0 Sürüm Hazırlığı
+
+### [ ] T18.1 — v1.0.0 release checklist ve dondurma
+- **Yapılacak**: `docs/RELEASE_v1.md` — stable/experimental alan listesi kesinleşmiş,
+  tüm e2e smoke'lar yeşil, coverage matrisi güncel, error kodları dokümante. Sürümü
+  `1.0.0`'a hazırla (CHANGELOG + package.json + lock + version testi).
+- **Kabul**: Checklist'teki her madde işaretli ve doğrulanmış; build+test yeşil.
+
+### [ ] T18.2 — README'yi v1 ürün anlatısına çek
+- **Yapılacak**: Kullanım, kapsam matrisi linki, sınırlılıklar (emsal ilgililiği, canlı kaynak
+  engelleri), güvenlik notları. Test edilmemiş iddia bırakma.
+- **Kabul**: README iddiaları e2e testlerle örtüşüyor; sürüm tutarlı.
+
+### [ ] T18.3 — Son bütünsel canlı doğrulama turu
+- **Yapılacak**: Temsili 10 soruluk set (klinik + kamu/özlük + gizlilik + adli) üzerinde canlı
+  benchmark; sonuçları `exports/` + bir özet rapora yaz; regresyon/güvenlik invariyantları yeşil.
+- **Kabul**: 10 sorunun her biri için pack üretiliyor veya dürüst no-pack diagnostic'i var;
+  unsafe/uydurma yok.
