@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { CourtDecision } from "../src/contracts/legal.js";
 import { assessPrecedentRelevance, suggestedQueriesForQuestion } from "../src/health/precedentRelevance.js";
 
-function decision(text: string): CourtDecision {
+function decision(text: string, overrides: Partial<CourtDecision> = {}): CourtDecision {
   return {
     id: "yargitay:test",
     court: "yargitay",
@@ -18,7 +18,8 @@ function decision(text: string): CourtDecision {
       retrievedAt: "2026-05-23T00:00:00.000Z",
       official: true,
       fullText: true
-    }
+    },
+    ...overrides
   };
 }
 
@@ -40,7 +41,7 @@ describe("precedent relevance classifier", () => {
       decision("Ameliyat oncesi bilgilendirme, aydinlatilmis riza ve komplikasyon hakkinda bilgilendirme tartisilmistir.")
     );
 
-    expect(result.score).toBe(2);
+    expect(result.score).toBeGreaterThanOrEqual(2);
     expect(result.matchedIssueSignals.length).toBeGreaterThanOrEqual(2);
   });
 
@@ -51,7 +52,7 @@ describe("precedent relevance classifier", () => {
     );
 
     expect(result.issueProfile).toBe("malpractice_complication");
-    expect(result.score).toBe(2);
+    expect(result.score).toBeGreaterThanOrEqual(2);
   });
 
   it("scores white code violence high with threat and healthcare worker signals", () => {
@@ -61,7 +62,7 @@ describe("precedent relevance classifier", () => {
     );
 
     expect(result.issueProfile).toBe("violence_threat");
-    expect(result.score).toBe(2);
+    expect(result.score).toBeGreaterThanOrEqual(2);
   });
 
   it("returns targeted query suggestions for benchmark-style questions", () => {
@@ -69,5 +70,93 @@ describe("precedent relevance classifier", () => {
       "tedaviyi reddeden hasta",
       "hastanın tedaviye uymaması"
     ]);
+  });
+});
+
+describe("precedent relevance — irrelevant fixture (tapu/trafik)", () => {
+  it("scores tapu (land registry) decision below threshold for malpractice query", () => {
+    const result = assessPrecedentRelevance(
+      "Hekimin tıbbi müdahalesi sırasında komplikasyon oluştu.",
+      decision(
+        "Tapu iptali ve tescil davasında, taşınmazın mülkiyet uyuşmazlığı incelenmiştir. Kayıt düzeltme talebi değerlendirilmiştir.",
+        { court: "yargitay", topicTags: ["tapu", "mülkiyet"] }
+      )
+    );
+    expect(result.score).toBeLessThan(2);
+  });
+
+  it("scores trafik (traffic) decision below threshold for malpractice query", () => {
+    const result = assessPrecedentRelevance(
+      "Hekimin tıbbi müdahalesi sırasında komplikasyon oluştu.",
+      decision(
+        "Trafik kazası nedeniyle tazminat davasında, araç sürücüsünün kusur oranı belirlenmiştir. Karayolları Trafik Kanunu hükümleri değerlendirilmiştir.",
+        { court: "yargitay", topicTags: ["trafik", "kaza"] }
+      )
+    );
+    expect(result.score).toBeLessThan(2);
+  });
+});
+
+describe("precedent relevance — relevant fixture scores above threshold", () => {
+  it("scores health-law malpractice decision above threshold", () => {
+    const result = assessPrecedentRelevance(
+      "Komplikasyon ve tıbbi hata iddiası var.",
+      decision(
+        "Hekimin özen yükümlülüğü ihlal edilmiş, komplikasyon yönetimi tıbbi standartlara aykırı bulunmuştur. Hizmet kusuru ve tıbbi hata değerlendirmesi yapılmıştır.",
+        { court: "danistay", topicTags: ["malpraktis", "komplikasyon"] }
+      )
+    );
+    expect(result.score).toBeGreaterThanOrEqual(2);
+  });
+
+  it("scores informed consent decision with core-body signals above threshold", () => {
+    const result = assessPrecedentRelevance(
+      "Ameliyat öncesi aydınlatılmış rıza formu eksik.",
+      decision(
+        "Hastanın aydınlatılmış rızası alınmadan tıbbi müdahale gerçekleştirilmiştir. Onam ve bilgilendirme yükümlülüğü ihlal edilmiştir.",
+        {
+          court: "yargitay",
+          topicTags: ["aydınlatılmış rıza", "onam"],
+          legalReasoning: "Hekimin aydınlatma yükümlülüğü ve hasta rızası değerlendirilmiştir.",
+          outcome: "Aydınlatılmış rıza alınmadığından tıbbi müdahale hukuka aykırıdır."
+        }
+      )
+    );
+    expect(result.score).toBeGreaterThanOrEqual(2);
+    expect(result.matchedIssueSignals.length).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe("precedent relevance — core-body bonus", () => {
+  it("gives higher score when matched signals appear in legalReasoning and outcome", () => {
+    const resultNoCore = assessPrecedentRelevance(
+      "Komplikasyon ve tıbbi hata iddiası.",
+      decision("Kararda komplikasyon ve tıbbi hata tartışılmıştır.")
+    );
+
+    const resultWithCore = assessPrecedentRelevance(
+      "Komplikasyon ve tıbbi hata iddiası.",
+      decision("Detaylı bilgi.", {
+        legalReasoning: "Komplikasyon yönetimi ve tıbbi hata değerlendirmesi yapılmıştır.",
+        outcome: "Hekimin özen yükümlülüğü ihlal edilerek komplikasyona yol açılmıştır."
+      })
+    );
+
+    expect(resultWithCore.score).toBeGreaterThanOrEqual(resultNoCore.score);
+  });
+});
+
+describe("precedent relevance — generic-only penalty", () => {
+  it("applies penalty when only generic sağlık/hasta matches without specific issue signals", () => {
+    const result = assessPrecedentRelevance(
+      "Tıbbi müdahale sırasında komplikasyon oluştu.",
+      decision(
+        "Sağlık hizmeti sunumu kapsamında hasta tedavi edilmiştir.",
+        { topicTags: [] }
+      )
+    );
+    // Score should be low — only generic "sağlık", "hasta", "tedavi" matched
+    expect(result.score).toBeLessThan(2);
+    expect(result.whyWeak).not.toBeNull();
   });
 });

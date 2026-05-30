@@ -45,7 +45,28 @@ const QUERY_EXPANSION: Record<string, HealthLawQuery> = {
   "acil durum":           { searchTerm: "acil durum müdahale istisnası",           topicCluster: "emergency_exception", priority: 1 },
   "acil degil":           { searchTerm: "acil olmayan durum tedaviyi sonlandırma", topicCluster: "emergency_exception", priority: 1 },
   "acil değil":           { searchTerm: "acil olmayan durum tedaviyi sonlandırma", topicCluster: "emergency_exception", priority: 1 },
-  "acil mudehale":        { searchTerm: "acil müdahale",                           topicCluster: "emergency_intervention", priority: 1 }
+  "acil mudehale":        { searchTerm: "acil müdahale",                           topicCluster: "emergency_intervention", priority: 1 },
+
+  // ── Public employment / administrative law ──
+  "tayin":                { searchTerm: "sağlık personeli atama nakil iptal",     topicCluster: "public_employment",  priority: 1 },
+  "yer degistirme":       { searchTerm: "sağlık personeli atama nakil iptal",     topicCluster: "public_employment",  priority: 1 },
+  "yer değiştirme":       { searchTerm: "kamu görevlisi atama idari dava",        topicCluster: "public_employment",  priority: 1 },
+  "atama":                { searchTerm: "sağlık personeli atama nakil iptal",     topicCluster: "public_employment",  priority: 2 },
+  "nakil":                { searchTerm: "sağlık personeli atama nakil iptal",     topicCluster: "public_employment",  priority: 2 },
+
+  // ── Discipline ──
+  "disiplin":             { searchTerm: "disiplin cezası iptali sağlık personeli", topicCluster: "disciplinary_administrative", priority: 1 },
+  "disiplin cezasi":      { searchTerm: "disiplin cezası iptali sağlık personeli", topicCluster: "disciplinary_administrative", priority: 1 },
+  "disiplin cezası":      { searchTerm: "disiplin cezası iptali sağlık personeli", topicCluster: "disciplinary_administrative", priority: 1 },
+  "idari sorusturma":     { searchTerm: "idari soruşturma disiplin cezası",       topicCluster: "disciplinary_administrative", priority: 1 },
+  "idari soruşturma":     { searchTerm: "idari soruşturma disiplin cezası",       topicCluster: "disciplinary_administrative", priority: 1 },
+
+  // ── Privacy / personal data ──
+  "ozel hayatin gizliligi": { searchTerm: "özel hayatın gizliliği sağlık verisi",  topicCluster: "privacy_kvkk",       priority: 1 },
+  "özel hayatın gizliliği": { searchTerm: "özel hayatın gizliliği sağlık verisi",  topicCluster: "privacy_kvkk",       priority: 1 },
+  "kisisel veri":         { searchTerm: "kişisel veri ihlali hasta mahremiyeti",  topicCluster: "privacy_kvkk",       priority: 1 },
+  "kişisel veri":         { searchTerm: "kişisel veri ihlali hasta mahremiyeti",  topicCluster: "privacy_kvkk",       priority: 1 },
+  "kvkk":                 { searchTerm: "kişisel veri ihlali hasta mahremiyeti",  topicCluster: "privacy_kvkk",       priority: 1 }
 };
 
 export function pickHealthLawQuery(classification: ClassifiedMedicalLegalQuestion): string {

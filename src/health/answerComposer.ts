@@ -11,6 +11,7 @@ import type {
   SourceUnavailable
 } from "../contracts/legal.js";
 import { assessPrecedentRelevance } from "./precedentRelevance.js";
+import type { PrecedentRelevanceAssessment } from "./precedentRelevance.js";
 import { deduplicateDecisions } from "./decisionDedup.js";
 import { stripHtmlToText, truncateForDisplay } from "../util/textSanitizer.js";
 import { readConfig } from "../core/runtimeConfig.js";
@@ -41,11 +42,38 @@ function classificationSection(classification: ClassifiedMedicalLegalQuestion): 
   };
 }
 
+/**
+ * Build a short human-readable explanation of why this precedent was selected.
+ * Shows matched issue terms and a brief reason.
+ */
+function buildRelevanceExplanation(relevance: PrecedentRelevanceAssessment): string {
+  const matchedTerms = relevance.matchedIssueSignals;
+  const profile = relevance.issueProfile;
+  const score = relevance.score;
+
+  if (score === 0) {
+    return `Düşük skor (${score}): ${profile} issue sinyalleri eşleşmedi.`;
+  }
+
+  const termList = matchedTerms.length > 0
+    ? `"${matchedTerms.slice(0, 3).join("\", \"")}" terimleri eşleşti.`
+    : "Genel sağlık terimleri eşleşti.";
+
+  if (score >= 2) {
+    return `Yüksek skor (${score}): ${termList} Bu karar ${profile} bağlamında ilgili.`;
+  }
+
+  return `Orta skor (${score}): ${termList} ${profile} bağlamında kısmen ilgili.`;
+}
+
 function formatPrecedent(decision: CourtDecision, classification: ClassifiedMedicalLegalQuestion) {
   const trace = decision.decisionSourceTrace;
   const accessSource = inferAccessSource(decision);
   const reasoningDetected = Boolean(decision.legalReasoning?.trim());
   const relevance = assessPrecedentRelevance(classification, decision);
+
+  // Build relevance explanation
+  const relevanceExplanation = buildRelevanceExplanation(relevance);
 
   return {
     courtAndChamber: [decision.court.toLocaleUpperCase("tr-TR"), decision.chamber].filter(Boolean).join(" / "),
@@ -76,6 +104,7 @@ function formatPrecedent(decision: CourtDecision, classification: ClassifiedMedi
     missingExpectedIssueTerms: relevance.missingExpectedIssueTerms,
     weakRelevanceReason: relevance.whyWeak,
     suggestedQueryTerms: relevance.suggestedQueryTerms,
+    relevanceExplanation,
     selectedAsVerifiedReason: trace?.eligibilityReasons?.at(-1) ?? "Filtered as precedent_usable.",
     ...(trace ? { decisionSourceTrace: trace } : {})
   };

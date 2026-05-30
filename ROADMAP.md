@@ -6,7 +6,7 @@
 >
 > **Genel kurallar (her görevde geçerli):**
 > - `npm run build` (tsc) **0 hata** vermeli.
-> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 1077 testi kırma.
+> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 1098 testi kırma.
 > - Yeni davranış eklediysen **yeni test** yaz. Test yoksa görev "done" sayılmaz.
 > - Pakedin/araç JSON şekli (response contract) değişiyorsa README'yi güncelle.
 > - Türkçe kullanıcı mesajları ve İngilizce kod/yorum karışımını koru (mevcut konvansiyon).
@@ -548,7 +548,7 @@ tamamlanmadan sıradakine geçme; önce düzelt.
 > ilgili değildi) ve kamu sorgusunda Danıştay idari kararları konuyla zayıf eşleşti. Emsal
 > arama/sıralama kalitesi v1 sonrası en büyük ürün açığı.
 
-### [ ] T10.1 — Konu-bazlı emsal sorgu genişlemesi (kamu + gizlilik)
+### [x] T10.1 — Konu-bazlı emsal sorgu genişlemesi (kamu + gizlilik)
 - **Yapılacak**: `healthLawQueryExpansion`'a kamu hekimi ve gizlilik eksenleri ekle:
   tayin/yer değiştirme → idari dava terimleri; disiplin → "disiplin cezası iptali";
   gizlilik → "özel hayatın gizliliği sağlık verisi". Danıştay'ı idari uyuşmazlıklarda
@@ -556,13 +556,13 @@ tamamlanmadan sıradakine geçme; önce düzelt.
 - **Kabul**: Recorded-fixture testi: kamu/gizlilik sorgularında ilgili daire kararları
   zayıf-ilgili olanların önüne geçiyor.
 
-### [ ] T10.2 — İlgililik skorlamasını iyileştir (issue-signal ağırlıkları)
+### [x] T10.2 — İlgililik skorlamasını iyileştir (issue-signal ağırlıkları)
 - **Yapılacak**: `precedentRelevance` issue-signal sözlüğünü genişlet; gövde metninde konu
   terimlerinin yoğunluğuna göre ağırlık ver; sadece geniş "sağlık" kelimesi yakalayan kararın
   skorunu düşür. Eşik (`assessment.minRelevanceScore`) ve sıralama bu sinyale dayansın.
 - **Kabul**: Bilinen alakasız fixture (tapu/trafik) skoru eşik altında; ilgili fixture üstünde.
 
-### [ ] T10.3 — "Neden bu emsal" şeffaflığı çıktıya
+### [x] T10.3 — "Neden bu emsal" şeffaflığı çıktıya
 - **Yapılacak**: Her verified emsal için `relevanceExplanation` (eşleşen issue terimleri +
   kısa gerekçe) hekim-dönük çıktıya eklensin; Markdown renderer göstersin.
 - **Kabul**: Çıktıda her emsal neden seçildiğini taşıyor; test var.

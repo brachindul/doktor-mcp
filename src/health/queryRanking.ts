@@ -28,7 +28,8 @@ const SOURCE_AFFINITIES: Record<IssueProfile, Record<PrecedentSource, number>> =
   private_hospital_fee:     { yargitay: 3, danistay: 1, aym: 1, bedesten: 3 },
   public_discipline:        { yargitay: 1, danistay: 3, aym: 2, bedesten: 1 },
   intensive_care:           { yargitay: 2, danistay: 2, aym: 1, bedesten: 2 },
-  pregnancy_emergency:      { yargitay: 3, danistay: 1, aym: 1, bedesten: 3 }
+  pregnancy_emergency:      { yargitay: 3, danistay: 1, aym: 1, bedesten: 3 },
+  public_employment:        { yargitay: 1, danistay: 3, aym: 2, bedesten: 1 }
 };
 
 /** Returns the affinity score (1–3) for a given issue profile + source combination. */

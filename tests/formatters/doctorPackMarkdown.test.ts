@@ -103,6 +103,47 @@ describe("renderDoctorPackMarkdown", () => {
     const md2 = renderDoctorPackMarkdown(pack);
     expect(md1).toBe(md2);
   });
+
+  it("includes relevanceExplanation when provided on a precedent", () => {
+    const pack = makeFullPack({
+      verifiedHighCourtPrecedents: [
+        {
+          courtAndChamber: "YARGİTAY / 13. Hukuk Dairesi",
+          date: "2024-01-01",
+          meritsAndDecisionNumber: "2023/1 - 2024/2",
+          factSummary: "Sağlık hukuku olayı.",
+          legalAssessment: "Gerekçeli karar.",
+          outcome: "Sonuç.",
+          similarityDifference: "Benzer olay.",
+          sourceDocumentId: "yargitay:1",
+          relevanceExplanation: 'Yüksek skor (3): "aydınlatılmış rıza", "onam" terimleri eşleşti. Bu karar informed_consent bağlamında ilgili.'
+        }
+      ]
+    });
+    const md = renderDoctorPackMarkdown(pack);
+    expect(md).toContain("**Neden Seçildi:**");
+    expect(md).toContain("Yüksek skor (3)");
+    expect(md).toContain("informed_consent bağlamında ilgili");
+  });
+
+  it("omits Neden Seçildi section when relevanceExplanation is absent", () => {
+    const pack = makeFullPack({
+      verifiedHighCourtPrecedents: [
+        {
+          courtAndChamber: "YARGİTAY / 13. Hukuk Dairesi",
+          date: "2024-01-01",
+          meritsAndDecisionNumber: "2023/1 - 2024/2",
+          factSummary: "Sağlık hukuku olayı.",
+          legalAssessment: "Gerekçeli karar.",
+          outcome: "Sonuç.",
+          similarityDifference: "Benzer olay.",
+          sourceDocumentId: "yargitay:1"
+        }
+      ]
+    });
+    const md = renderDoctorPackMarkdown(pack);
+    expect(md).not.toContain("**Neden Seçildi:**");
+  });
 });
 
 describe("renderNoPackDiagnosticMarkdown", () => {

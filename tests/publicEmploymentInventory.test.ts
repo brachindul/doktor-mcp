@@ -45,7 +45,7 @@ describe("public employment legislation inventory", () => {
     expect(discHints.length).toBeGreaterThanOrEqual(2);
   });
 
-  it("all 6 new entries should have candidate status", () => {
+  it("all 6 new entries should exist; Atama verified, others candidate", () => {
     const newKeys = [
       "saglik-bakanligi-atama-yer-degistirme-yonetmeligi",
       "saglik-bakanligi-gorevde-yukselme-unvan-degisikligi",
@@ -57,7 +57,11 @@ describe("public employment legislation inventory", () => {
     for (const key of newKeys) {
       const entry = HEALTH_LEGISLATION_INVENTORY.find((e) => e.key === key);
       expect(entry, `Entry ${key} should exist`).toBeDefined();
-      expect(entry!.officialSourceStatus, `Entry ${key} should be candidate`).toBe("candidate");
+      if (key === "saglik-bakanligi-atama-yer-degistirme-yonetmeligi") {
+        expect(entry!.officialSourceStatus, `Entry ${key} should be verified`).toBe("verified");
+      } else {
+        expect(entry!.officialSourceStatus, `Entry ${key} should be candidate`).toBe("candidate");
+      }
     }
   });
 

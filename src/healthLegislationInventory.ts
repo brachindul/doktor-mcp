@@ -685,6 +685,7 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     officialSourceStatus: "verified",
     mevzuatSourceId: "mevzuat:7.5.17232",
     legislationNumber: "17232",
+    officialUrl: "https://www.mevzuat.gov.tr/mevzuat?MevzuatNo=17232&MevzuatTur=7&MevzuatTertip=5",
     relatedIssueIds: ["disciplinary_administrative"],
     relatedTopicClusters: ["public_employment", "transfer_assignment"],
     searchTerms: ["tayin", "atama", "yer değiştirme", "nakil", "mazeret tayini", "eş durumu"],

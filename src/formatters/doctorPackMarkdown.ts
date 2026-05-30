@@ -83,6 +83,10 @@ export function renderDoctorPackMarkdown(pack: DoctorLegalInformationPack): stri
       sections.push("");
       sections.push(`**Benzerlik/Fark:** ${prec.similarityDifference}`);
       sections.push("");
+      if (prec.relevanceExplanation) {
+        sections.push(`**Neden Seçildi:** ${prec.relevanceExplanation}`);
+        sections.push("");
+      }
     }
   }
 

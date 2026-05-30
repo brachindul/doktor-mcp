@@ -170,6 +170,8 @@ export interface VerifiedPrecedentEntry {
   weakRelevanceReason?: string | null;
   suggestedQueryTerms?: string[];
   selectedAsVerifiedReason?: string;
+  /** Short explanation of why this precedent was selected and which issue terms matched. */
+  relevanceExplanation?: string;
   decisionSourceTrace?: DecisionSourceTrace;
 }
 

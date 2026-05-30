@@ -36,14 +36,15 @@ function highRelevanceDecision(overrides: Partial<CourtDecision> = {}): CourtDec
   };
 }
 
-/** Decision with only 1 malpractice signal → score 1 */
+/** Decision with only 1 malpractice signal in factSummary (non-core) → lower score */
 function midRelevanceDecision(overrides: Partial<CourtDecision> = {}): CourtDecision {
   return {
     id: "mid-rel",
     court: "yargitay" as any,
     chamber: "1. Hukuk Dairesi",
     outcome: "Tapu iptali",
-    legalReasoning: "Komplikasyon değerlendirilmesi yapılmıştır.",  // only "komplikasyon"
+    legalReasoning: "İdari yargı kapsamında dava incelenmiştir.",  // no malpractice signals
+    factSummary: "Komplikasyon değerlendirilmesi yapılmıştır.",  // only "komplikasyon" in non-core field
     topicTags: [],
     evidence: { documentId: "mr-doc", sourceId: "yargitay", sourceUrl: "" },
     ...overrides,
@@ -174,12 +175,12 @@ describe("precedent relevance filter for assessment", () => {
     expect(result.preliminaryAssessment!.sentences.length).toBe(1);
   });
 
-  it("should exclude score-2 precedent when threshold is set higher", () => {
-    // Set threshold to 3 → score-2 precedents excluded
-    process.env.DOKTOR_MCP_ASSESSMENT_MIN_RELEVANCE_SCORE = "3";
+  it("should exclude score-2+ precedent when threshold is set higher", () => {
+    // Set threshold to 5 (max) → all precedents excluded
+    process.env.DOKTOR_MCP_ASSESSMENT_MIN_RELEVANCE_SCORE = "5";
     resetConfig();
 
-    expect(readConfig().assessment.minRelevanceScore).toBe(3);
+    expect(readConfig().assessment.minRelevanceScore).toBe(5);
 
     const result = composeDoctorLegalInformationPack(
       makeClassification(),
@@ -190,7 +191,7 @@ describe("precedent relevance filter for assessment", () => {
       undefined,
       "grounded-advisory"
     );
-    // Score 2 < threshold 3 → excluded
+    // Even high-relevance (score 4) < threshold 5 → excluded
     expect(result.preliminaryAssessment).toBeUndefined();
   });
 
@@ -208,5 +209,58 @@ describe("precedent relevance filter for assessment", () => {
     // Only the high-relevance precedent should produce a sentence
     expect(result.preliminaryAssessment!.sentences.length).toBe(1);
     expect(result.preliminaryAssessment!.sentences[0].text).toContain("12. Ceza Dairesi");
+  });
+});
+
+describe("relevanceExplanation on verified precedents", () => {
+  it("includes relevanceExplanation on high-relevance precedent entries", () => {
+    const result = composeDoctorLegalInformationPack(
+      makeClassification(),
+      [],
+      [highRelevanceDecision()],
+      [],
+      undefined,
+      undefined,
+      "grounded-advisory"
+    );
+    expect(result.verifiedHighCourtPrecedents.length).toBe(1);
+    const entry = result.verifiedHighCourtPrecedents[0];
+    expect(entry.relevanceExplanation).toBeDefined();
+    expect(typeof entry.relevanceExplanation).toBe("string");
+    expect(entry.relevanceExplanation!.length).toBeGreaterThan(0);
+    expect(entry.relevanceExplanation).toContain("skor");
+  });
+
+  it("includes relevanceExplanation with matched terms when signals match", () => {
+    const result = composeDoctorLegalInformationPack(
+      makeClassification(),
+      [],
+      [highRelevanceDecision()],
+      [],
+      undefined,
+      undefined,
+      "grounded-advisory"
+    );
+    const entry = result.verifiedHighCourtPrecedents[0];
+    // High-relevance decision has malpraktis + komplikasyon signals
+    expect(entry.matchedHealthLawTerms).toBeDefined();
+    expect(entry.matchedHealthLawTerms!.length).toBeGreaterThanOrEqual(1);
+    // Explanation should reference the matched terms
+    expect(entry.relevanceExplanation).toContain("terimleri eşleşti");
+  });
+
+  it("includes low relevance explanation for low-scoring precedents", () => {
+    const result = composeDoctorLegalInformationPack(
+      makeClassification(),
+      [],
+      [lowRelevanceDecision()],
+      [],
+      undefined,
+      undefined,
+      "grounded-advisory"
+    );
+    const entry = result.verifiedHighCourtPrecedents[0];
+    expect(entry.relevanceExplanation).toBeDefined();
+    expect(entry.relevanceExplanation).toContain("Düşük skor");
   });
 });

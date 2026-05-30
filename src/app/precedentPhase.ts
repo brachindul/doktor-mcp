@@ -46,6 +46,7 @@ export interface SearchPrecedentsParams {
 /**
  * Prioritize sources based on issue profile.
  * - disciplinary/administrative issues: danistay-first
+ * - public_employment / administrative law: danistay-first
  * - privacy/kvkk issues: yargitay-first (civil/criminal emphasis)
  * - default: yargitay-first
  */
@@ -53,7 +54,11 @@ export function prioritizeSourcesByIssue(
   issueProfile: string,
   sources: PrecedentSource[]
 ): PrecedentSource[] {
-  const danistayFirst = ["disciplinary_administrative", "administrative_liability"];
+  const danistayFirst = [
+    "disciplinary_administrative",
+    "administrative_liability",
+    "public_employment"
+  ];
   if (danistayFirst.some((issue) => issueProfile.includes(issue))) {
     return [...sources].sort((a, b) => {
       if (a === "danistay") return -1;

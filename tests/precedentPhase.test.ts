@@ -63,6 +63,12 @@ describe("precedentPhase — prioritizeSourcesByIssue", () => {
     expect(result[0]).toBe("danistay");
   });
 
+  it("returns danistay-first for public_employment issues", () => {
+    const sources: PrecedentSource[] = ["yargitay", "danistay", "aym"];
+    const result = prioritizeSourcesByIssue("public_employment", sources);
+    expect(result[0]).toBe("danistay");
+  });
+
   it("does not mutate the input array", () => {
     const sources: PrecedentSource[] = ["yargitay", "danistay"];
     const original = [...sources];
