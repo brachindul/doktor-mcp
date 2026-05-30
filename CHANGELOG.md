@@ -1,8 +1,8 @@
 # Changelog
 
-## [0.44.0] — 2026-05-30 — Roadmap Complete: 31 Görev, v1 Release Ready
+## [0.44.0] — 2026-05-30 — Roadmap Complete: 35 Görev, v1 Release Ready
 
-> 31 görev tamamlandı. 58 test dosyası, 986 test.
+> 35 görev tamamlandı. 61 test dosyası, 1020 test.
 
 ### Faz 0 — Tech Debt (5 tasks)
 
@@ -64,6 +64,13 @@
 #### Nice-to-have
 
 - **T6.8**: `docs/LAWYER_QUALITY_CHECKLIST.md` — 20 maddeli yapılandırılmış kontrol listesi (mevzuat, emsal, değerlendirme, genel paket), 3 örnek soru üzerinde uygulanmış sonuçlar
+
+### Faz 7 — Faz 6 Kalite Açıkları (v1 bloklayıcı, 4 tasks)
+
+- **T7.1**: HTML sanitization — `src/util/textSanitizer.ts`: `stripHtmlToText()` entity decode + tag strip, `truncateForDisplay()` cümle-koparmalı kırpma. Tüm hekim-dönük alanlara (`factSummary`, `legalAssessment`, `outcome`, `similarityDifference`, `verbatimQuote`) uygulandı
+- **T7.2**: Kök neden teşhisi + düzeltme — Hasta Hakları `patient_privacy` hint'ine `"kişisel sağlık verisi"`, `"sağlık verisi"`, `"saglik verisi"`, `"kisisel saglik verisi"` terimleri eklendi (healthMappings.ts). Canlı modda artık Hasta Hakları KVKK'dan ÖNCE sıralanıyor. Test: recorded-fixture + gerçek PDF'lerle 9 test
+- **T7.3**: Relevance eşiği sıkılaştırıldı — `runtimeConfig.ts`'e `assessment.minRelevanceScore` (default 2) eklendi. `buildPreliminaryAssessment` eşik altı kararları atlıyor. Test: 8 test (yüksek/düşük/orta relevance, env override)
+- **T7.4**: T6.3 kabul kriteri dürüstçe güncellendi — 4 CLI çalıştırıldı, 0 terfi (Cloudflare PDF engeli). Tüm girdiler `needs_manual_review`, her birine `v0.44.0 verification attempt` notu eklendi. Uydurma kaynak yok
 
 ## [0.43.0] — 2026-05-28 — MCP Output Product Polish
 
