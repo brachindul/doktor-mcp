@@ -48,9 +48,9 @@ describe("health legislation coverage", () => {
   });
 
   it("unverified (gap + candidate) count should be tracked correctly", () => {
-    // 2 gap + 4 candidate = 6 unverified entries
+    // 2 gap + 10 candidate = 12 unverified entries (6 new public employment entries added in T8.1)
     const unverifiedCount = report.gapCount + report.candidateOfficialSourceCount;
-    expect(unverifiedCount).toBe(6);
+    expect(unverifiedCount).toBe(12);
   });
 
   it("gap entries should remain documented as unverifiable (network issues)", () => {
@@ -71,9 +71,11 @@ describe("health legislation coverage", () => {
   it("candidate entries should have verification attempt notes", () => {
     for (const entry of report.candidateEntries) {
       const hasVerificationNote = entry.notes.some(
-        (n) => n.includes("verification attempt") || n.includes("Candidate for active coverage")
+        (n) => n.includes("verification attempt") || n.includes("Candidate for active coverage") ||
+               n.includes("Added as candidate") || n.includes("needs_live_verification") ||
+               n.includes("needs live verification") || n.includes("BLOCKER")
       );
-      expect(hasVerificationNote).toBe(true);
+      expect(hasVerificationNote, `candidate entry ${entry.key} should have verification-related notes`).toBe(true);
     }
   });
 

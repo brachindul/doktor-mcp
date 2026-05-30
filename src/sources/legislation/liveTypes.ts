@@ -71,7 +71,10 @@ export interface HealthLegislationHint {
     | "physician_patient_relationship_termination"
     | "emergency_exception"
     | "private_health_facility"
-    | "professional_scope_of_practice";
+    | "professional_scope_of_practice"
+    | "public_employment"
+    | "transfer_assignment"
+    | "disciplinary_administrative";
   legislationRole: "health_primary" | "supporting_general";
   healthLawPriority: number;
   selectionReason: string;

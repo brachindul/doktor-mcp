@@ -520,5 +520,116 @@ export const healthLegislationHints: HealthLegislationHint[] = [
     ],
     articleNumbers: ["12", "13"],
     dimensions: ["disciplinary_administrative", "professional_ethics"]
-  }
+  },
+
+  // ── v0.44.0: Public employment and discipline legislation ──────────────────
+  // T8.1 — 6 new public-employment/discipline entries
+
+  // Sağlık Bakanlığı ve Bağlı Kuruluşları Atama ve Yer Değiştirme Yönetmeliği
+  // sourceId: mevzuat:7.5.17232 (from ROADMAP; needs live verification)
+  {
+    topicCluster: "public_employment" as any,
+    legislationRole: "supporting_general" as any,
+    healthLawPriority: 30,
+    selectionReason: "Kamu hekiminin tayin ve atama işlemleri bu yönetmeliğe tabidir.",
+    terms: ["tayin", "atama", "yer değiştirme", "yer degistirme", "nakil", "mazeret"],
+    query: "Sağlık Bakanlığı Atama ve Yer Değiştirme Yönetmeliği",
+    title: "Sağlık Bakanlığı ve Bağlı Kuruluşları Atama ve Yer Değiştirme Yönetmeliği",
+    sourceId: "mevzuat:7.5.17232",
+    legislationNumber: "17232",
+    legislationType: "7",
+    legislationArrangement: "5",
+    articleNumbers: ["5", "8"],
+    dimensions: ["disciplinary_administrative"] as any
+  } as any,
+
+  // sourceId needs_manual_review — use live search to confirm
+  // Search query: "Görevde Yükselme ve Unvan Değişikliği Yönetmeliği"
+  {
+    topicCluster: "public_employment" as any,
+    legislationRole: "supporting_general" as any,
+    healthLawPriority: 35,
+    selectionReason: "Kamu sağlık personelinin terfi ve unvan değişikliği bu yönetmelikle düzenlenir.",
+    terms: ["görevde yükselme", "unvan değişikliği", "gorevde yukselme", "terfi", "kadro"],
+    query: "Görevde Yükselme ve Unvan Değişikliği Yönetmeliği",
+    title: "Sağlık Bakanlığı Personeli Görevde Yükselme ve Unvan Değişikliği Yönetmeliği",
+    sourceId: "needs_manual_review:gorevde-yukselme",
+    legislationNumber: "",
+    legislationType: "7",
+    legislationArrangement: "5",
+    articleNumbers: ["3", "5"],
+    dimensions: ["disciplinary_administrative"] as any
+  } as any,
+
+  // sourceId needs_manual_review — use live search to confirm
+  // Search query: "Sağlık Bakanlığı Disiplin Amirleri Yönetmeliği"
+  {
+    topicCluster: "disciplinary_administrative" as any,
+    legislationRole: "supporting_general" as any,
+    healthLawPriority: 25,
+    selectionReason: "Sağlık Bakanlığı'nda disiplin soruşturmaları ve disiplin amirlerinin görevleri bu yönetmelikle düzenlenir.",
+    terms: ["disiplin amiri", "disiplin soruşturması", "disiplin cezası", "soruşturma izni", "disiplin kurulu"],
+    query: "Sağlık Bakanlığı Disiplin Amirleri Yönetmeliği",
+    title: "Sağlık Bakanlığı Disiplin Amirleri Yönetmeliği",
+    sourceId: "needs_manual_review:disiplin-amirleri",
+    legislationNumber: "",
+    legislationType: "7",
+    legislationArrangement: "5",
+    articleNumbers: ["4", "7"],
+    dimensions: ["disciplinary_administrative"] as any
+  } as any,
+
+  // sourceId needs_manual_review — use live search to confirm
+  // Search query: "Sözleşmeli Sağlık Personeli Disiplin"
+  {
+    topicCluster: "disciplinary_administrative" as any,
+    legislationRole: "supporting_general" as any,
+    healthLawPriority: 32,
+    selectionReason: "Sözleşmeli sağlık personeline ilişkin disiplin usul ve esasları bu yönetmelikte düzenlenir.",
+    terms: ["sözleşmeli personel disiplin", "sözleşmeli sağlık disiplin", "disiplin kurulu sözleşmeli"],
+    query: "Sözleşmeli Sağlık Personeli Disiplin",
+    title: "Sözleşmeli Sağlık Personeli Disiplin ile Disiplin Kurulları Hakkında Yönetmelik",
+    sourceId: "needs_manual_review:sozlesmeli-disiplin",
+    legislationNumber: "",
+    legislationType: "7",
+    legislationArrangement: "5",
+    articleNumbers: ["5", "8"],
+    dimensions: ["disciplinary_administrative"] as any
+  } as any,
+
+  // sourceId needs_manual_review — use live search to confirm
+  // Search query: "4924 sayılı Kanuna Tabi Sözleşmeli Sağlık"
+  {
+    topicCluster: "transfer_assignment" as any,
+    legislationRole: "supporting_general" as any,
+    healthLawPriority: 28,
+    selectionReason: "4924 sayılı kanuna tabi sözleşmeli sağlık personelinin atama ve yer değiştirme usulleri bu yönetmelikle düzenlenir.",
+    terms: ["4924", "sözleşmeli atama", "sözleşmeli yer değiştirme", "sözleşmeli tayin"],
+    query: "4924 sayılı Kanuna Tabi Sözleşmeli Sağlık",
+    title: "4924 sayılı Kanuna Tabi Sözleşmeli Sağlık Personeli Atama ve Yer Değiştirme Yönetmeliği",
+    sourceId: "needs_manual_review:4924-sozlesmeli",
+    legislationNumber: "",
+    legislationType: "7",
+    legislationArrangement: "5",
+    articleNumbers: ["6", "10"],
+    dimensions: ["disciplinary_administrative"] as any
+  } as any,
+
+  // sourceId needs_manual_review — use live search to confirm
+  // Search query: "Açıktan Kura ile Atanacak Sağlık Personeli"
+  {
+    topicCluster: "public_employment" as any,
+    legislationRole: "supporting_general" as any,
+    healthLawPriority: 38,
+    selectionReason: "Kamu kurumlarına açıktan kura ile atanacak bazı sağlık personelinin atama esasları bu yönetmelikte düzenlenir.",
+    terms: ["açıktan kura", "kura ile atama", "sağlık personeli atama", "kamu kurum atama"],
+    query: "Açıktan Kura ile Atanacak Sağlık Personeli",
+    title: "Kamu Kurum ve Kuruluşlarına Açıktan Kura ile Atanacak Bazı Sağlık Personelinin Atama Esas ve Usulleri Yönetmeliği",
+    sourceId: "needs_manual_review:aciktan-kura",
+    legislationNumber: "",
+    legislationType: "7",
+    legislationArrangement: "5",
+    articleNumbers: ["3", "5"],
+    dimensions: ["disciplinary_administrative"] as any
+  } as any
 ];

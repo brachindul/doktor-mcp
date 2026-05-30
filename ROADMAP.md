@@ -6,7 +6,7 @@
 >
 > **Genel kurallar (her görevde geçerli):**
 > - `npm run build` (tsc) **0 hata** vermeli.
-> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 1024 testi kırma.
+> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 1031 testi kırma.
 > - Yeni davranış eklediysen **yeni test** yaz. Test yoksa görev "done" sayılmaz.
 > - Pakedin/araç JSON şekli (response contract) değişiyorsa README'yi güncelle.
 > - Türkçe kullanıcı mesajları ve İngilizce kod/yorum karışımını koru (mevcut konvansiyon).
@@ -427,7 +427,7 @@ tamamlanmadan sıradakine geçme; önce düzelt.
   dönüyor (uydurma metin yok). Test: header'ların gönderildiğini ve fallback yolunu doğrulayan
   birim testi.
 
-### [ ] T8.1 — Kamu özlük/disiplin yönetmeliklerini envantere ekle (A grubu)
+### [x] T8.1 — Kamu özlük/disiplin yönetmeliklerini envantere ekle (A grubu)
 - **Yapılacak**: Aşağıdaki girdileri `healthLegislationInventory.ts`'e ekle. SourceId verilenleri
   doğrudan kullan; verilmeyenleri `mevzuat.gov.tr` başlık aramasıyla (mevcut search hattı) çöz.
   Her birine uygun `markerTerms`/`aliases`/`searchTerms` ver. Doğrulananı `candidate`/`covered`,

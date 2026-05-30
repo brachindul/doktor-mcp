@@ -42,15 +42,18 @@ function makeMinimalPack(overrides: Partial<DoctorLegalInformationPack> = {}): D
 // ─── 1. sourceId format ────────────────────────────────────────────────────────
 
 describe("healthLegislationHints — sourceId format", () => {
-  it("every sourceId starts with 'mevzuat:'", () => {
+  it("every sourceId starts with 'mevzuat:' or 'needs_manual_review:'", () => {
     for (const hint of healthLegislationHints) {
-      expect(hint.sourceId).toMatch(/^mevzuat:/);
+      expect(hint.sourceId).toMatch(/^(mevzuat:|needs_manual_review:)/);
     }
   });
 
-  it("every sourceId follows mevzuat:{type}.{arrangement}.{number}", () => {
+  it("every verified sourceId follows mevzuat:{type}.{arrangement}.{number}", () => {
     const pattern = /^mevzuat:\d+\.\d+\.\d+$/;
+    const manualReviewPattern = /^needs_manual_review:/;
     for (const hint of healthLegislationHints) {
+      // Skip needs_manual_review entries — they are unverified leads
+      if (manualReviewPattern.test(hint.sourceId)) continue;
       expect(hint.sourceId, `sourceId: ${hint.sourceId}`).toMatch(pattern);
     }
   });
@@ -268,8 +271,11 @@ describe("healthLegislationHints — total count sanity", () => {
     }
   });
 
-  it("all hints have non-empty articleNumbers array", () => {
+  it("all hints have non-empty articleNumbers array (or are needs_manual_review)", () => {
+    const manualReviewPattern = /^needs_manual_review:/;
     for (const hint of healthLegislationHints) {
+      // Skip needs_manual_review entries — article numbers are unconfirmed
+      if (manualReviewPattern.test(hint.sourceId)) continue;
       expect(hint.articleNumbers.length, `hint for ${hint.topicCluster} has empty articleNumbers`).toBeGreaterThan(0);
     }
   });

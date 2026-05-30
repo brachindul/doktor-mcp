@@ -670,6 +670,231 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     ]
   },
 
+  // ── PUBLIC EMPLOYMENT / DISCIPLINE — added in T8.1 ────────────────────────
+
+  {
+    key: "saglik-bakanligi-atama-yer-degistirme-yonetmeligi",
+    title: "Sağlık Bakanlığı ve Bağlı Kuruluşları Atama ve Yer Değiştirme Yönetmeliği",
+    titleNormalized: "saglik bakanligi ve bagli kuruluslari atama ve yer degistirme yonetmeligi",
+    category: "discipline",
+    relevanceLevel: "supporting",
+    officialSourceRequired: true,
+    officialSourceStatus: "candidate",
+    mevzuatSourceId: "mevzuat:7.5.17232",
+    legislationNumber: "17232",
+    relatedIssueIds: ["disciplinary_administrative"],
+    relatedTopicClusters: ["public_employment", "transfer_assignment"],
+    searchTerms: ["tayin", "atama", "yer değiştirme", "nakil", "mazeret tayini", "eş durumu"],
+    coverageStatus: "candidate",
+    expectedLegislationType: "yonetmelik",
+    expectedRgDate: "2013-03-26",
+    expectedRgNumber: "28599",
+    aliases: [
+      "Sağlık Bakanlığı Atama ve Yer Değiştirme Yönetmeliği",
+      "Bağlı Kuruluşlar Atama ve Yer Değiştirme Yönetmeliği",
+      "Sağlık Bakanlığı Tayin Yönetmeliği"
+    ],
+    markerTerms: [
+      "atama", "yer değiştirme", "tayin", "nakil",
+      "sağlık bakanlığı", "bağlı kuruluş", "mazeret"
+    ],
+    negativeMarkerTerms: [
+      "türk silahlı kuvvetleri", "asker"
+    ],
+    knownWrongMatches: [
+      "mevzuat:1.5.657"   // Devlet Memurları Kanunu (genel)
+    ],
+    notes: [
+      "Governs appointment and transfer of Ministry of Health and affiliated institution personnel.",
+      "sourceId mevzuat:7.5.17232 provided from ROADMAP; needs live verification.",
+      "v0.44.0: Added as candidate. sourceId from ROADMAP but live search blocked by Cloudflare.",
+      "needs_manual_review: sourceId mevzuat:7.5.17232 should be verified via mevzuat.gov.tr."
+    ]
+  },
+
+  {
+    key: "saglik-bakanligi-gorevde-yukselme-unvan-degisikligi",
+    title: "Sağlık Bakanlığı Personeli Görevde Yükselme ve Unvan Değişikliği Yönetmeliği",
+    titleNormalized: "saglik bakanligi personeli gorevde yukselme ve unvan degisikligi yonetmeligi",
+    category: "discipline",
+    relevanceLevel: "supporting",
+    officialSourceRequired: true,
+    officialSourceStatus: "candidate",
+    relatedIssueIds: ["disciplinary_administrative"],
+    relatedTopicClusters: ["public_employment"],
+    searchTerms: ["görevde yükselme", "unvan değişikliği", "terfi", "kadro"],
+    coverageStatus: "candidate",
+    expectedLegislationType: "yonetmelik",
+    aliases: [
+      "Sağlık Bakanlığı Görevde Yükselme Yönetmeliği",
+      "Görevde Yükselme ve Unvan Değişikliği Yönetmeliği",
+      "Personel Görevde Yükselme Yönetmeliği"
+    ],
+    markerTerms: [
+      "görevde yükselme", "unvan değişikliği", "terfi",
+      "sağlık bakanlığı", "kademe", "derece"
+    ],
+    negativeMarkerTerms: [
+      "türk silahlı kuvvetleri", "asker", "polis"
+    ],
+    knownWrongMatches: [
+      "mevzuat:1.5.657"   // Devlet Memurları Kanunu (genel)
+    ],
+    notes: [
+      "Governs career advancement and title changes for Ministry of Health personnel.",
+      "sourceId: needs_manual_review — live search blocked by Cloudflare.",
+      "Search query for verification: 'Görevde Yükselme ve Unvan Değişikliği Yönetmeliği'",
+      "v0.44.0: Added as candidate. sourceId unknown; needs manual mevzuat.gov.tr lookup."
+    ]
+  },
+
+  {
+    key: "saglik-bakanligi-disiplin-amirleri-yonetmeligi",
+    title: "Sağlık Bakanlığı Disiplin Amirleri Yönetmeliği",
+    titleNormalized: "saglik bakanligi disiplin amirleri yonetmeligi",
+    category: "discipline",
+    relevanceLevel: "supporting",
+    officialSourceRequired: true,
+    officialSourceStatus: "candidate",
+    relatedIssueIds: ["disciplinary_administrative"],
+    relatedTopicClusters: ["disciplinary_administrative"],
+    searchTerms: ["disiplin amiri", "disiplin soruşturması", "disiplin kurulu", "uyarma", "kınama", "geçici görevden uzaklaştırma"],
+    coverageStatus: "candidate",
+    expectedLegislationType: "yonetmelik",
+    aliases: [
+      "Sağlık Bakanlığı Disiplin Yönetmeliği",
+      "Disiplin Amirleri ve Disiplin Kurulları Yönetmeliği",
+      "Sağlık Bakanlığı Disiplin Amirleri ve Disiplin Kurulları ile İlgili Yönetmelik"
+    ],
+    markerTerms: [
+      "disiplin amiri", "disiplin kurulu", "disiplin soruşturması",
+      "uyarma", "kınama", "görevden uzaklaştırma",
+      "sağlık bakanlığı"
+    ],
+    negativeMarkerTerms: [
+      "türk silahlı kuvvetleri", "asker", "tsk disiplin", "polis"
+    ],
+    knownWrongMatches: [
+      "mevzuat:1.5.6413",  // TSK Disiplin Kanunu
+      "mevzuat:1.5.657"    // Devlet Memurları Kanunu (genel)
+    ],
+    notes: [
+      "Governs Ministry of Health disciplinary proceedings — discipline officers and boards.",
+      "Distinct from the existing 'saglik-bakanligi-disiplin-yonetmeligi' entry which covers a broader scope.",
+      "sourceId: needs_manual_review — live search blocked by Cloudflare.",
+      "Search query for verification: 'Sağlık Bakanlığı Disiplin Amirleri Yönetmeliği'",
+      "v0.44.0: Added as candidate. sourceId unknown; needs manual mevzuat.gov.tr lookup."
+    ]
+  },
+
+  {
+    key: "sozlesmeli-saglik-personeli-disiplin",
+    title: "Sözleşmeli Sağlık Personeli Disiplin ile Disiplin Kurulları Hakkında Yönetmelik",
+    titleNormalized: "sozlesmeli saglik personeli disiplin ile disiplin kurullari hakkinda yonetmeligi",
+    category: "discipline",
+    relevanceLevel: "supporting",
+    officialSourceRequired: true,
+    officialSourceStatus: "candidate",
+    relatedIssueIds: ["disciplinary_administrative"],
+    relatedTopicClusters: ["disciplinary_administrative"],
+    searchTerms: ["sözleşmeli personel disiplin", "sözleşmeli sağlık disiplin", "disiplin kurulu sözleşmeli"],
+    coverageStatus: "candidate",
+    expectedLegislationType: "yonetmelik",
+    aliases: [
+      "Sözleşmeli Sağlık Personeli Disiplin Yönetmeliği",
+      "Sözleşmeli Personel Disiplin Kurulları Yönetmeliği",
+      "Sözleşmeli Sağlık Personeli Disiplin Kurulları Hakkında Yönetmelik"
+    ],
+    markerTerms: [
+      "sözleşmeli", "disiplin", "disiplin kurulu",
+      "sağlık personeli", "soruştırma"
+    ],
+    negativeMarkerTerms: [
+      "türk silahlı kuvvetleri", "asker"
+    ],
+    knownWrongMatches: [
+      "mevzuat:1.5.657"   // Devlet Memurları Kanunu (genel)
+    ],
+    notes: [
+      "Governs disciplinary proceedings specifically for contract-based health personnel.",
+      "sourceId: needs_manual_review — live search blocked by Cloudflare.",
+      "Search query for verification: 'Sözleşmeli Sağlık Personeli Disiplin'",
+      "v0.44.0: Added as candidate. sourceId unknown; needs manual mevzuat.gov.tr lookup."
+    ]
+  },
+
+  {
+    key: "4924-sozlesmeli-saglik-atama-yer-degistirme",
+    title: "4924 sayılı Kanuna Tabi Sözleşmeli Sağlık Personeli Atama ve Yer Değiştirme Yönetmeliği",
+    titleNormalized: "4924 sayili kanuna tabi sozlesmeli saglik personeli atama ve yer degistirme yonetmeligi",
+    category: "discipline",
+    relevanceLevel: "supporting",
+    officialSourceRequired: true,
+    officialSourceStatus: "candidate",
+    relatedIssueIds: ["disciplinary_administrative"],
+    relatedTopicClusters: ["public_employment", "transfer_assignment"],
+    searchTerms: ["4924", "sözleşmeli atama", "sözleşmeli yer değiştirme", "sözleşmeli tayin"],
+    coverageStatus: "candidate",
+    expectedLegislationType: "yonetmelik",
+    aliases: [
+      "4924 Sözleşmeli Sağlık Personeli Atama Yönetmeliği",
+      "Sözleşmeli 4924 Atama ve Yer Değiştirme Yönetmeliği",
+      "4924 Sayılı Kanuna Tabi Sözleşmeli Sağlık Personeli Yönetmeliği"
+    ],
+    markerTerms: [
+      "4924", "sözleşmeli", "atama", "yer değiştirme",
+      "sağlık personeli", "kanun"
+    ],
+    negativeMarkerTerms: [
+      "türk silahlı kuvvetleri", "asker"
+    ],
+    knownWrongMatches: [
+      "mevzuat:1.5.657"   // Devlet Memurları Kanunu (genel)
+    ],
+    notes: [
+      "Governs appointment and transfer for contract-based health personnel under Law 4924.",
+      "sourceId: needs_manual_review — live search blocked by Cloudflare.",
+      "Search query for verification: '4924 sayılı Kanuna Tabi Sözleşmeli Sağlık'",
+      "v0.44.0: Added as candidate. sourceId unknown; needs manual mevzuat.gov.tr lookup."
+    ]
+  },
+
+  {
+    key: "aciktan-kura-ile-atanacak-saglik-personeli",
+    title: "Kamu Kurum ve Kuruluşlarına Açıktan Kura ile Atanacak Bazı Sağlık Personelinin Atama Esas ve Usulleri Yönetmeliği",
+    titleNormalized: "kamu kurum ve kuruluslarina aciktan kura ile atanacak bazi saglik personelinin atama esas ve usulleri yonetmeligi",
+    category: "discipline",
+    relevanceLevel: "supporting",
+    officialSourceRequired: true,
+    officialSourceStatus: "candidate",
+    relatedIssueIds: ["disciplinary_administrative"],
+    relatedTopicClusters: ["public_employment"],
+    searchTerms: ["açıktan kura", "kura ile atama", "sağlık personeli atama", "kamu kurum atama"],
+    coverageStatus: "candidate",
+    expectedLegislationType: "yonetmelik",
+    aliases: [
+      "Açıktan Kura ile Atanacak Sağlık Personeli Yönetmeliği",
+      "Kura ile Atama Esas ve Usulleri Yönetmeliği",
+      "Kamu Kurumları Açıktan Kura Atama Yönetmeliği"
+    ],
+    markerTerms: [
+      "açıktan kura", "kura ile atama", "sağlık personeli",
+      "kamu kurum", "atama esasları"
+    ],
+    negativeMarkerTerms: [
+      "türk silahlı kuvvetleri", "asker"
+    ],
+    knownWrongMatches: [
+      "mevzuat:1.5.657"   // Devlet Memurları Kanunu (genel)
+    ],
+    notes: [
+      "Governs the lottery-based appointment of certain health personnel to public institutions.",
+      "sourceId: needs_manual_review — live search blocked by Cloudflare.",
+      "Search query for verification: 'Açıktan Kura ile Atanacak Sağlık Personeli'",
+      "v0.44.0: Added as candidate. sourceId unknown; needs manual mevzuat.gov.tr lookup."
+    ]
+  },
+
   // ── DEFERRED — out of scope for this release ──────────────────────────────
 
   {

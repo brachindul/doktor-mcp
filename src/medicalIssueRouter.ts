@@ -38,6 +38,8 @@ export type MedicalIssueId =
   | "workplace_employee_health"
   | "prescription_report"
   | "death_postmortem"
+  | "public_employment"
+  | "transfer_assignment"
   | "unclear_or_mixed";
 
 export type RouteConfidence = "high" | "medium" | "low";
@@ -308,21 +310,36 @@ const ISSUE_DEFINITIONS: IssueDefinition[] = [
       "idare mahkemesi",
       "tam yargi",
       "tam yargı",
-      "idari yaptırım"
+      "idari yaptırım",
+      "disiplin soruşturması",
+      "disiplin sorusturmasi",
+      "disiplin cezası",
+      "disiplin cezasi",
+      "soruşturma izni",
+      "sorusturma izni",
+      "disiplin amiri",
+      "disiplin kurulu",
+      "uyarma cezası",
+      "kınama cezası",
+      "görevden uzaklaştırma"
     ],
     terms: [
-      "disiplin", "idari", "sorusturma", "soruşturma", "kamu", "memur", "yaptirım", "yaptırım"
+      "disiplin", "idari", "sorusturma", "soruşturma", "kamu", "memur", "yaptirım", "yaptırım",
+      "disiplin amiri", "disiplin kurulu", "disiplin sorusturmasi"
     ],
-    suggestedTopicClusters: ["physician_duty_of_care", "professional_ethics"],
+    suggestedTopicClusters: ["physician_duty_of_care", "professional_ethics", "disciplinary_administrative"],
     suggestedCourtSearchTerms: [
       "kamu gorevlisi hekim disiplin", "idari sorusturma saglik",
       "gorevi ihmal hekim", "devlet memuru disiplin saglik",
-      "tam yargi davasi saglik"
+      "tam yargi davasi saglik", "disiplin amiri saglik bakanligi",
+      "disiplin sorusturmasi hekim"
     ],
     missingInfoHints: [
       "Hekimin kamu veya özel kuruluşta çalışıp çalışmadığı",
       "Soruşturmanın idari mi, adli mi olduğu",
-      "Varsa resmi soruşturma açılması kararının varlığı"
+      "Varsa resmi soruşturma açılması kararının varlığı",
+      "Disiplin amirinin kim olduğu ve yetki kapsamı",
+      "Sözleşmeli mi, kadrolu mu personel olduğu"
     ]
   },
   {
@@ -600,6 +617,82 @@ const ISSUE_DEFINITIONS: IssueDefinition[] = [
       "Ölümün adli vakaya mı, doğal ölüme mi konu olduğu",
       "Hekimin ölüm anında veya öncesinde olaydan haberdar olup olmadığı",
       "Defin ruhsatı veya ölüm belgesinin düzenlenip düzenlenmediği"
+    ]
+  },
+  {
+    id: "public_employment",
+    label: "Kamu İstihdamı / Atama / Tayin",
+    phrases: [
+      "tayin reddi",
+      "tayin islemi",
+      "tayin işlemi",
+      "atama islemi",
+      "atama işlemi",
+      "yer degistirme",
+      "yer değiştirme",
+      "kamu atamasi",
+      "kamu ataması",
+      "memur tayini",
+      "hekim tayini",
+      "saglik personeli atamasi",
+      "sağlık personeli ataması",
+      "kadro atamasi",
+      "kadro ataması",
+      "açıktan kura",
+      "görevde yükselme",
+      "unvan değişikliği"
+    ],
+    terms: [
+      "tayin", "atama", "nakil", "yer değiştirme", "yer degistirme", "mazeret",
+      "kadro", "görevde yükselme", "terfi", "açıktan kura"
+    ],
+    suggestedTopicClusters: ["public_employment", "transfer_assignment"],
+    suggestedCourtSearchTerms: [
+      "tayin iptali saglik", "atama islemi hekim",
+      "yer degistirme dava", "kamu gorevlisi tayin",
+      "saglik personeli atama iptali"
+    ],
+    missingInfoHints: [
+      "Hekimin kamu mu, özel mi kuruluşa tabi olduğu",
+      "Tayin/atamanın hangi mevzuata dayandığı (4924, 657, özel yasa)",
+      "İşleme karşı idari dava açılıp açılmadığı",
+      "Sözleşmeli mi, kadrolu mu personel olduğu"
+    ]
+  },
+  {
+    id: "transfer_assignment",
+    label: "Yer Değiştirme / Nakil / Mazeret Tayini",
+    phrases: [
+      "es durumu tayini",
+      "eş durumu tayini",
+      "mazeret tayini",
+      "mazeret atamasi",
+      "mazeret ataması",
+      "becayis tayini",
+      "becayiş tayini",
+      "nakil islemi",
+      "nakil işlemi",
+      "yer degistirme talebi",
+      "yer değiştirme talebi",
+      "tayin nakil",
+      "eş durumu nakil",
+      "sağlık mazereti tayini"
+    ],
+    terms: [
+      "eş durumu", "es durumu", "mazeret tayini", "becayiş", "becayis",
+      "nakil", "yer değiştirme", "yer degistirme"
+    ],
+    suggestedTopicClusters: ["transfer_assignment", "public_employment"],
+    suggestedCourtSearchTerms: [
+      "es durumu tayini saglik", "mazeret tayini hekim",
+      "becayis tayini dava", "yer degistirme iptal",
+      "nakil islemi saglik personeli"
+    ],
+    missingInfoHints: [
+      "Hangi mevzuata dayalı yer değiştirme talebi olduğu",
+      "Eş durumu veya sağlık mazereti olup olmadığı",
+      "Talebin idare tarafından reddedilip edilmediği",
+      "İdari dava açılıp açılmadığı"
     ]
   },
   {
