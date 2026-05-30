@@ -30,7 +30,7 @@
   arayüzüne bağla (`src/mcp/formatDoctorPackResponse.ts` içinde export et). Çift cast'leri kaldır.
 - **Kabul**: `tools.ts` içinde `as unknown as` kalmıyor; build geçiyor.
 
-### T0.3 — `benchmarkRunner.ts` dosyasını böl (2036 satır)
+### [x] T0.3 — `benchmarkRunner.ts` dosyasını böl (2036 satır)
 - **Sorun**: Tek dosya çok büyük; bakım zor.
 - **Yapılacak**: Saf yardımcıları (skorlama, warning taxonomy, rapor yazımı) ayrı modüllere taşı:
   `src/benchmark/scoring.ts`, `src/benchmark/warningTaxonomy.ts`, `src/benchmark/reportWriter.ts`.
@@ -44,7 +44,7 @@
   `src/app/minimalPackRescue.ts`). `DoktorMcpInformationService` ince koordinatör kalsın.
 - **Kabul**: Davranış aynı; build + test yeşil; her yeni dosyada en az bir hedefli test.
 
-### T0.5 — Bedesten hata sınıflarını jenerikleştir
+### [x] T0.5 — Bedesten hata sınıflarını jenerikleştir
 - **Sorun**: `BedestenNetworkError` / `BedestenHttpError` isimleri kaynağa sıkı bağlı,
   ama Danıştay/Mevzuat de aynı `HttpClient`'i kullanıyor.
 - **Yapılacak**: Sınıfları `LiveSourceNetworkError`, `LiveSourceHttpError`,
