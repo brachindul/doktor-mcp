@@ -6,7 +6,7 @@
 >
 > **Genel kurallar (her görevde geçerli):**
 > - `npm run build` (tsc) **0 hata** vermeli.
-> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 965 testi kırma.
+> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 966 testi kırma.
 > - Yeni davranış eklediysen **yeni test** yaz. Test yoksa görev "done" sayılmaz.
 > - Pakedin/araç JSON şekli (response contract) değişiyorsa README'yi güncelle.
 > - Türkçe kullanıcı mesajları ve İngilizce kod/yorum karışımını koru (mevcut konvansiyon).
@@ -188,6 +188,30 @@
 
 ---
 
+## Faz 5 — Sürüm & Changelog Tutarlılığı
+
+### [x] T5.1 — `package.json` sürümünü 0.44.0'a bump'la
+- **Sorun**: `CHANGELOG.md` `## [0.44.0]` girdisini ekledi ama `package.json` hâlâ `0.43.0`.
+  T0.1 sonrası sürüm tek kaynaktan (`package.json`) okunduğu için MCP server kendini
+  yanlış sürümle (`0.43.0`) tanıtıyor; changelog ile çelişiyor.
+- **Yapılacak**: `package.json` `version` alanını `0.44.0` yap. `package-lock.json` içindeki
+  sürümü de (root `version` ve varsa kendine-referans veren paket girdisi) `0.44.0`'a güncelle.
+  Başka davranış değiştirme.
+- **Kabul**: `package.json` ve `package-lock.json` `0.44.0`; `npm run build` geçiyor;
+  `tests/version.test.ts` (T0.1'den) changelog'un en üst sürümüyle uyumlu olarak geçiyor.
+  Mümkünse bu testi, "package.json sürümü CHANGELOG.md'deki en üst `## [x.y.z]` ile eşleşmeli"
+  invariyantını da kontrol edecek şekilde genişlet.
+
+### [ ] T5.2 — Changelog'daki tekrarlı başlığı düzelt
+- **Sorun**: `CHANGELOG.md` içinde 0.35.0 başlığı ikilenmiş:
+  `## [0.35.0] — 2026-05-24 — RG Lead SourceId Resolver — 2026-05-24 — RG Lead SourceId Resolver`
+- **Yapılacak**: Başlığı tek forma indir:
+  `## [0.35.0] — 2026-05-24 — RG Lead SourceId Resolver`. İçeriğe dokunma.
+- **Kabul**: Başlık tek; changelog'da `— 2026` ifadesi aynı satırda yalnızca bir kez geçen
+  her başlık tutarlı.
+
+---
+
 ## Öncelik Sırası (loop için önerilen yürütme sırası)
 
 1. Faz 0 (tech debt — düşük risk, hızlı kazanç) → T0.1, T0.2, T0.5, T0.3, T0.4
@@ -195,6 +219,7 @@
 3. Faz 3.1 + 3.4 (test hijyeni ve güvenlik invariyantları — gevşetmeden sonra şart)
 4. Faz 2 (yeni özellikler) → T2.6, T2.2, T2.3, T2.1, T2.4, T2.5
 5. Faz 3.2, 3.3 (derin test) → Faz 4 (doküman)
+6. Faz 5 (sürüm/changelog tutarlılığı) → T5.1 → T5.2
 
 **Her görev sonunda**: build + test yeşil → commit. Bir görev testi kırıyorsa, görev
 tamamlanmadan sıradakine geçme; önce düzelt.
