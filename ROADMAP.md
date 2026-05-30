@@ -44,7 +44,7 @@
   `src/app/minimalPackRescue.ts`). `DoktorMcpInformationService` ince koordinatör kalsın.
 - **Kabul**: Davranış aynı; build + test yeşil; her yeni dosyada en az bir hedefli test.
 
-### [x] T0.5 — Bedesten hata sınıflarını jenerikleştir
+### T0.5 — Bedesten hata sınıflarını jenerikleştir
 - **Sorun**: `BedestenNetworkError` / `BedestenHttpError` isimleri kaynağa sıkı bağlı,
   ama Danıştay/Mevzuat de aynı `HttpClient`'i kullanıyor.
 - **Yapılacak**: Sınıfları `LiveSourceNetworkError`, `LiveSourceHttpError`,

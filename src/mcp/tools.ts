@@ -4,12 +4,8 @@ import { z } from "zod";
 import { DoktorMcpInformationService } from "../app/service.js";
 import type { CourtDecision, DoctorLegalInformationPack } from "../contracts/legal.js";
 import { buildPrecedentSelectionDiagnostics } from "../health/precedentFilter.js";
-import {
-  formatDoctorPackResponse,
-  detectForbiddenOutputPhrases,
-  type SafeDoctorPackResponse,
-  type DoctorPackResponse
-} from "./formatDoctorPackResponse.js";
+import { formatDoctorPackResponse, detectForbiddenOutputPhrases } from "./formatDoctorPackResponse.js";
+import type { DoctorPackResponse, DoctorPackSummary } from "./formatDoctorPackResponse.js";
 
 const sourceModeSchema = z.enum(["mock", "live"]).default("mock");
 const precedentSourceSchema = z.enum(["yargitay", "danistay", "aym"]);
@@ -43,31 +39,31 @@ function formatPackResponse(pack: DoctorLegalInformationPack, options: {
   retrievalTimeouts?: string[];
   missingAuthorityTypes?: string[];
   gateObservations?: string[];
-} = {}): SafeDoctorPackResponse | Record<string, unknown> {
+} = {}): DoctorPackResponse {
   try {
-    const response: DoctorPackResponse = formatDoctorPackResponse(pack, options);
-    const result: SafeDoctorPackResponse = { ...response };
+    const response = formatDoctorPackResponse(pack, options);
     // Safety guard: check for forbidden output phrases in the pack
     const forbiddenPhrases = detectForbiddenOutputPhrases(pack);
     if (forbiddenPhrases.length > 0) {
-      result._forbiddenPhraseWarning = forbiddenPhrases;
+      response._forbiddenPhraseWarning = forbiddenPhrases;
     }
-    return result;
+    return response;
   } catch {
     // Fallback: return raw pack with basic wrapper
+    const fallbackSummary: DoctorPackSummary = {
+      shortAnswer: pack.shortAnswer,
+      sourceSufficiency: pack.relevantLegislation.length > 0 ? "partial" : "insufficient",
+      verifiedLegislationCount: pack.relevantLegislation.length,
+      verifiedPrecedentCount: pack.verifiedHighCourtPrecedents.length,
+      coverageGapCount: 0,
+      timeoutOrRetrievalIssue: false
+    };
     return {
       responseVersion: "doctor-pack-response/v1",
       ok: true,
       status: "full_pack",
       pack,
-      summary: {
-        shortAnswer: pack.shortAnswer,
-        sourceSufficiency: pack.relevantLegislation.length > 0 ? "partial" : "insufficient",
-        verifiedLegislationCount: pack.relevantLegislation.length,
-        verifiedPrecedentCount: pack.verifiedHighCourtPrecedents.length,
-        coverageGapCount: 0,
-        timeoutOrRetrievalIssue: false
-      }
+      summary: fallbackSummary
     };
   }
 }
