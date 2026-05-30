@@ -12,6 +12,7 @@ import type {
 } from "../contracts/legal.js";
 import { assessPrecedentRelevance } from "./precedentRelevance.js";
 import { deduplicateDecisions } from "./decisionDedup.js";
+import { stripHtmlToText, truncateForDisplay } from "../util/textSanitizer.js";
 
 /** Controls whether the pack includes a source-grounded preliminary assessment. */
 export type AssessmentTone = "strict" | "grounded-advisory";
@@ -54,10 +55,10 @@ function formatPrecedent(decision: CourtDecision, classification: ClassifiedMedi
     meritsAndDecisionNumber: [decision.meritsNumber, decision.decisionNumber].filter(Boolean).join(" - "),
     meritsNumber: decision.meritsNumber,
     decisionNumber: decision.decisionNumber,
-    factSummary: decision.factSummary ?? "Kaynakta olay ozeti yok",
-    legalAssessment: decision.legalReasoning ?? "Kaynakta hukuki degerlendirme yok",
-    outcome: decision.outcome ?? "Kaynakta sonuc yok",
-    similarityDifference: decision.relevanceNote ?? "Benzerlik teyit edilmedi",
+    factSummary: stripHtmlToText(decision.factSummary ?? "Kaynakta olay ozeti yok"),
+    legalAssessment: stripHtmlToText(decision.legalReasoning ?? "Kaynakta hukuki degerlendirme yok"),
+    outcome: stripHtmlToText(decision.outcome ?? "Kaynakta sonuc yok"),
+    similarityDifference: stripHtmlToText(decision.relevanceNote ?? "Benzerlik teyit edilmedi"),
     sourceDocumentId: decision.evidence.documentId,
     sourceId: decision.evidence.sourceId,
     sourceUrl: decision.evidence.sourceUrl,
@@ -100,9 +101,10 @@ function buildPreliminaryAssessment(pack: DoctorLegalInformationPack): Prelimina
     const sourceLabel = [name, article].filter(Boolean).join(" ");
 
     // Extract a short snippet from the verbatim quote for context
-    const snippet = prov.verbatimQuote.length > 120
-      ? prov.verbatimQuote.slice(0, 120).trim() + "…"
-      : prov.verbatimQuote.trim();
+    const rawSnippet = stripHtmlToText(prov.verbatimQuote);
+    const snippet = rawSnippet.length > 120
+      ? rawSnippet.slice(0, 120).trim() + "\u2026"
+      : rawSnippet.trim();
 
     sentences.push({
       text: `${sourceLabel} uyarınca: "${snippet}"`,
@@ -116,7 +118,11 @@ function buildPreliminaryAssessment(pack: DoctorLegalInformationPack): Prelimina
     const courtLabel = prec.courtAndChamber ?? prec.court ?? "yüksek mahkeme";
 
     // Skip if no meaningful content to report
-    const hasOutcome = prec.outcome && prec.outcome !== "Kaynakta sonuc yok" && prec.outcome.trim().length > 0;
+    let outcome = stripHtmlToText(prec.outcome ?? "");
+    if (outcome && outcome !== "Kaynakta sonuc yok" && outcome.length > 0) {
+      outcome = truncateForDisplay(outcome, 200);
+    }
+    const hasOutcome = outcome && outcome !== "Kaynakta sonuc yok" && outcome.length > 0;
     const hasReasoning = prec.legalAssessment && prec.legalAssessment !== "Kaynakta hukuki degerlendirme yok";
     if (!hasOutcome && !hasReasoning) continue;
 
@@ -127,16 +133,17 @@ function buildPreliminaryAssessment(pack: DoctorLegalInformationPack): Prelimina
     // Build meaningful text from real data
     let text = "";
     if (hasOutcome && hasReasoning) {
-      text = `${courtLabel}, benzer bir olayda "${prec.outcome}" yönünde karar vermiştir.`;
+      text = `${courtLabel}, benzer bir olayda "${outcome}" yönünde karar vermiştir.`;
     } else if (hasOutcome) {
-      text = `${courtLabel}, benzer bir olayda sonuç olarak "${prec.outcome}" yönünde hüküm kurmuştur.`;
+      text = `${courtLabel}, benzer bir olayda sonuç olarak "${outcome}" yönünde hüküm kurmuştur.`;
     } else {
       text = `${courtLabel} içtihadı, benzer olaylarda emsal teşkil edebilecek değerlendirmeler içermektedir.`;
     }
 
     // Add similarity note if available
-    if (prec.similarityDifference && prec.similarityDifference !== "Benzerlik teyit edilmedi") {
-      text += ` ${prec.similarityDifference}`;
+    const similarityNote = stripHtmlToText(prec.similarityDifference ?? "");
+    if (similarityNote && similarityNote !== "Benzerlik teyit edilmedi") {
+      text += ` ${similarityNote}`;
     }
 
     sentences.push({

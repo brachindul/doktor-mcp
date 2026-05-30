@@ -6,7 +6,7 @@
 >
 > **Genel kurallar (her görevde geçerli):**
 > - `npm run build` (tsc) **0 hata** vermeli.
-> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 986 testi kırma.
+> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 1003 testi kırma.
 > - Yeni davranış eklediysen **yeni test** yaz. Test yoksa görev "done" sayılmaz.
 > - Pakedin/araç JSON şekli (response contract) değişiyorsa README'yi güncelle.
 > - Türkçe kullanıcı mesajları ve İngilizce kod/yorum karışımını koru (mevcut konvansiyon).
@@ -308,7 +308,7 @@
 > açıkları kapatır. Faz 6 must-have'lerinin 3'ünden 2'si kabul kriterini karşılamadı ve
 > T6.1 yeni bir HTML-hijyeni sorununu görünür kıldı. Bu faz v1 için bloklayıcıdır.
 
-### [ ] T7.1 — Karar metnindeki ham HTML'i temizle (sanitization)
+### [x] T7.1 — Karar metnindeki ham HTML'i temizle (sanitization)
 - **Sorun**: `preliminaryAssessment` cümlelerinde `prec.outcome` hiç temizlenmeden
   basılıyor; hekime giden metinde ham HTML kalıyor: `<br>`, `&#39;`, `&#39;&#39;`,
   `</font></p></body></html>` vb. `answerComposer.ts`'de de `extractOutcome`/`extractLegalReasoning`

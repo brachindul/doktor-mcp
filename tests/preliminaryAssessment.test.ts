@@ -178,4 +178,59 @@ describe("preliminaryAssessment — meaningful content", () => {
     const texts = result.preliminaryAssessment!.sentences.map(s => s.text);
     expect(texts[0]).not.toBe(texts[1]);
   });
+
+  // ── HTML stripping from outcome text in assessment sentences ──
+  it("should strip HTML from outcome text in assessment sentences", () => {
+    const result = composeDoctorLegalInformationPack(
+      makeClassification(),
+      [],
+      [{
+        id: "html-test",
+        court: "yargitay" as any,
+        chamber: "Test Dairesi",
+        outcome: "<p>Davanın <b>kabulüne</b> karar verildi.</p>",
+        legalReasoning: "Gerekçe metni.",
+        topicTags: [],
+        evidence: { documentId: "html-1", sourceId: "yargitay", sourceUrl: "" },
+      }],
+      [],
+      undefined,
+      undefined,
+      "grounded-advisory",
+    );
+    expect(result.preliminaryAssessment).toBeDefined();
+    const text = result.preliminaryAssessment!.sentences[0].text;
+    expect(text).not.toContain("<");
+    expect(text).not.toContain(">");
+    expect(text).toContain("kabulüne");
+  });
+
+  // ── HTML stripping from formatted precedent fields ──
+  it("should strip HTML from precedent factSummary, legalAssessment, outcome, and similarityDifference", () => {
+    const result = composeDoctorLegalInformationPack(
+      makeClassification(),
+      [],
+      [{
+        id: "html-fields",
+        court: "yargitay" as any,
+        chamber: "5. Hukuk Dairesi",
+        outcome: "<p>Karar <b>bozma</b></p>",
+        legalReasoning: "<div>Gerekçe <i>metni</i></div>",
+        factSummary: "<span>Olay özeti <a>burada</a></span>",
+        relevanceNote: "<em>Farklı</em> bir durum",
+        topicTags: [],
+        evidence: { documentId: "html-2", sourceId: "yargitay", sourceUrl: "" },
+      }],
+      [],
+    );
+    const prec = result.verifiedHighCourtPrecedents[0];
+    expect(prec.outcome).not.toContain("<");
+    expect(prec.outcome).toContain("bozma");
+    expect(prec.legalAssessment).not.toContain("<");
+    expect(prec.legalAssessment).toContain("Gerekçe");
+    expect(prec.factSummary).not.toContain("<");
+    expect(prec.factSummary).toContain("Olay özeti");
+    expect(prec.similarityDifference).not.toContain("<");
+    expect(prec.similarityDifference).toContain("Farklı");
+  });
 });
