@@ -6,7 +6,7 @@
 >
 > **Genel kurallar (her görevde geçerli):**
 > - `npm run build` (tsc) **0 hata** vermeli.
-> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 808 testi kırma.
+> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 841 testi kırma.
 > - Yeni davranış eklediysen **yeni test** yaz. Test yoksa görev "done" sayılmaz.
 > - Pakedin/araç JSON şekli (response contract) değişiyorsa README'yi güncelle.
 > - Türkçe kullanıcı mesajları ve İngilizce kod/yorum karışımını koru (mevcut konvansiyon).
@@ -37,7 +37,7 @@
   `benchmarkRunner.ts` yalnızca orkestrasyonu tutsun. Davranış değişmesin.
 - **Kabul**: Hiçbir dosya >900 satır; mevcut benchmark testleri değişmeden geçiyor.
 
-### T0.4 — `service.ts` sorumluluk ayrımı (754 satır)
+### [x] T0.4 — `service.ts` sorumluluk ayrımı (754 satır)
 - **Sorun**: Orkestrasyon + faz mantığı + rescue + telemetri tek sınıfta.
 - **Yapılacak**: Minimal pack rescue ve legislation/precedent faz yürütücülerini
   ayrı modüllere çıkar (`src/app/legislationPhase.ts`, `src/app/precedentPhase.ts`,
