@@ -2,10 +2,11 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { registerMedicalLegalTools } from "./tools.js";
+import { VERSION } from "../core/version.js";
 
 const server = new McpServer({
   name: "doktor-mcp",
-  version: "0.1.0"
+  version: VERSION
 });
 
 registerMedicalLegalTools(server);

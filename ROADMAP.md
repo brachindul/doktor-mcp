@@ -16,7 +16,7 @@
 
 ## Faz 0 — Hızlı Düzeltmeler (Quick Wins / Tech Debt)
 
-### T0.1 — Sürüm tutarsızlığını gider
+### [x] T0.1 — Sürüm tutarsızlığını gider
 - **Sorun**: `src/mcp/server.ts:8` `version: "0.1.0"` hardcoded, oysa `package.json` `0.43.0`.
 - **Yapılacak**: Sürümü `package.json`'dan tek kaynaktan oku. Bir `src/core/version.ts` ekle;
   build sırasında `package.json`'ın `version` alanını import et (`import pkg from "../../package.json" with { type: "json" }`
