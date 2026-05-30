@@ -54,6 +54,14 @@ describe("live official legislation adapter", () => {
   it("extracts mapped provisions and keeps composer quote text verbatim", async () => {
     const adapter = new LiveOfficialLegislationAdapter();
     vi.spyOn(adapter, "searchOfficialLegislation").mockResolvedValue([{
+      sourceId: "mevzuat:7.5.4847",
+      title: "Hasta Haklari Yonetmeligi",
+      sourceUrl: "https://www.mevzuat.gov.tr/mevzuat?MevzuatNo=4847&MevzuatTur=7&MevzuatTertip=5",
+      documentUrl: "https://www.mevzuat.gov.tr/MevzuatMetin/7.5.4847.pdf",
+      legislationNumber: "4847",
+      legislationType: "7",
+      legislationArrangement: "5"
+    }, {
       sourceId: "mevzuat:1.5.6698",
       title: "Kisisel Verilerin Korunmasi Kanunu",
       sourceUrl: "https://www.mevzuat.gov.tr/mevzuat?MevzuatNo=6698&MevzuatTur=1&MevzuatTertip=5",
@@ -62,14 +70,28 @@ describe("live official legislation adapter", () => {
       legislationType: "1",
       legislationArrangement: "5"
     }]);
-    vi.spyOn(adapter, "getDocument").mockResolvedValue({
-      sourceId: "mevzuat:1.5.6698",
-      title: "Kisisel Verilerin Korunmasi Kanunu",
-      sourceUrl: "https://www.mevzuat.gov.tr/mevzuat?MevzuatNo=6698&MevzuatTur=1&MevzuatTertip=5",
-      documentUrl: "https://www.mevzuat.gov.tr/MevzuatMetin/1.5.6698.pdf",
-      text: officialArticleText,
-      contentType: "application/pdf",
-      retrievedAt: "2026-05-22T00:00:00.000Z"
+    vi.spyOn(adapter, "getDocument").mockImplementation(async (result) => {
+      const sourceId = result.sourceId;
+      if (sourceId === "mevzuat:7.5.4847") {
+        return {
+          sourceId,
+          title: "Hasta Haklari Yonetmeligi",
+          sourceUrl: "https://www.mevzuat.gov.tr/mevzuat?MevzuatNo=4847&MevzuatTur=7&MevzuatTertip=5",
+          documentUrl: "https://www.mevzuat.gov.tr/MevzuatMetin/7.5.4847.pdf",
+          text: "MADDE 21- Hasta mahremiyetine saygi gosterilir. Saglik hizmeti sunuculari hasta bilgilerini gizli tutmakla yukumludur.",
+          contentType: "application/pdf",
+          retrievedAt: "2026-05-22T00:00:00.000Z"
+        };
+      }
+      return {
+        sourceId: "mevzuat:1.5.6698",
+        title: "Kisisel Verilerin Korunmasi Kanunu",
+        sourceUrl: "https://www.mevzuat.gov.tr/mevzuat?MevzuatNo=6698&MevzuatTur=1&MevzuatTertip=5",
+        documentUrl: "https://www.mevzuat.gov.tr/MevzuatMetin/1.5.6698.pdf",
+        text: officialArticleText,
+        contentType: "application/pdf",
+        retrievedAt: "2026-05-22T00:00:00.000Z"
+      };
     });
 
     const result = await adapter.getMappedHealthProvisions("kisisel saglik verisi");
@@ -82,9 +104,18 @@ describe("live official legislation adapter", () => {
       []
     );
 
-    expect(result.provisions[0]?.verbatimText).toBe(extractArticlesFromOfficialText(officialArticleText)[1]?.text);
-    expect(pack.relevantLegislation[0]?.verbatimQuote).toBe(result.provisions[0]?.verbatimText);
+    // Hasta Hakları comes first (health_primary, priority 16)
+    expect(result.provisions.length).toBeGreaterThanOrEqual(2);
+    expect(result.provisions[0]?.verbatimText).toContain("Hasta mahremiyetine");
     expect(result.provisions[0]?.sourceTrace).toEqual(expect.objectContaining({
+      selectedSearchResult: expect.objectContaining({ sourceId: "mevzuat:7.5.4847" }),
+    }));
+    // KVKK comes second (supporting_general, priority 90)
+    expect(result.provisions[1]?.verbatimText).toBe(extractArticlesFromOfficialText(officialArticleText)[1]?.text);
+    expect(pack.relevantLegislation).toHaveLength(2);
+    expect(pack.relevantLegislation[0]?.verbatimQuote).toBe(result.provisions[0]?.verbatimText);
+    expect(pack.relevantLegislation[1]?.verbatimQuote).toBe(result.provisions[1]?.verbatimText);
+    expect(result.provisions[1]?.sourceTrace).toEqual(expect.objectContaining({
       selectedSearchResult: expect.objectContaining({ sourceId: "mevzuat:1.5.6698" }),
       directPdfUrl: "https://www.mevzuat.gov.tr/MevzuatMetin/1.5.6698.pdf",
       extractionMethod: "pdf-text > article-marker",

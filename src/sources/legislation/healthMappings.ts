@@ -139,7 +139,7 @@ export const healthLegislationHints: HealthLegislationHint[] = [
     legislationRole: "health_primary",
     healthLawPriority: 16,
     selectionReason: "Patient privacy in care is addressed by the patient-rights regulation before general data law.",
-    terms: ["hasta mahremiyeti", "mahremiyet", "mahrem"],
+    terms: ["hasta mahremiyeti", "mahremiyet", "mahrem", "kişisel sağlık verisi", "kisisel saglik verisi", "sağlık verisi", "saglik verisi"],
     articleNumbers: ["21"],
     dimensions: ["patient_rights", "privacy_kvkk"]
   },

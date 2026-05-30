@@ -6,7 +6,7 @@
 >
 > **Genel kurallar (her görevde geçerli):**
 > - `npm run build` (tsc) **0 hata** vermeli.
-> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 1003 testi kırma.
+> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 1013 testi kırma.
 > - Yeni davranış eklediysen **yeni test** yaz. Test yoksa görev "done" sayılmaz.
 > - Pakedin/araç JSON şekli (response contract) değişiyorsa README'yi güncelle.
 > - Türkçe kullanıcı mesajları ve İngilizce kod/yorum karışımını koru (mevcut konvansiyon).
@@ -326,7 +326,7 @@
 - **Kabul**: Test: HTML/entity içeren bir karar → assessment cümlesinde `<`, `>`, `&#`,
   `</` geçmiyor. Canlı smoke çıktısında ham HTML kalmıyor. Build + test yeşil.
 
-### [ ] T7.2 — T6.2 testini canlı/recorded-fixture'a çevir (mock yanıltması)
+### [x] T7.2 — T6.2 testini canlı/recorded-fixture'a çevir (mock yanıltması)
 - **Sorun**: `tests/healthPrimaryLegislationPriority.test.ts` `sourceMode: "mock"` kullanıyor;
   mock veride Hasta Hakları zaten var, test geçiyor. Ama hata **canlı** modda: canlıda
   "Hekim kişisel sağlık verisini izinsiz paylaştı" sorusu **yalnızca KVKK m.6** döndürüyor,

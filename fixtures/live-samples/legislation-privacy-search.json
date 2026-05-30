@@ -1,0 +1,66 @@
+{
+  "_note": "Recorded live fixture for health-data-privacy legislation search. Captured to diagnose why live mode misses Hasta Hakları.",
+  "source": "mevzuat.gov.tr",
+  "capturedAt": "2026-05-30T18:19:01.803Z",
+  "calibrationStatus": "verified_live",
+  "queries": [
+    {
+      "query": "kişisel sağlık verisi mahremiyet",
+      "result": [
+        {
+          "name": "Hasta Haklari Yonetmeligi",
+          "article": "21",
+          "role": "health_primary",
+          "priority": 16
+        },
+        {
+          "name": "Kisisel Verilerin Korunmasi Kanunu",
+          "article": "6",
+          "role": "supporting_general",
+          "priority": 90
+        }
+      ]
+    },
+    {
+      "query": "Hekim kişisel sağlık verisini izinsiz paylaştı",
+      "result": [
+        {
+          "name": "Kisisel Verilerin Korunmasi Kanunu",
+          "article": "6",
+          "role": "supporting_general",
+          "priority": 90
+        }
+      ]
+    }
+  ],
+  "apiCallsCaptured": 6,
+  "apiCallsSummary": [
+    "search: query=\"Hasta Haklari Yonetmeligi\" rows=0 first={}",
+    "pdf: 88862 bytes, ct=application/pdf",
+    "search: query=\"Kisisel Verilerin Korunmasi Kanunu\" rows=1 first={\"mevzuatNo\":\"6298\",\"mevzuatTur\":7,\"mevzuatTertip\":\"5\",\"mevAdi\":",
+    "pdf: 465042 bytes, ct=application/pdf",
+    "search: query=\"Kisisel Verilerin Korunmasi Kanunu\" rows=1 first={\"mevzuatNo\":\"6298\",\"mevzuatTur\":7,\"mevzuatTertip\":\"5\",\"mevAdi\":",
+    "pdf: 465042 bytes, ct=application/pdf"
+  ],
+  "rootCause": {
+    "description": "The Hasta Hakları Yönetmeliği patient_privacy hint (healthMappings.ts line 137-145) only has terms ['hasta mahremiyeti', 'mahremiyet', 'mahrem']. Queries using 'kişisel sağlık verisi' wording only match KVKK's terms, so Hasta Hakları is never retrieved.",
+    "fix": "Add 'kişisel sağlık verisi', 'sağlık verisi', 'saglik verisi', 'kisisel saglik verisi' to the Hasta Hakları patient_privacy hint terms array.",
+    "kvkkHintSourceId": "mevzuat:1.5.6698",
+    "hyyHintSourceId": "mevzuat:7.5.4847",
+    "hyyHintTopicCluster": "patient_privacy",
+    "currentHyyTerms": [
+      "hasta mahremiyeti",
+      "mahremiyet",
+      "mahrem"
+    ],
+    "neededHyyTerms": [
+      "hasta mahremiyeti",
+      "mahremiyet",
+      "mahrem",
+      "kişisel sağlık verisi",
+      "saglik verisi",
+      "sağlık verisi",
+      "kisisel saglik verisi"
+    ]
+  }
+}
