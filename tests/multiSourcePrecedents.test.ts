@@ -148,7 +148,7 @@ describe("multi-source precedent live mode", () => {
     expect(defaults.sourceResults.map((sr) => sr.source)).not.toContain("aym");
     expect(explicitAym.decisions).toEqual([]);
     expect(explicitAym.sourceResults).toEqual([
-      expect.objectContaining({ source: "aym", mode: "disabled", unavailable: true, errorCodes: ["live_not_supported"] })
+      expect.objectContaining({ source: "aym", mode: "disabled", unavailable: true, errorCodes: ["live_not_supported", "synthetic_only"] })
     ]);
   });
 

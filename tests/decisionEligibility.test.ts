@@ -187,7 +187,7 @@ describe("filter_reasoned_precedents tool integration", () => {
 
   it("excluded decisions appear in precedentDiagnostics.excludedDecisions", async () => {
     const service = new DoktorMcpInformationService();
-    const pack = await service.prepareInformationPack({ question: "saglik verisi" });
+    const pack = await service.prepareInformationPack({ question: "riza eksikligi" });
     const diagnostics = pack.precedentDiagnostics!;
 
     expect(diagnostics.excludedDecisions.length).toBeGreaterThan(0);

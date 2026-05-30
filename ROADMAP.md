@@ -6,7 +6,7 @@
 >
 > **Genel kurallar (her görevde geçerli):**
 > - `npm run build` (tsc) **0 hata** vermeli.
-> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 982 testi kırma.
+> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 986 testi kırma.
 > - Yeni davranış eklediysen **yeni test** yaz. Test yoksa görev "done" sayılmaz.
 > - Pakedin/araç JSON şekli (response contract) değişiyorsa README'yi güncelle.
 > - Türkçe kullanıcı mesajları ve İngilizce kod/yorum karışımını koru (mevcut konvansiyon).
@@ -268,13 +268,13 @@
 
 ### Should-have
 
-#### [ ] T6.4 — Çıktı sözleşmesini dondur + SemVer 1.0 disiplini
+#### [x] T6.4 — Çıktı sözleşmesini dondur + SemVer 1.0 disiplini
 - **Yapılacak**: `responseVersion` üzerinden v1 breaking-change politikası tanımla; bir
   `docs/COMPATIBILITY.md` ekle (hangi alanlar stabil, hangi alanlar deneysel, deprecation
   yolu nasıl). Deneysel alanları (`preliminaryAssessment` vb.) açıkça işaretle.
 - **Kabul**: Politika dokümante; deneysel/stabil alanlar ayrımı net.
 
-#### [ ] T6.5 — AYM'yi netleştir (iskelet/mock belirsizliğini gider)
+#### [x] T6.5 — AYM'yi netleştir (iskelet/mock belirsizliğini gider)
 - **Yapılacak**: Ya gerçek canlı AYM adapterini tamamla, ya da pakede AYM için **açık
   "kapsam dışı / sentetik" işareti** koy ki kullanıcı belirsiz kalmasın. Mevcut
   `LiveAymAdapter` iskeleti uydurma karar üretmemeli.

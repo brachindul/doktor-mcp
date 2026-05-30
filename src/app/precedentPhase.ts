@@ -99,7 +99,7 @@ export async function searchPrecedents(
           decisions: [],
           searchResultsCount: null,
           unavailable: true,
-          errorCodes: ["live_not_supported"]
+          errorCodes: ["live_not_supported", "synthetic_only"]
         });
         return;
       }

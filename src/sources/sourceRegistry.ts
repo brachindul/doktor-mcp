@@ -26,6 +26,8 @@ export interface SourceCapability {
   supportsPrecedents: boolean;
   supportsLegislation: boolean;
   calibrationStatus: string;
+  /** Detailed explanation of calibration status (optional). */
+  calibrationReason?: string;
   rateLimitPolicy: RateLimitPolicy;
   cachePolicy: CachePolicy;
 }
@@ -95,6 +97,9 @@ export const SOURCE_REGISTRY: Record<string, SourceCapability> = {
     supportsPrecedents: true,
     supportsLegislation: false,
     calibrationStatus: "synthetic_only",
+    calibrationReason:
+      "AYM kararlar bilgi bankası (kararlarbilgibankasi.anayasa.gov.tr) HTML tabanlı arayüzdür, JSON API sunmaz. " +
+      "Canlı arama mümkün değildir. Sentetik (boş) sonuç döndürülür — uydurma karar yok.",
     rateLimitPolicy: { requestsPerMinute: 0, cooldownMs: 0 },
     cachePolicy: { ttlMs: 0, enabled: false }
   }

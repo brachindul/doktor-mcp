@@ -45,7 +45,13 @@ server.registerResource(
         sources: {
           yargitay: "reachable_json",
           danistay: "reachable_json",
-          aym: "synthetic_only",
+          aym: {
+            status: "synthetic_only",
+            reason: "AYM kararlar bilgi bankası (kararlarbilgibankasi.anayasa.gov.tr) HTML tabanlı arayüzdür, JSON API sunmaz. Canlı arama mümkün değildir.",
+            fallback: "Sentetik (boş) — uydurma karar döndürülmez",
+            supportsSearch: false,
+            supportsFullText: false
+          },
           legislation: "reachable_json",
         },
         lastChecked: new Date().toISOString(),
