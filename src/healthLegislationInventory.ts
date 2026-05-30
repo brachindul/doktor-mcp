@@ -268,7 +268,16 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
       "Do not add to active adapter registry until official sourceId verified.",
       "Governs licensing, staffing, and operation of private hospitals.",
       "v0.30.0: exact title and aliases added to query plan.",
-      "v0.32.0: markerTerms, RG metadata, candidateLegacySourceId, knownWrongMatches added."
+      "v0.32.0: markerTerms, RG metadata, candidateLegacySourceId, knownWrongMatches added.",
+      "v0.44.0 verification attempt (2026-05-30):",
+      "  - candidateLegacySourceId mevzuat:7.5.29092 direct PDF fetch returned HTML (Cloudflare anti-bot).",
+      "  - Search API returned mevzuat:1.5.6428 as best match (kanun, type mismatch — expected yonetmelik).",
+      "  - RG resolver returned mevzuat:1.5.6428 (title match 0.200 < 0.50 threshold).",
+      "  - RG document verification (resmigazete.gov.tr): content mismatch, title score 0.000.",
+      "  - All 4 CLIs attempted: verify:health-legislation, verify:discovered-health-legislation,",
+      "    verify:official-gazette-health-legislation, resolve:health-legislation-rg-leads.",
+      "  - BLOCKER: mevzuat.gov.tr Cloudflare anti-bot blocks direct PDF download for type-7 yonetmeliks.",
+      "  - Status remains gap — cannot verify without confirmed mevzuat.gov.tr sourceId."
     ]
   },
 
@@ -309,7 +318,14 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
       "Do not add to active adapter registry until official sourceId verified.",
       "Governs outpatient private clinics and polyclinics.",
       "v0.30.0: exact title and aliases added to query plan.",
-      "v0.32.0: markerTerms, RG metadata, knownWrongMatches added."
+      "v0.32.0: markerTerms, RG metadata, knownWrongMatches added.",
+      "v0.44.0 verification attempt (2026-05-30):",
+      "  - No candidateLegacySourceId available.",
+      "  - Search API best match: SAĞLIK RAPORLARI YÖNETMELİĞİ (mevzuat:21.5.11361, score 0.500 < 0.75 threshold).",
+      "  - RG resolver returned mevzuat:21.5.7077 (title match 0.000 — wrong document).",
+      "  - RG document verification (resmigazete.gov.tr): content mismatch, title score 0.000.",
+      "  - BLOCKER: mevzuat.gov.tr search API does not return a close title match for this legislation.",
+      "  - Status remains gap — manual mevzuat.gov.tr search needed."
     ]
   },
 
@@ -384,7 +400,14 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
       "Governs emergency care delivery obligations — highly relevant for acil intervention questions.",
       "Candidate for active coverage once mevzuat.gov.tr sourceId confirmed.",
       "v0.30.0: exact title and aliases added to query plan.",
-      "v0.32.0: markerTerms, RG metadata, knownWrongMatches added."
+      "v0.32.0: markerTerms, RG metadata, knownWrongMatches added.",
+      "v0.44.0 verification attempt (2026-05-30):",
+      "  - No candidateLegacySourceId available.",
+      "  - Search API returned AFET VE ACİL DURUM YÖNETİMİ BAŞKANLIĞI... (mevzuat:1.5.5902, kanun, type mismatch).",
+      "  - RG resolver returned mevzuat:1.5.6475 (known wrong match: Posta Hizmetleri Kanunu).",
+      "  - RG document verification (resmigazete.gov.tr): content mismatch, title score 0.000.",
+      "  - BLOCKER: mevzuat.gov.tr search API does not return a close title match for this legislation.",
+      "  - Status remains candidate — manual mevzuat.gov.tr search needed."
     ]
   },
 
@@ -467,7 +490,14 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
       "Specialized — relevant for occupational health physician questions.",
       "Candidate for active coverage once sourceId confirmed.",
       "v0.30.0: exact title and aliases added to query plan.",
-      "v0.32.0: markerTerms, RG metadata, knownWrongMatches added."
+      "v0.32.0: markerTerms, RG metadata, knownWrongMatches added.",
+      "v0.44.0 verification attempt (2026-05-30):",
+      "  - No candidateLegacySourceId available.",
+      "  - Search API best match: TAPU VE KADASTRO GENEL MÜDÜRLÜĞÜ DÖNER SERMAYE İŞLETMESİ YÖNETMELİĞİ (score 0.232 — irrelevant).",
+      "  - RG resolver returned mevzuat:1.5.6111 (direct PDF fetch returned HTML — Cloudflare anti-bot).",
+      "  - RG document verification (resmigazete.gov.tr): content mismatch, title score 0.000.",
+      "  - BLOCKER: mevzuat.gov.tr search API does not return a close title match for this legislation.",
+      "  - Status remains candidate — manual mevzuat.gov.tr search needed."
     ]
   },
 
@@ -510,7 +540,14 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
       "Should accompany KVKK in health data privacy questions.",
       "Candidate for active coverage once sourceId confirmed.",
       "v0.30.0: exact title and aliases added to query plan.",
-      "v0.32.0: markerTerms, negativeMarkerTerms, RG metadata, knownWrongMatches added. KVKK kanunu (1.5.6698) is a known wrong match."
+      "v0.32.0: markerTerms, negativeMarkerTerms, RG metadata, knownWrongMatches added. KVKK kanunu (1.5.6698) is a known wrong match.",
+      "v0.44.0 verification attempt (2026-05-30):",
+      "  - No candidateLegacySourceId available.",
+      "  - Search API best match: ELEKTRİK PİYASASI LİSANS YÖNETMELİĞİ (mevzuat:7.5.18985, score 0.300 — irrelevant).",
+      "  - RG resolver returned mevzuat:7.5.18985 (negative marker '6698' hit — KVKK kanunu, not this yönetmelik).",
+      "  - RG document verification (resmigazete.gov.tr): content mismatch, title score 0.000.",
+      "  - BLOCKER: mevzuat.gov.tr search API does not return a close title match for this legislation.",
+      "  - Status remains candidate — manual mevzuat.gov.tr search needed."
     ]
   },
 
@@ -622,7 +659,14 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
       "Candidate for active coverage once sourceId confirmed.",
       "v0.30.0: exact title and aliases added to query plan.",
       "v0.32.0: markerTerms, negativeMarkerTerms, RG metadata, knownWrongMatches added.",
-      "Dikkat: isim/güncellik değişmiş olabilir; yanlış düzenlemeyi verified yapma."
+      "Dikkat: isim/güncellik değişmiş olabilir; yanlış düzenlemeyi verified yapma.",
+      "v0.44.0 verification attempt (2026-05-30):",
+      "  - No candidateLegacySourceId available.",
+      "  - Search API returned GENEL KOLLUK DİSİPLİN HÜKÜMLERİ... (mevzuat:1.5.7068, kanun, type mismatch).",
+      "  - RG resolver returned mevzuat:1.5.6413 (known wrong match: TSK Disiplin Kanunu).",
+      "  - RG document verification (resmigazete.gov.tr): content mismatch, title score 0.000.",
+      "  - BLOCKER: mevzuat.gov.tr search API does not return a close title match for this legislation.",
+      "  - Status remains candidate — manual mevzuat.gov.tr search needed."
     ]
   },
 

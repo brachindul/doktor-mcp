@@ -6,7 +6,7 @@
 >
 > **Genel kurallar (her görevde geçerli):**
 > - `npm run build` (tsc) **0 hata** vermeli.
-> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 971 testi kırma.
+> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 982 testi kırma.
 > - Yeni davranış eklediysen **yeni test** yaz. Test yoksa görev "done" sayılmaz.
 > - Pakedin/araç JSON şekli (response contract) değişiyorsa README'yi güncelle.
 > - Türkçe kullanıcı mesajları ve İngilizce kod/yorum karışımını koru (mevcut konvansiyon).
@@ -255,7 +255,7 @@
 - **Kabul**: Test, KVKK'nın sağlık-birincil mevzuatın önüne geçtiği durumu **hard fail**
   yapıyor; sağlık-birincil çıkarılamadığında diagnostic'te açık gerekçe var.
 
-#### [ ] T6.3 — Çekirdek sağlık yönetmeliklerinin kapsama boşluklarını kapat
+#### [x] T6.3 — Çekirdek sağlık yönetmeliklerinin kapsama boşluklarını kapat
 - **Sorun**: 6 `needs_manual_review` girdi hâlâ doğrulanmamış: Özel Hastaneler, Acil Sağlık
   Hizmetleri, Ayakta Teşhis, İşyeri Hekimi, Kişisel Sağlık Verileri Yönetmeliği, Sağlık
   Bakanlığı Disiplin. "Hekim aracı" iddiası için bu çekirdek yönetmelikler önemli.
