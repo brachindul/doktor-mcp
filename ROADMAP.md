@@ -6,7 +6,7 @@
 >
 > **Genel kurallar (her görevde geçerli):**
 > - `npm run build` (tsc) **0 hata** vermeli.
-> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 913 testi kırma.
+> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 920 testi kırma.
 > - Yeni davranış eklediysen **yeni test** yaz. Test yoksa görev "done" sayılmaz.
 > - Pakedin/araç JSON şekli (response contract) değişiyorsa README'yi güncelle.
 > - Türkçe kullanıcı mesajları ve İngilizce kod/yorum karışımını koru (mevcut konvansiyon).
@@ -98,7 +98,7 @@
 
 ## Faz 2 — Eksik Özellikler / Yeni Yetenekler
 
-### T2.1 — Canlı AYM adapteri araştırması (şu an mock-only)
+### [x] T2.1 — Canlı AYM adapteri araştırması (şu an mock-only)
 - **Yapılacak**: `kararlarbilgibankasi.anayasa.gov.tr` için bir probe CLI genişletmesi yaz
   (`probe:precedents --source aym`). Endpoint erişilebilirse `LiveAymAdapter` iskeletini kur;
   erişilemezse `calibrationStatus` raporuna `synthetic_only` gerekçesini yaz.

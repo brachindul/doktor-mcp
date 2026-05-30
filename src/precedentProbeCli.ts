@@ -2,7 +2,8 @@
  * Precedent Source Probe / Calibration CLI
  * Usage: npm run probe:precedents -- "query" -- --source yargitay
  *        npm run probe:precedents -- "query" -- --source danistay
- *        npm run probe:precedents -- "query" -- --source yargitay,danistay
+ *        npm run probe:precedents -- "query" -- --source aym
+ *        npm run probe:precedents -- "query" -- --source yargitay,danistay,aym
  *        npm run probe:precedents -- "query" -- --source yargitay --save-fixture
  *        npm run probe:precedents -- "query" -- --source yargitay --save-raw-fixture
  */
@@ -272,6 +273,8 @@ export async function probeSource(
 
 const BEDESTEN_SEARCH_URL = "https://bedesten.adalet.gov.tr/emsal-karar/searchDocuments";
 const DANISTAY_SEARCH_URL = "https://karararama.danistay.gov.tr/aramalist";
+const AYM_BASE_URL = "https://kararlarbilgibankasi.anayasa.gov.tr";
+const AYM_SEARCH_URL = `${AYM_BASE_URL}/Ara`;
 
 function buildBedestenProbeBody(query: string) {
   return {
@@ -303,7 +306,7 @@ const optionParts = separator === -1 ? args.filter((a) => a.startsWith("--")) : 
 const query = queryParts.join(" ") || "aydınlatılmış rıza";
 const sourceIndex = optionParts.indexOf("--source");
 const sourceArg = sourceIndex !== -1 ? optionParts[sourceIndex + 1] : "bedesten,danistay";
-const sources = sourceArg.split(",").map((s) => s.trim()) as Array<"bedesten" | "danistay">;
+const sources = sourceArg.split(",").map((s) => s.trim()) as Array<"bedesten" | "danistay" | "aym">;
 const saveFixture = optionParts.includes("--save-fixture");
 const saveRawFixture = optionParts.includes("--save-raw-fixture");
 
@@ -328,6 +331,11 @@ for (const source of sources) {
       Referer: "https://karararama.danistay.gov.tr/",
       "User-Agent": "doktor-mcp/0.14 probe-cli"
     }, query);
+  } else if (source === "aym") {
+    report = await probeSource("aym", AYM_SEARCH_URL, {}, {
+      Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      "User-Agent": "doktor-mcp/0.14 aym-probe"
+    }, query);
   } else {
     report = {
       source, url: "", query,
@@ -336,7 +344,7 @@ for (const source of sources) {
       errorMessage: `Unknown source: ${source}`,
       responseShape: null, htmlAnalysis: null,
       calibrationStatus: "unknown_source",
-      recommendedNextStep: `Unknown source "${source}". Valid values: yargitay, danistay.`,
+      recommendedNextStep: `Unknown source "${source}". Valid values: bedesten, danistay, aym.`,
       timestamp: new Date().toISOString()
     };
   }
