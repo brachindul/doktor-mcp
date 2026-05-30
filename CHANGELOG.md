@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.45.0] — 2026-05-30 — Kamu Hekimi Mevzuat Genişlemesi
+
+> 8 yeni görev (T8.1–T8.4). 65 test dosyası, 1064 test.
+
+### Faz 8 — Kamu Hekimi Mevzuat Genişlemesi (4 tasks)
+
+- **T8.2** (öncelikli): Cloudflare bot-koruması PDF engeli çözüldü — gerçekçi tarayıcı header'ları (`User-Agent: Chrome 125`, `Accept-Language: tr-TR`), landing page fallback (`/mevzuat?MevzuatNo=...` → PDF link çıkarma), `source_blocked_cloudflare` hata kodu
+- **T8.1**: 6 kamu özlük/disiplin yönetmeliği envantere eklendi: Atama ve Yer Değiştirme (`mevzuat:7.5.17232`), Görevde Yükselme, Disiplin Amirleri, Sözleşmeli Disiplin, 4924, Açıktan Kura. 6 health mapping + `public_employment`/`transfer_assignment` router kümeleri
+- **T8.3**: 13 eğitim/hizmet/mali/forensic girdi: TUEY (`mevzuat:7.5.39700`), Uzmanlık, Hasta/Çalışan Güvenliği, Kalite, Yataklı Tedavi, Mali Sorumluluk, Ek Ödeme, Aile Hekimliği, Cenaze, Umumi Hıfzıssıhha (`mevzuat:1.3.1593`), DHY. 7 health mapping hint + 8 yeni konu kümesi
+- **T8.4**: 4 kamu hekimi sorgu profili: tayin/atama, disiplin soruşturması, ek ödeme/performans, mecburi hizmet. 13 yönlendirme + regresyon testi
+
+### Summary
+- **Toplam**: 39 görev tamamlandı (Faz 0–8)
+- **Yeni testler**: 7 test dosyası, 44 yeni test
+- **Yeni envanter**: 19 yeni mevzuat girdisi + 13 health mapping hint + 8 konu kümesi
+
 ## [0.44.0] — 2026-05-30 — Roadmap Complete: 35 Görev, v1 Release Ready
 
 > 35 görev tamamlandı. 61 test dosyası, 1020 test.
