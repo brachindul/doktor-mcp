@@ -6,7 +6,7 @@
 >
 > **Genel kurallar (her görevde geçerli):**
 > - `npm run build` (tsc) **0 hata** vermeli.
-> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 944 testi kırma.
+> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 965 testi kırma.
 > - Yeni davranış eklediysen **yeni test** yaz. Test yoksa görev "done" sayılmaz.
 > - Pakedin/araç JSON şekli (response contract) değişiyorsa README'yi güncelle.
 > - Türkçe kullanıcı mesajları ve İngilizce kod/yorum karışımını koru (mevcut konvansiyon).
@@ -147,7 +147,7 @@
   yakala). Test çıktısı temiz olsun.
 - **Kabul**: `npm test` çıktısında beklenmedik stderr satırı kalmıyor.
 
-### T3.2 — Live adapter'lar için kayıtlı-yanıt (recorded fixture) entegrasyon testleri
+### [x] T3.2 — Live adapter'lar için kayıtlı-yanıt (recorded fixture) entegrasyon testleri
 - **Yapılacak**: `fixtures/live-samples/` sanitize edilmiş yanıtlarla Yargıtay/Danıştay/Mevzuat
   adapter'larının `searchAndNormalize` yolunu uçtan uca testle (fetch mock'lanır). Network'e
   çıkmadan gerçek parse yollarını kapsa.
