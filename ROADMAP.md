@@ -392,5 +392,89 @@
    sonra should-have: T6.4 → T6.5 → T6.6 → T6.7; en son nice-to-have: T6.8
 8. Faz 7 (Faz 6 kalite açıkları — v1 bloklayıcı) → T7.1 → T7.2 → T7.3 → T7.4
 
+9. Faz 8 (kamu hekimi mevzuat genişlemesi) → T8.2 (önce engel) → T8.1 → T8.3 → T8.4
+
 **Her görev sonunda**: build + test yeşil → commit. Bir görev testi kırıyorsa, görev
 tamamlanmadan sıradakine geçme; önce düzelt.
+
+---
+
+## Faz 8 — Kamu Hekimi Mevzuat Genişlemesi
+
+> **Hedef**: Kamuda çalışan hekimi çalışırken ilgilendiren YÖNETMELİK'leri aracın kaynak
+> şemsiyesine almak. Mevcut kapsam ağırlıkla klinik/hasta ekseni; kamu hekiminin
+> özlük/istihdam/disiplin/eğitim ekseni neredeyse yok. Tüm metinler resmî gov.tr
+> kaynaklarından (`mevzuat.gov.tr` birincil, `resmigazete.gov.tr` ikincil) çekilir.
+> Kaynak deseni: `mevzuat.gov.tr/mevzuat?MevzuatNo=<no>&MevzuatTur=7&MevzuatTertip=5`
+> → sourceId **`mevzuat:7.5.<no>`**, tam metin `mevzuat.gov.tr/mevzuatmetin/7.5.<no>.pdf`.
+> **Uydurma kaynak/metin yasak**; doğrulanamayan girdi dürüstçe `needs_manual_review` kalır.
+
+### [ ] T8.2 — Cloudflare/bot-koruması PDF fetch engelini çöz (ÖNCE bu)
+- **Sorun**: T7.4'te `mevzuat.gov.tr/mevzuatmetin/*.pdf` otomatik fetch Cloudflare/bot
+  korumasına takıldı; 6 girdi bu yüzden doğrulanamadı. Bu engel çözülmeden yeni girdiler de
+  doğrulanamaz. Bu yüzden Faz 8'in ilk adımı budur.
+- **Dosya**: `src/sources/legislation/liveOfficialLegislationAdapter.ts` (`fetchOfficialDocument`),
+  `src/core/httpClient.ts`.
+- **Yapılacak**:
+  - Gerçekçi tarayıcı header'ları gönder (`User-Agent`, `Accept`, `Accept-Language`,
+    `Referer: https://www.mevzuat.gov.tr/`).
+  - PDF doğrudan 403/Cloudflare dönerse, önce landing sayfasını (`?MevzuatNo=...`) çek,
+    içinden gerçek PDF/metin linkini ayrıştır, sonra onu indir (fallback yolu).
+  - Engel kalıcıysa, hatayı `errorCode: "source_blocked_cloudflare"` olarak yapılandır;
+    sessiz timeout değil, açık teşhis üret.
+- **Kabul**: En az bir bilinen yönetmelik (ör. `mevzuat:7.5.17232`) canlı olarak çekilip
+  metni çıkarılabiliyor; engel sürerse yapılandırılmış `source_blocked_cloudflare` hatası
+  dönüyor (uydurma metin yok). Test: header'ların gönderildiğini ve fallback yolunu doğrulayan
+  birim testi.
+
+### [ ] T8.1 — Kamu özlük/disiplin yönetmeliklerini envantere ekle (A grubu)
+- **Yapılacak**: Aşağıdaki girdileri `healthLegislationInventory.ts`'e ekle. SourceId verilenleri
+  doğrudan kullan; verilmeyenleri `mevzuat.gov.tr` başlık aramasıyla (mevcut search hattı) çöz.
+  Her birine uygun `markerTerms`/`aliases`/`searchTerms` ver. Doğrulananı `candidate`/`covered`,
+  doğrulanamayanı gerekçeyle `needs_manual_review` yap.
+  1. **Sağlık Bakanlığı ve Bağlı Kuruluşları Atama ve Yer Değiştirme Yönetmeliği** —
+     `mevzuat:7.5.17232` (RG 26.03.2013 / 28599)
+  2. **Sağlık Bakanlığı Personeli Görevde Yükselme ve Unvan Değişikliği Yönetmeliği** —
+     sourceId aramayla
+  3. **Sağlık Bakanlığı Disiplin Amirleri Yönetmeliği** — mevcut "disiplin" aday girdisini
+     bununla netleştir (2026 güncel metin)
+  4. **Sözleşmeli Sağlık Personeli Disiplin ile Disiplin Kurulları Hakkında Yönetmelik** —
+     sourceId aramayla
+  5. **4924 sayılı Kanuna Tabi Sözleşmeli Sağlık Personeli Atama ve Yer Değiştirme Yönetmeliği** —
+     sourceId aramayla
+  6. **Kamu Kurum ve Kuruluşlarına Açıktan Kura ile Atanacak Bazı Sağlık Personelinin Atama
+     Esas ve Usulleri Yönetmeliği** — sourceId aramayla
+- **Health mapping**: `medicalIssueRouter` + `healthMappings`'e yeni konu kümeleri ekle:
+  `public_employment` (tayin/atama), `transfer_assignment` (yer değiştirme/eş-mazeret),
+  `disciplinary_administrative` (disiplin soruşturması — mevcut, terimleri genişlet).
+- **Kabul**: 6 girdi envanterde; en az atama/disiplin ikilisi canlı doğrulanmış (`covered`);
+  router kamu-özlük sorgularını (tayin, yer değiştirme, disiplin soruşturması) doğru kümeye
+  yönlendiriyor; testler yeşil.
+
+### [ ] T8.3 — Eğitim / hizmet / mali / klinik-adli yönetmelikleri ekle (B–E grupları)
+- **Yapılacak**: Aşağıdakileri ekle ve canlı gov.tr ile doğrula; doğrulanamayanı dürüstçe
+  `needs_manual_review` bırak (uydurma yok):
+  - **Tıpta ve Diş Hekimliğinde Uzmanlık Eğitimi Yönetmeliği (TUEY)** — `mevzuat:7.5.39700`
+  - **Sağlık Uzmanlığı Yönetmeliği** — sourceId aramayla
+  - **Hasta ve Çalışan Güvenliğinin Sağlanmasına Dair Yönetmelik** — RG 06.04.2011 / 27897
+    (RG lead'den sourceId çöz)
+  - **Sağlık Hizmeti Kalitesinin Geliştirilmesi ve Değerlendirilmesine Dair Yönetmelik**
+  - **Yataklı Tedavi Kurumları İşletme Yönetmeliği** — mevcut `deferred` girdiyi aktive et
+  - **Tıbbi Kötü Uygulamaya İlişkin Zorunlu Mali Sorumluluk Sigortası** — mevcut deferred
+    "mali sorumluluk" girdisini bununla netleştir
+  - **Sağlık Bakanlığına Bağlı Sağlık Tesislerinde Görevli Personele Ek Ödeme Yönetmeliği**
+  - **Aile Hekimliği Uygulama Yönetmeliği** (ölü muayene/adli olgu görevleri)
+  - **Mezarlık Yerlerinin İnşaası ile Cenaze Nakil ve Defin İşlemleri Hakkında Yönetmelik**
+  - Not: **Devlet Hizmeti Yükümlülüğü (mecburi hizmet)** ve **Umumi Hıfzıssıhha** *kanun*
+    düzeyindedir; yönetmelik değildir — bunları "kanun" katmanına ekle, yönetmelik envanterine değil.
+- **Kabul**: Girdiler envanterde uygun `coverageStatus` ile; canlı doğrulanabilenler `covered`;
+  her yeni girdinin health mapping'i var; testler yeşil.
+
+### [ ] T8.4 — Kamu hekimi sorgu yönlendirme + canlı regresyon testi
+- **Yapılacak**: `medicalIssueRouter`'a kamu hekimi sorgu kümelerini ekle (tayin, mecburi
+  hizmet, disiplin soruşturması, ek ödeme/performans, nöbet/icap, görevde yükselme) ve
+  bunları doğru yönetmeliğe map et. Canlı/recorded-fixture regresyon testi yaz: ör.
+  "tayin talebim reddedildi" → Atama ve Yer Değiştirme Yönetmeliği birincil; "hakkımda
+  disiplin soruşturması açıldı" → Disiplin Amirleri Yönetmeliği birincil.
+- **Kabul**: En az 4 kamu-hekimi sorgu profili için doğru birincil yönetmelik dönüyor;
+  test hard-fail invariyantı içeriyor; build + test yeşil. README/CHANGELOG güncel.
