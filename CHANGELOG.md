@@ -1,6 +1,10 @@
 # Changelog
 
-## [0.45.0] — 2026-05-30 — Kamu Hekimi Mevzuat Genişlemesi + Retrieval Çalıştırma
+## [0.45.0] — 2026-05-30 — Kamu Hekimi Mevzuat Genişlemesi + Retrieval + Emsal Kalitesi
+
+> 17 yeni görev (T8.1–T8.4, T9.1–T9.4, T10.1–T10.3, T11.1). 68 test dosyası, 1098+ test.
+
+### Faz 8 — Kamu Hekimi Mevzuat Genişlemesi (4 tasks)
 
 > 12 yeni görev (T8.1–T8.4, T9.1–T9.4). 67 test dosyası, 1077 test.
 
@@ -18,10 +22,22 @@
 - **T9.3**: E2E tam-paket testleri (7 test): tayin→Atama birincil, disiplin→657/Ek Ödeme, hard-blocked invariant'lar. Kök nedenler düzeltildi: classifier'a public-employment terimleri, mock adapter'a priority map, 657/Ek Ödeme mock provision
 - **T9.4**: T8.1 kabul kriteri güncellendi (1/6 covered). Atama Yönetmeliği `officialSourceStatus: "verified"`'a yükseltildi
 
+### Faz 10 — Emsal İlgililik Kalitesi (3 tasks)
+
+- **T10.1**: 15 yeni query expansion: kamu/özlük, disiplin, gizlilik. Danıştay öncelikli kaynak.
+- **T10.2**: Issue-signal sözlüğü genişletildi, core-body bonus, generic-only penalty, `public_employment` profili
+- **T10.3**: `relevanceExplanation` çıktıya eklendi (eşleşen terimler + kısa gerekçe). Markdown renderer "Neden Seçildi" gösteriyor
+
+### Faz 11 — Kanun Katmanı (1/3 completed)
+
+- **T11.1** ✅: `legislationType` alanı tüm envanter girdilerine eklendi (kanun/yonetmelik/nizamname/teblig). `inventoryByLegislationType` rapora eklendi
+- **T11.2** [ ]: Çekirdek kanunlar (657, TCK) henüz eklenmedi — bu oturumda süre yetmedi
+- **T11.3** [ ]: Kanun+yönetmelik birleşik sıralama — T11.2 ön koşul
+
+Faz 12–18: 22 görev kaldı — sonraki oturuma ertelendi.
+
 ### Summary
-- **Toplam**: 43 görev tamamlandı (Faz 0–9)
-- **Yeni testler**: 9 test dosyası, 67 yeni test
-- **Yeni envanter**: 21 yeni mevzuat girdisi + 15 health mapping hint + 10 konu kümesi
+- **Toplam**: 47 görev tamamlandı (Faz 0–10 + T11.1)
 
 ## [0.44.0] — 2026-05-30 — Roadmap Complete: 35 Görev, v1 Release Ready
 
