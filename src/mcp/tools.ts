@@ -9,10 +9,12 @@ import type { DoctorPackResponse } from "./formatDoctorPackResponse.js";
 
 const sourceModeSchema = z.enum(["mock", "live"]).default("mock");
 const precedentSourceSchema = z.enum(["yargitay", "danistay", "aym"]);
+const assessmentToneSchema = z.enum(["strict", "grounded-advisory"]).default("grounded-advisory");
 const questionSchema = z.object({ question: z.string().min(1) });
 const legislationQuestionSchema = questionSchema.extend({ sourceMode: sourceModeSchema.optional() });
 const packInputSchema = legislationQuestionSchema.extend({
-  precedentSources: z.array(precedentSourceSchema).optional()
+  precedentSources: z.array(precedentSourceSchema).optional(),
+  assessmentTone: assessmentToneSchema.optional()
 });
 const provisionIdsSchema = z.object({
   documentIds: z.array(z.string().min(1)).min(1),

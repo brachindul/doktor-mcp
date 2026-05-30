@@ -244,6 +244,8 @@ export interface PrepareInformationPackInput {
   sourceMode?: LegislationSourceMode;
   precedentSources?: PrecedentSource[];
   timeBudget?: any;
+  /** Controls whether the pack includes a source-grounded preliminary assessment. Defaults to "grounded-advisory". */
+  assessmentTone?: "strict" | "grounded-advisory";
 }
 
 export interface PrecedentSourceSummary {

@@ -12,7 +12,7 @@ import { PrecedentCache } from "../sources/precedentCache.js";
 import { ResearchTimeBudget } from "../live/timeBudget.js";
 import type { ResearchBudgetSnapshot } from "../live/timeBudget.js";
 
-import { composeDoctorLegalInformationPack } from "../health/answerComposer.js";
+import { composeDoctorLegalInformationPack, type AssessmentTone } from "../health/answerComposer.js";
 import { LegislationMapper } from "../health/legislationMapper.js";
 import {
   filterReasonedPrecedents,
@@ -307,7 +307,10 @@ export class DoktorMcpInformationService {
         classification,
         provisions,
         selectVerifiedPrecedents(reranked),
-        liveUnavailable
+        liveUnavailable,
+        undefined,
+        undefined,
+        input.assessmentTone
       );
       const selectionDiagnostics = buildLegislationSelectionDiagnostics({
         query: input.question,
@@ -350,7 +353,10 @@ export class DoktorMcpInformationService {
       classification,
       provisions,
       selectVerifiedPrecedents(reranked),
-      liveUnavailable
+      liveUnavailable,
+      undefined,
+      undefined,
+      input.assessmentTone
     );
     const selectionDiagnostics = undefined;
 

@@ -6,7 +6,7 @@
 >
 > **Genel kurallar (her görevde geçerli):**
 > - `npm run build` (tsc) **0 hata** vermeli.
-> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 854 testi kırma.
+> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 866 testi kırma.
 > - Yeni davranış eklediysen **yeni test** yaz. Test yoksa görev "done" sayılmaz.
 > - Pakedin/araç JSON şekli (response contract) değişiyorsa README'yi güncelle.
 > - Türkçe kullanıcı mesajları ve İngilizce kod/yorum karışımını koru (mevcut konvansiyon).
@@ -82,7 +82,7 @@
 - **Kabul**: Yeni alan opsiyonel (geriye dönük uyumlu). `answerComposer` her assessment
   cümlesini bir kaynağa bağlamadan üretmiyor — test bunu doğrulasın.
 
-### T1.3 — "Disclaimer" tonunu tek noktadan yönet
+### [x] T1.3 — "Disclaimer" tonunu tek noktadan yönet
 - **Yapılacak**: `src/health/answerComposer.ts` içine merkezi bir `assessmentTone` ayarı koy
   (`strict` | `grounded-advisory`). Varsayılan `grounded-advisory`. `strict` modda eski
   davranış (sadece kaynak listeler, değerlendirme yok) korunur.

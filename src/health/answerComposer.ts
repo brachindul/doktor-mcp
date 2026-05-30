@@ -11,6 +11,9 @@ import type {
 } from "../contracts/legal.js";
 import { assessPrecedentRelevance } from "./precedentRelevance.js";
 
+/** Controls whether the pack includes a source-grounded preliminary assessment. */
+export type AssessmentTone = "strict" | "grounded-advisory";
+
 const dimensionLabels = {
   criminal: "Ceza hukuku boyutu resmi kaynak eslestirmesi bekliyor.",
   civil_compensation: "Tazminat ve ozel hukuk boyutu olay kayitlariyla birlikte incelenebilir.",
@@ -125,8 +128,10 @@ export function composeDoctorLegalInformationPack(
   precedents: CourtDecision[],
   sourceUnavailable: SourceUnavailable[] = [],
   selectionDiagnostics?: LegislationSelectionDiagnostics,
-  timeBudget?: any
+  timeBudget?: any,
+  assessmentTone?: AssessmentTone
 ): DoctorLegalInformationPack {
+  const tone = assessmentTone ?? "grounded-advisory";
   const groundedCount = provisions.length + precedents.length;
   let shortAnswer =
     groundedCount > 0
@@ -168,15 +173,19 @@ export function composeDoctorLegalInformationPack(
     "Guncel mevzuat metni ve karar tam metninin canli kaynaktan yeniden dogrulanmasi"
   ];
 
-  const preliminaryAssessment = buildPreliminaryAssessment({
-    shortAnswer,
-    legalClassification,
-    relevantLegislation,
-    verifiedHighCourtPrecedents,
-    missingInformation,
-    lawyerReviewPoints,
-    sourceWarnings,
-  } as DoctorLegalInformationPack);
+  // Build preliminary assessment only in grounded-advisory mode
+  let preliminaryAssessment: PreliminaryAssessment | null = null;
+  if (tone !== "strict") {
+    preliminaryAssessment = buildPreliminaryAssessment({
+      shortAnswer,
+      legalClassification,
+      relevantLegislation,
+      verifiedHighCourtPrecedents,
+      missingInformation,
+      lawyerReviewPoints,
+      sourceWarnings,
+    } as DoctorLegalInformationPack);
+  }
 
   return {
     shortAnswer,
