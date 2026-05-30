@@ -1,5 +1,46 @@
 # Changelog
 
+## [0.44.0] — 2026-05-30 — Roadmap Complete: Ton Gevşetme, Yeni Özellikler, Dokümantasyon
+
+> 21 görev tamamlandı. 55 test dosyası, 965 test.
+
+### Faz 0 — Tech Debt (5 tasks)
+
+- **T0.1**: Sürüm `package.json`'dan tek kaynaktan okunuyor (`src/core/version.ts`)
+- **T0.2**: `tools.ts` içindeki `as unknown as` cast'leri temizlendi, `DoctorPackResponse` arayüzü kullanılıyor
+- **T0.3**: `benchmarkRunner.ts` 2036 satırdan 899 satıra indirildi; `scoring.ts`, `warningTaxonomy.ts`, `reportWriter.ts` ayrıldı
+- **T0.4**: `service.ts` 754 satırdan 352 satıra indirildi; `legislationPhase.ts`, `precedentPhase.ts`, `minimalPackRescue.ts` ayrıldı
+- **T0.5**: `BedestenNetworkError` → `LiveSourceNetworkError` vb. jenerik isimlendirme; geriye dönük alias
+
+### Faz 1 — Ton Gevşetme (4 tasks)
+
+- **T1.1**: Yasaklı ifade listesi ikiye ayrıldı: `HARD_BLOCKED_PHRASES` (14 kategori) ve `ALLOWED_ASSESSMENT_PHRASES` (risk seviyesi artık izinli)
+- **T1.2**: `preliminaryAssessment` alanı eklendi — her cümle bir kaynağa referans veriyor
+- **T1.3**: `assessmentTone` (`strict` | `grounded-advisory`) ayarı, varsayılan `grounded-advisory`
+- **T1.4**: README ve docs dili yumuşatıldı: "asla hukuki sonuç üretmez" → "kategorik nihai hüküm vermez"
+
+### Faz 2 — Yeni Özellikler (6 tasks)
+
+- **T2.1**: AYM probe ve `LiveAymAdapter` iskeleti (HTML-only endpoint, sentetik veri üretmiyor)
+- **T2.2**: Mevzuat hükümlerine `inForce` / `lastAmendedDate` / `repealed` metadata'sı eklendi
+- **T2.3**: Çapraz-kaynak karar deduplikasyonu (`buildDecisionKey` + `decisionRichnessScore`)
+- **T2.4**: `linkHealthChecker.ts` — HEAD istekleriyle URL sağlık kontrolü, bütçe aşımı paketi bloklamaz
+- **T2.5**: MCP `resources` (`health-legislation://inventory`, `doktor://calibration-status`) ve `prompts` (`hekim-hukuki-soru`)
+- **T2.6**: `runtimeConfig.ts` Zod şeması + `DOKTOR_MCP_*` env override; timeBudget, retry, cache TTL birleştirildi
+
+### Faz 3 — Test Kalitesi (4 tasks)
+
+- **T3.1**: `ingestFixtureCli` testindeki ENOENT stderr gürültüsü temizlendi
+- **T3.2**: Live adapter fixture entegrasyon testleri (Yargıtay 9, Danıştay 12)
+- **T3.3**: `@vitest/coverage-v8` eklendi, `npm run test:coverage` script'i
+- **T3.4**: `tests/safetyInvariants.test.ts` — 8 hızlı mock-mode güvenlik invariyantı
+
+### Faz 4 — Dokümantasyon (3 tasks)
+
+- **T4.1**: README'den CHANGELOG'a 239 satır sürüm geçmişi taşındı
+- **T4.2**: `docs/ARCHITECTURE.md` — Mermaid diyagramları, katman yapısı, zaman bütçesi akışı
+- **T4.3**: `CONTRIBUTING.md` — commit konvansiyonu, author ayarı, PR checklist
+
 ## [0.43.0] — 2026-05-28 — MCP Output Product Polish
 
 > Tag: `v0.43.0-mcp-output-product-polish`
