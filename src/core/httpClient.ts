@@ -3,6 +3,8 @@ import { policyForSource, withTimeout } from "../live/requestPolicy.js";
 
 export interface HttpClientOptions {
   baseUrl: string;
+  /** Human-readable source label used in error messages (e.g. "bedesten", "yargitay", "danistay"). */
+  source?: string;
   fetchImpl?: typeof fetch;
   maxRetries?: number;
   retryFallbackMs?: number;
@@ -28,58 +30,104 @@ export interface HttpRequestTelemetry {
   timedOut: boolean;
 }
 
-export class BedestenNetworkError extends Error {
+export class LiveSourceNetworkError extends Error {
   public readonly telemetry: HttpRequestTelemetry;
-  constructor(cause?: unknown, telemetry?: HttpRequestTelemetry) {
-    super("Bedesten’e bağlanılamadı.");
-    this.name = "BedestenNetworkError";
+  constructor(
+    public readonly source: string,
+    cause?: unknown,
+    telemetry?: HttpRequestTelemetry
+  ) {
+    super(`${source} ile bağlantı kurulamadı.`);
+    this.name = "LiveSourceNetworkError";
     this.cause = cause;
     this.telemetry = telemetry ?? { retryCount: 0, backoffMs: 0, httpStatus: null, contentType: null, timedOut: false };
   }
 }
 
-export class BedestenHttpError extends Error {
+/** @deprecated Use `LiveSourceNetworkError` instead. */
+export class BedestenNetworkError extends LiveSourceNetworkError {
+  constructor(cause?: unknown, telemetry?: HttpRequestTelemetry) {
+    super("bedesten", cause, telemetry);
+    this.name = "BedestenNetworkError";
+  }
+}
+
+export class LiveSourceHttpError extends Error {
   public readonly telemetry: HttpRequestTelemetry;
   constructor(
+    public readonly source: string,
     public readonly status: number,
     public readonly responseText: string,
     telemetry?: HttpRequestTelemetry
   ) {
-    super(`Bedesten isteği başarısız oldu (HTTP ${status}).`);
-    this.name = "BedestenHttpError";
+    super(`${source} isteği başarısız oldu (HTTP ${status}).`);
+    this.name = "LiveSourceHttpError";
     this.telemetry = telemetry ?? { retryCount: 0, backoffMs: 0, httpStatus: status, contentType: null, timedOut: false };
   }
 }
 
-export class BedestenRateLimitError extends Error {
+/** @deprecated Use `LiveSourceHttpError` instead. */
+export class BedestenHttpError extends LiveSourceHttpError {
+  constructor(status: number, responseText: string, telemetry?: HttpRequestTelemetry) {
+    super("bedesten", status, responseText, telemetry);
+    this.name = "BedestenHttpError";
+  }
+}
+
+export class LiveSourceRateLimitError extends Error {
   public readonly telemetry: HttpRequestTelemetry;
-  constructor(public readonly retryAfterMs: number, telemetry?: HttpRequestTelemetry) {
+  constructor(
+    public readonly source: string,
+    public readonly retryAfterMs: number,
+    telemetry?: HttpRequestTelemetry
+  ) {
     super(
-      `Bedesten geçici olarak çok fazla istek uyarısı verdi. ${Math.ceil(
+      `${source} geçici olarak çok fazla istek uyarısı verdi. ${Math.ceil(
         retryAfterMs / 1_000
       )} saniye sonra tekrar denenebilir.`
     );
-    this.name = "BedestenRateLimitError";
+    this.name = "LiveSourceRateLimitError";
     this.telemetry = telemetry ?? { retryCount: 0, backoffMs: retryAfterMs, httpStatus: 429, contentType: null, timedOut: false };
   }
 }
 
-export class BedestenParseError extends Error {
+/** @deprecated Use `LiveSourceRateLimitError` instead. */
+export class BedestenRateLimitError extends LiveSourceRateLimitError {
+  constructor(retryAfterMs: number, telemetry?: HttpRequestTelemetry) {
+    super("bedesten", retryAfterMs, telemetry);
+    this.name = "BedestenRateLimitError";
+  }
+}
+
+export class LiveSourceParseError extends Error {
   public readonly telemetry: HttpRequestTelemetry;
-  constructor(message: string, cause?: unknown, telemetry?: HttpRequestTelemetry) {
+  constructor(
+    public readonly source: string,
+    message: string,
+    cause?: unknown,
+    telemetry?: HttpRequestTelemetry
+  ) {
     super(message);
-    this.name = "BedestenParseError";
+    this.name = "LiveSourceParseError";
     this.cause = cause;
     this.telemetry = telemetry ?? { retryCount: 0, backoffMs: 0, httpStatus: null, contentType: null, timedOut: false };
   }
 }
 
+/** @deprecated Use `LiveSourceParseError` instead. */
+export class BedestenParseError extends LiveSourceParseError {
+  constructor(message: string, cause?: unknown, telemetry?: HttpRequestTelemetry) {
+    super("bedesten", message, cause, telemetry);
+    this.name = "BedestenParseError";
+  }
+}
 const defaultSleep: SleepFn = (ms) =>
   new Promise((resolve) => {
     setTimeout(resolve, ms);
   });
 
 export class HttpClient {
+  private readonly source: string;
   private readonly baseUrl: string;
   private readonly fetchImpl: typeof fetch;
   private readonly maxRetries: number;
@@ -99,6 +147,7 @@ export class HttpClient {
   };
 
   constructor(options: HttpClientOptions) {
+    this.source = options.source ?? "bedesten";
     this.baseUrl = options.baseUrl.replace(/\/+$/, "");
     this.fetchImpl = options.fetchImpl ?? fetch;
     this.maxRetries = options.maxRetries ?? 2;
@@ -158,7 +207,7 @@ export class HttpClient {
           contentType: lastContentType,
           timedOut
         };
-        throw new BedestenNetworkError(error, this.lastTelemetry);
+        throw new LiveSourceNetworkError(this.source, error, this.lastTelemetry);
       }
 
       lastStatus = response.status;
@@ -167,7 +216,7 @@ export class HttpClient {
       if (response.status === 429) {
         this.rateLimiter.notifyThrottled();
         const retryAfterMs = this.retryDelayMs(response.headers.get("Retry-After"), attempt);
-        const message = `Bedesten geçici olarak çok fazla istek uyarısı verdi. ${Math.ceil(
+        const message = `${this.source} geçici olarak çok fazla istek uyarısı verdi. ${Math.ceil(
           retryAfterMs / 1_000
         )} saniye sonra tekrar denenecek.`;
 
@@ -179,7 +228,7 @@ export class HttpClient {
             contentType: lastContentType,
             timedOut: false
           };
-          throw new BedestenRateLimitError(retryAfterMs, this.lastTelemetry);
+          throw new LiveSourceRateLimitError(this.source, retryAfterMs, this.lastTelemetry);
         }
 
         this.onRetry?.(message);
@@ -197,7 +246,7 @@ export class HttpClient {
           contentType: lastContentType,
           timedOut: false
         };
-        throw new BedestenHttpError(response.status, await response.text(), this.lastTelemetry);
+        throw new LiveSourceHttpError(this.source, response.status, await response.text(), this.lastTelemetry);
       }
 
       this.lastTelemetry = {
@@ -208,7 +257,7 @@ export class HttpClient {
         timedOut: false
       };
 
-      return parseResponse<T>(response, this.lastTelemetry);
+      return parseResponse<T>(response, this.lastTelemetry, this.source);
     }
 
     this.lastTelemetry = {
@@ -218,7 +267,7 @@ export class HttpClient {
       contentType: lastContentType,
       timedOut: false
     };
-    throw new BedestenRateLimitError(this.retryFallbackMs, this.lastTelemetry);
+    throw new LiveSourceRateLimitError(this.source, this.retryFallbackMs, this.lastTelemetry);
   }
 
   private retryDelayMs(retryAfterHeader: string | null, attempt: number): number {
@@ -254,15 +303,16 @@ export function jitterDelay(delayMs: number, random: () => number = Math.random)
   return Math.max(0, Math.round(delayMs * (0.8 + random() * 0.4)));
 }
 
-async function parseResponse<T>(response: Response, telemetry: HttpRequestTelemetry): Promise<T> {
+async function parseResponse<T>(response: Response, telemetry: HttpRequestTelemetry, source: string = "bedesten"): Promise<T> {
   const contentType = response.headers.get("Content-Type") ?? "";
 
   if (contentType.toLowerCase().includes("application/json")) {
     try {
       return (await response.json()) as T;
     } catch (error) {
-      throw new BedestenParseError(
-        `Bedesten yanıtı JSON olarak ayrıştırılamadı: ${error instanceof Error ? error.message : String(error)}`,
+      throw new LiveSourceParseError(
+        source,
+        `${source} yanıtı JSON olarak ayrıştırılamadı: ${error instanceof Error ? error.message : String(error)}`,
         error,
         telemetry
       );

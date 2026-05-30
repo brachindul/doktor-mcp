@@ -12,7 +12,7 @@ import {
   normalizeBedestenSearchResponse,
   type BedestenCourtType
 } from "./bedestenApi.js";
-import { HttpClient, BedestenRateLimitError } from "../../core/httpClient.js";
+import { HttpClient, LiveSourceRateLimitError } from "../../core/httpClient.js";
 import { policyForSource } from "../../live/requestPolicy.js";
 
 export interface LiveBedestenAdapterOptions {
@@ -35,15 +35,18 @@ export class LiveBedestenAdapter implements PrecedentSourceAdapter {
   private readonly sourceName: "bedesten" | "yargitay" | "danistay";
 
   constructor(options: LiveBedestenAdapterOptions = {}) {
+    this.sourceName = options.sourceName ?? "bedesten";
     const fetchImpl = options.fetchImpl ?? fetch;
     const sleep = options.wait;
     this.httpClient = options.httpClient ?? new HttpClient({
+      source: this.sourceName,
       baseUrl: BEDESTEN_BASE_URL,
       fetchImpl,
       sleep,
       timeoutMs: policyForSource("bedesten-search").timeoutMs
     });
     this.httpClientFullText = options.httpClientFullText ?? new HttpClient({
+      source: this.sourceName,
       baseUrl: BEDESTEN_BASE_URL,
       fetchImpl,
       sleep,
@@ -51,7 +54,6 @@ export class LiveBedestenAdapter implements PrecedentSourceAdapter {
     });
     this.now = options.now ?? (() => new Date());
     this.courtTypes = options.courtTypes ?? ["YARGITAYKARARI", "DANISTAYKARAR", "YERELHUKUK", "ISTINAFHUKUK", "KYB"];
-    this.sourceName = options.sourceName ?? "bedesten";
   }
 
   async searchHealthPrecedents(classification: ClassifiedMedicalLegalQuestion): Promise<CourtDecision[]> {
@@ -70,7 +72,7 @@ export class LiveBedestenAdapter implements PrecedentSourceAdapter {
         headers: BEDESTEN_PUBLIC_HEADERS
       });
     } catch (error) {
-      if (error instanceof BedestenRateLimitError) {
+      if (error instanceof LiveSourceRateLimitError) {
         return [{
           id: `${this.sourceName}:error`,
           court: this.sourceName,
