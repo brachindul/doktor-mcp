@@ -457,9 +457,7 @@ tamamlanmadan sıradakine geçme; önce düzelt.
 - **Health mapping**: `medicalIssueRouter` + `healthMappings`'e yeni konu kümeleri ekle:
   `public_employment` (tayin/atama), `transfer_assignment` (yer değiştirme/eş-mazeret),
   `disciplinary_administrative` (disiplin soruşturması — mevcut, terimleri genişlet).
-- **Kabul**: 6 girdi envanterde; en az atama/disiplin ikilisi canlı doğrulanmış (`covered`);
-  router kamu-özlük sorgularını (tayin, yer değiştirme, disiplin soruşturması) doğru kümeye
-  yönlendiriyor; testler yeşil.
+- **Kabul (T9.4 ile güncellendi)**: 6 girdi envanterde. Atama Yönetmeliği (`mevzuat:7.5.17232`) canlı doğrulandı — status `covered`. Diğer 5 girdi `candidate`/`needs_manual_review` (canlı search empty — Cloudflare). Router kamu-özlük sorgularını doğru kümeye yönlendiriyor (E2E testler yeşil).
 
 ### [x] T8.3 — Eğitim / hizmet / mali / klinik-adli yönetmelikleri ekle (B–E grupları)
 - **Yapılacak**: Aşağıdakileri ekle ve canlı gov.tr ile doğrula; doğrulanamayanı dürüstçe
@@ -537,7 +535,7 @@ tamamlanmadan sıradakine geçme; önce düzelt.
   - canlı/recorded: aynı sorgular için en az birincil yönetmelik geliyor.
 - **Kabul**: Testler tam pakette doğruluyor (izole router değil); birincil yanlışsa hard-fail.
 
-### [ ] T9.4 — Faz 8 işaretlerini ve coverage durumunu dürüstçe düzelt
+### [x] T9.4 — Faz 8 işaretlerini ve coverage durumunu dürüstçe düzelt
 - **Yapılacak**: T8.1/T8.4 kabul gerçeğe göre güncellensin; `coverageStatus` gerçek
   doğrulama durumunu yansıtsın; CHANGELOG'a "kamu retrieval Faz 9'da tamamlandı" düzeltmesi.
 - **Kabul**: İşaret ↔ gerçek tutarlı; covered sayısı gerçek doğrulananları yansıtıyor.

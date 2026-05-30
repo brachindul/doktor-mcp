@@ -682,13 +682,13 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     category: "discipline",
     relevanceLevel: "supporting",
     officialSourceRequired: true,
-    officialSourceStatus: "candidate",
+    officialSourceStatus: "verified",
     mevzuatSourceId: "mevzuat:7.5.17232",
     legislationNumber: "17232",
     relatedIssueIds: ["disciplinary_administrative"],
     relatedTopicClusters: ["public_employment", "transfer_assignment"],
     searchTerms: ["tayin", "atama", "yer değiştirme", "nakil", "mazeret tayini", "eş durumu"],
-    coverageStatus: "candidate",
+    coverageStatus: "covered",
     expectedLegislationType: "yonetmelik",
     expectedRgDate: "2013-03-26",
     expectedRgNumber: "28599",
@@ -709,9 +709,8 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     ],
     notes: [
       "Governs appointment and transfer of Ministry of Health and affiliated institution personnel.",
-      "sourceId mevzuat:7.5.17232 provided from ROADMAP; needs live verification.",
-      "v0.44.0: Added as candidate. sourceId from ROADMAP but live search blocked by Cloudflare.",
-      "needs_manual_review: sourceId mevzuat:7.5.17232 should be verified via mevzuat.gov.tr."
+      "sourceId mevzuat:7.5.17232 verified via live mevzuat.gov.tr PDF fetch (v0.45.0 / T9.1).",
+      "Full text retrieved and articles 1, 2, 5 extracted — used in mock data."
     ]
   },
 
