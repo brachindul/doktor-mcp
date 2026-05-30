@@ -14,7 +14,7 @@ import {
   normalizeBedestenSearchResponse
 } from "../bedesten/bedestenApi.js";
 import { extractLegalReasoning, extractOutcome } from "../precedentUtils.js";
-import { HttpClient, LiveSourceRateLimitError, LiveSourceParseError, LiveSourceNetworkError } from "../../core/httpClient.js";
+import { HttpClient, BedestenRateLimitError, BedestenParseError, BedestenNetworkError } from "../../core/httpClient.js";
 import { policyForSource } from "../../live/requestPolicy.js";
 import { PrecedentCache } from "../precedentCache.js";
 import type { AdapterRequestTelemetry } from "../../contracts/queryTelemetry.js";
@@ -46,14 +46,12 @@ export class LiveYargitayAdapter implements PrecedentSourceAdapter {
     const fetchImpl = options.fetchImpl ?? fetch;
     const sleep = options.wait;
     this.httpClient = options.httpClient ?? new HttpClient({
-      source: "yargitay",
       baseUrl: BEDESTEN_BASE_URL,
       fetchImpl,
       sleep,
       timeoutMs: policyForSource("bedesten-search").timeoutMs
     });
     this.httpClientFullText = options.httpClientFullText ?? new HttpClient({
-      source: "yargitay",
       baseUrl: BEDESTEN_BASE_URL,
       fetchImpl,
       sleep,
@@ -103,16 +101,16 @@ export class LiveYargitayAdapter implements PrecedentSourceAdapter {
         retryCount: telemetry?.retryCount ?? 0,
         backoffMs: telemetry?.backoffMs ?? 0,
         timedOut: telemetry?.timedOut ?? false,
-        retryAfterMs: error instanceof LiveSourceRateLimitError ? error.retryAfterMs : null
+        retryAfterMs: error instanceof BedestenRateLimitError ? error.retryAfterMs : null
       };
       const errTrace = { ...emptyTrace, error: error instanceof Error ? error.message : String(error), ...(telemetry ?? {}) };
-      if (error instanceof LiveSourceRateLimitError) {
+      if (error instanceof BedestenRateLimitError) {
         return unavailable("source_blocked", error.message, true, "Retry after the source cools down.", [errTrace]);
       }
-      if (error instanceof LiveSourceParseError) {
+      if (error instanceof BedestenParseError) {
         return unavailable("parse_failed", error.message, false, "Verify the upstream endpoint format.", [errTrace]);
       }
-      if (error instanceof LiveSourceNetworkError) {
+      if (error instanceof BedestenNetworkError) {
         const cause = (error.cause instanceof Error ? error.cause.message : String(error.cause ?? error.message));
         return unavailable("source_error", `Yargıtay (Bedesten) network error: ${cause}`, true, "Retry the request.", [{ ...emptyTrace, error: cause, ...(telemetry ?? {}) }]);
       }

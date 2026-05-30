@@ -66,7 +66,6 @@ const FORBIDDEN_OUTPUT_PHRASES = [
  * Returns list of forbidden phrases found.
  */
 export function detectForbiddenOutputPhrases(pack: unknown): string[] {
-  if (typeof pack !== "object" || pack === null) return [];
   const allText = collectAllText(pack as Record<string, unknown>).toLowerCase();
   const found: string[] = [];
   for (const phrase of FORBIDDEN_OUTPUT_PHRASES) {
