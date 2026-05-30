@@ -91,6 +91,12 @@ export interface LegislationProvision {
   evidence: SourceEvidence;
   sourceTrace?: LegislationSourceTrace;
   ranking?: ProvisionRanking;
+  /** Whether the provision is currently in force. "unknown" when metadata is unavailable. Never assumes "true" by default. */
+  inForce?: boolean | "unknown";
+  /** Date of last amendment, if available from source metadata. ISO date string. */
+  lastAmendedDate?: string;
+  /** Whether the provision has been repealed. */
+  repealed?: boolean;
 }
 
 export interface ProvisionRanking {
@@ -220,6 +226,9 @@ export interface DoctorLegalInformationPack {
     sourceDocumentId: string;
     sourceTrace?: LegislationSourceTrace;
     ranking?: ProvisionRanking;
+    inForce?: boolean | "unknown";
+    lastAmendedDate?: string;
+    repealed?: boolean;
   }>;
   verifiedHighCourtPrecedents: VerifiedPrecedentEntry[];
   missingInformation: string[];

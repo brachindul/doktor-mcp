@@ -349,6 +349,14 @@ export function auditPack(pack: unknown): AuditResult {
     } else {
       legislationWithSourceTrace++;
     }
+    // Force-status audit warnings
+    const docId = String(item.sourceDocumentId ?? "unknown");
+    if (item.inForce === "unknown") {
+      warnings.push(`Provision ${docId}: yürürlük durumu belirsiz (inForce unknown)`);
+    }
+    if (item.repealed === true) {
+      warnings.push(`Provision ${docId}: yürürlükten kalkmış (repealed)`);
+    }
   }
 
   // Check calibrationStatus presence (warn if no source has calibration info)

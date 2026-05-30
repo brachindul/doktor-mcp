@@ -6,7 +6,7 @@
 >
 > **Genel kurallar (her görevde geçerli):**
 > - `npm run build` (tsc) **0 hata** vermeli.
-> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 889 testi kırma.
+> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 897 testi kırma.
 > - Yeni davranış eklediysen **yeni test** yaz. Test yoksa görev "done" sayılmaz.
 > - Pakedin/araç JSON şekli (response contract) değişiyorsa README'yi güncelle.
 > - Türkçe kullanıcı mesajları ve İngilizce kod/yorum karışımını koru (mevcut konvansiyon).
@@ -105,7 +105,7 @@
 - **Kabul**: Probe çıktısı AYM için net statü veriyor; live adapter eklendiyse mock ile
   aynı `PrecedentSourceAdapter` arayüzünü uyguluyor; uydurma karar üretmiyor.
 
-### T2.2 — Mevzuat değişiklik/yürürlük tarihi doğrulaması
+### [x] T2.2 — Mevzuat değişiklik/yürürlük tarihi doğrulaması
 - **Sorun**: Mevzuat maddesi alıntılanırken yürürlükten kalkmış olabilir.
 - **Yapılacak**: `LiveOfficialLegislationAdapter` çıktısına madde için `inForce` /
   `lastAmendedDate` / `repealed` metadata ekle (mevzuat.gov.tr metadata'sından çıkarılabildiğince).

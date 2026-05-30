@@ -19,7 +19,9 @@ export const mockLegislationProvisions: LegislationProvision[] = [
       "Tabip ve dis tabibi, acil vakalar disinda, hastayi reddetme yetkisine sahiptir.",
     connection: "Hekimin hastayi reddetme ve tedaviyi birakma hakki deontoloji kurallariyla duzenlenir.",
     dimensions: ["professional_ethics", "civil_compensation"],
-    evidence: evidence("legislation", "leg-deontology-18", true)
+    evidence: evidence("legislation", "leg-deontology-18", true),
+    inForce: true,
+    lastAmendedDate: "2023-01-15"
   },
   {
     documentId: "leg-tababet-1",
@@ -29,7 +31,9 @@ export const mockLegislationProvisions: LegislationProvision[] = [
       "Turkiye Cumhuriyeti dahilinde tababet icra etmek ve hasta tedavi edebilmek icin bu kanunun sartlarina haiz olmak lazimdir.",
     connection: "Hekimlik icrasi ve mesleki yukumluluklerin yasal temelidir.",
     dimensions: ["professional_ethics", "patient_rights"],
-    evidence: evidence("legislation", "leg-tababet-1", true)
+    evidence: evidence("legislation", "leg-tababet-1", true),
+    inForce: true,
+    lastAmendedDate: "2021-06-30"
   },
   {
     documentId: "leg-patient-rights-24",
@@ -39,7 +43,8 @@ export const mockLegislationProvisions: LegislationProvision[] = [
       "Tibbi mudahalelerde hastanin rizasi gerekir. Hasta kucuk veya mahcur ise velisinden veya vasisinden izin alinir.",
     connection: "Aydinlatma ve riza sorularinda resmi madde metni eslestirmesi icin mock kayittir.",
     dimensions: ["patient_rights", "civil_compensation", "disciplinary_administrative"],
-    evidence: evidence("legislation", "leg-patient-rights-24", true)
+    evidence: evidence("legislation", "leg-patient-rights-24", true),
+    inForce: "unknown"
   },
   {
     documentId: "leg-kvkk-6",
@@ -49,7 +54,9 @@ export const mockLegislationProvisions: LegislationProvision[] = [
       "Kisilerin sagligina iliskin veriler ozel nitelikli kisisel veridir.",
     connection: "Saglik verisi ve mahremiyet sorularinda resmi madde metni eslestirmesi icin mock kayittir.",
     dimensions: ["privacy_kvkk"],
-    evidence: evidence("legislation", "leg-kvkk-6", true)
+    evidence: evidence("legislation", "leg-kvkk-6", true),
+    inForce: true,
+    lastAmendedDate: "2024-03-12"
   },
   {
     documentId: "leg-tababet-25",
@@ -60,7 +67,9 @@ export const mockLegislationProvisions: LegislationProvision[] = [
     connection:
       "Hekimin uzmanlık sınırları ve yetkisiz tıbbi faaliyet yasağına ilişkin mesleki kapsam sorularında kullanılır.",
     dimensions: ["professional_ethics", "disciplinary_administrative"],
-    evidence: evidence("legislation", "leg-tababet-25", true)
+    evidence: evidence("legislation", "leg-tababet-25", true),
+    inForce: false,
+    repealed: true
   },
   {
     documentId: "leg-healthservices-9",
@@ -71,7 +80,8 @@ export const mockLegislationProvisions: LegislationProvision[] = [
     connection:
       "Özel ve kamu sağlık kuruluşlarının denetim yükümlülüğü ve mesleki faaliyet çerçevesine ilişkin sorularda kullanılır.",
     dimensions: ["professional_ethics", "disciplinary_administrative"],
-    evidence: evidence("legislation", "leg-healthservices-9", true)
+    evidence: evidence("legislation", "leg-healthservices-9", true),
+    inForce: "unknown"
   },
   {
     documentId: "leg-saglikmeslek-5",
@@ -80,7 +90,9 @@ export const mockLegislationProvisions: LegislationProvision[] = [
     verbatimText: "Sağlık meslek mensupları, görevlerini kendi görev tanımları ve yetki sınırları çerçevesinde yürütürler.",
     connection: "Görev tanımları ve yetki sınırları yönetmelikle belirlenmiştir.",
     dimensions: ["professional_ethics", "disciplinary_administrative"],
-    evidence: evidence("legislation", "leg-saglikmeslek-5", true)
+    evidence: evidence("legislation", "leg-saglikmeslek-5", true),
+    inForce: true,
+    lastAmendedDate: "2022-11-10"
   },
   {
     documentId: "leg-isg-8",
@@ -89,7 +101,8 @@ export const mockLegislationProvisions: LegislationProvision[] = [
     verbatimText: "İşyeri hekimi, mesleki bağımsızlık ilkesine uygun olarak görev yapar.",
     connection: "İşyeri hekimlerinin yetki ve bağımsızlığı kanunla korunmaktadır.",
     dimensions: ["professional_ethics", "disciplinary_administrative"],
-    evidence: evidence("legislation", "leg-isg-8", true)
+    evidence: evidence("legislation", "leg-isg-8", true),
+    inForce: true
   },
   {
     documentId: "leg-organ-6",
@@ -98,7 +111,8 @@ export const mockLegislationProvisions: LegislationProvision[] = [
     verbatimText: "Organ nakli için donörün yazılı rızası şarttır.",
     connection: "Organ bağışı rıza ve onam kuralları kanunla düzenlenir.",
     dimensions: ["patient_rights", "professional_ethics"],
-    evidence: evidence("legislation", "leg-organ-6", true)
+    evidence: evidence("legislation", "leg-organ-6", true),
+    inForce: "unknown"
   },
   {
     documentId: "leg-uyte-10",
@@ -107,7 +121,9 @@ export const mockLegislationProvisions: LegislationProvision[] = [
     verbatimText: "Üremeye yardımcı tedavi uygulamalarında eşlerin birlikte rızası aranır.",
     connection: "Tüp bebek ve ÜYTE tedavilerinde rıza standartları yönetmelikle belirlenmiştir.",
     dimensions: ["patient_rights", "professional_ethics"],
-    evidence: evidence("legislation", "leg-uyte-10", true)
+    evidence: evidence("legislation", "leg-uyte-10", true),
+    inForce: true,
+    lastAmendedDate: "2023-08-22"
   },
   {
     documentId: "leg-getat-5",
@@ -116,7 +132,8 @@ export const mockLegislationProvisions: LegislationProvision[] = [
     verbatimText: "Geleneksel ve tamamlayıcı tıp uygulamaları yetkili hekimler tarafından yürütülür.",
     connection: "GETAT yetki sınırları yönetmelikle çerçevelenmiştir.",
     dimensions: ["professional_ethics", "disciplinary_administrative"],
-    evidence: evidence("legislation", "leg-getat-5", true)
+    evidence: evidence("legislation", "leg-getat-5", true),
+    inForce: "unknown"
   }
 ];
 

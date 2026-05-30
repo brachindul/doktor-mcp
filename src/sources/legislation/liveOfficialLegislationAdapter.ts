@@ -126,7 +126,8 @@ export class LiveOfficialLegislationAdapter implements LegislationSourceAdapter 
         article.articleNumber,
         document,
         trace,
-        articleRanking
+        articleRanking,
+        selectedSearchResult.rawMetadata
       )));
     }
 
@@ -216,7 +217,8 @@ export class LiveOfficialLegislationAdapter implements LegislationSourceAdapter 
           documentUrl: officialDocumentUrlForParts(type, arrangement, number),
           legislationNumber: number,
           legislationType: type,
-          legislationArrangement: arrangement
+          legislationArrangement: arrangement,
+          rawMetadata: row
         }];
       });
     } catch {
@@ -316,14 +318,47 @@ export class LiveOfficialLegislationAdapter implements LegislationSourceAdapter 
   }
 }
 
+/**
+ * Attempt to extract force-status metadata from the raw mevzuat.gov.tr search response row.
+ * When metadata fields are absent or unrecognizable, returns inForce: "unknown" — never defaults to true.
+ */
+function extractForceMetadata(rawRow?: Record<string, unknown>): { inForce?: boolean | "unknown"; lastAmendedDate?: string; repealed?: boolean } {
+  if (!rawRow) {
+    return { inForce: "unknown" };
+  }
+
+  const result: { inForce?: boolean | "unknown"; lastAmendedDate?: string; repealed?: boolean } = {};
+
+  // Try to determine from known Turkish legal metadata fields
+  const status = stringField(rawRow.yururluk ?? rawRow.durum ?? rawRow.status ?? rawRow.mevzuatDurum);
+  if (status === "Yürürlükte" || status === "InForce" || status === "active" || status === "YURURLUKTE") {
+    result.inForce = true;
+  } else if (status === "Mülga" || status === "Repealed" || status === "Yürürlükten Kalktı" || status === "MULGA") {
+    result.inForce = false;
+    result.repealed = true;
+  } else {
+    result.inForce = "unknown";
+  }
+
+  // Try to get amendment date
+  const amendDate = stringField(rawRow.lastAmendedDate ?? rawRow.sonDegisiklikTarihi ?? rawRow.mevzuatTarih);
+  if (amendDate) {
+    result.lastAmendedDate = amendDate;
+  }
+
+  return result;
+}
+
 function provisionFromArticle(
   hint: HealthLegislationHint,
   text: string,
   articleNumber: string,
   document: LiveLegislationDocument,
   sourceTrace: LegislationSourceTrace,
-  ranking: LegislationProvision["ranking"]
+  ranking: LegislationProvision["ranking"],
+  rawMetadata?: Record<string, unknown>
 ): LegislationProvision {
+  const forceMetadata = extractForceMetadata(rawMetadata);
   return {
     documentId: document.sourceId,
     legislationName: document.title,
@@ -333,6 +368,7 @@ function provisionFromArticle(
     dimensions: hint.dimensions,
     sourceTrace,
     ...(ranking ? { ranking } : {}),
+    ...forceMetadata,
     evidence: {
       source: "legislation",
       documentId: document.sourceId,

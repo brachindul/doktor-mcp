@@ -26,6 +26,8 @@ export interface OfficialLegislationSearchResult {
   legislationNumber: string;
   legislationType: string;
   legislationArrangement: string;
+  /** Raw metadata from the search API row, used to extract force-status info. */
+  rawMetadata?: Record<string, unknown>;
 }
 
 export interface LiveLegislationDocument {
