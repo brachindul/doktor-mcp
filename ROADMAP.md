@@ -89,7 +89,7 @@
 - **Kabul**: Tool input şemasına opsiyonel `assessmentTone` parametresi eklenir; iki mod da
   testlenir; README "Response Contract" güncellenir.
 
-### T1.4 — Rapor dilini güncelle
+### [x] T1.4 — Rapor dilini güncelle
 - **Yapılacak**: README ve `docs/` içinde "asla hukuki sonuç üretmez" ifadelerini
   "nihai/kategorik hüküm vermez; kaynağa dayalı koşullu değerlendirme sunabilir" olarak yumuşat.
 - **Kabul**: Doküman tutarlı; kod davranışıyla çelişen ifade kalmıyor.

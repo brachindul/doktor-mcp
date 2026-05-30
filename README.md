@@ -1,9 +1,11 @@
 # Doktor MCP
 
 `doktor-mcp` is a standalone TypeScript/Node.js MCP skeleton for source-grounded
-legal information packs aimed at physicians. It does not tell a physician what to do and
-does not provide a final legal opinion. It matches a question to official legislation text
-and reasoned high court decision text available through source adapters.
+legal information packs aimed at physicians. It does not provide categorical final legal
+opinions or tell a physician what to do. It matches questions to official legislation text
+and reasoned high court decision text, and may offer source-grounded conditional
+assessments (e.g., "kaynaklar bu yönde eğilim göstermektedir") without ever issuing
+definitive judgments.
 
 The adapter boundaries are prepared for:
 
@@ -235,7 +237,7 @@ not create legal propositions and never replace the verbatim official provision 
 
 v0.6 adds deterministic live provision ranking after official article extraction. It
 selects a compact set of source articles for the pack; it does not create article text,
-legal advice, or legal conclusions.
+legal advice, or categorical legal conclusions.
 
 Ranking signals include:
 

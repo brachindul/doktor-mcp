@@ -76,7 +76,7 @@ The audit enforces the permanent project constraints:
 
 - No risk level scoring
 - No immediate action instructions
-- No final legal conclusions
+- No categorical final legal conclusions (source-grounded conditional assessment is permitted)
 - No petition or defense drafts
 - No model-invented court decisions
 - Only `precedent_usable` decisions in `verifiedHighCourtPrecedents`
