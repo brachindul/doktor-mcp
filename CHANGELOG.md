@@ -612,7 +612,7 @@ This limitation is documented in 4 dedicated test cases:
 - **JSON report always generated** (never hits shell-level timeout).
 - **Mock benchmark 15/15 regression unchanged.**
 
-## [0.35.0] — 2026-05-24 — RG Lead SourceId Resolver — 2026-05-24 — RG Lead SourceId Resolver
+## [0.35.0] — 2026-05-24 — RG Lead SourceId Resolver
 
 > Tag: `v0.35.0-rg-lead-sourceid-resolver`
 

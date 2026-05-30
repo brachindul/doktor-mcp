@@ -202,7 +202,7 @@
   Mümkünse bu testi, "package.json sürümü CHANGELOG.md'deki en üst `## [x.y.z]` ile eşleşmeli"
   invariyantını da kontrol edecek şekilde genişlet.
 
-### [ ] T5.2 — Changelog'daki tekrarlı başlığı düzelt
+### [x] T5.2 — Changelog'daki tekrarlı başlığı düzelt
 - **Sorun**: `CHANGELOG.md` içinde 0.35.0 başlığı ikilenmiş:
   `## [0.35.0] — 2026-05-24 — RG Lead SourceId Resolver — 2026-05-24 — RG Lead SourceId Resolver`
 - **Yapılacak**: Başlığı tek forma indir:
