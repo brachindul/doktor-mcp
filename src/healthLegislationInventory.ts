@@ -18,6 +18,12 @@
 // Types
 // ──────────────────────────────────────────────────────────────
 
+export type LegislationClassification =
+  | "kanun"       // Statute (mevzuat type=1)
+  | "yonetmelik"  // Regulation (mevzuat type=7, 21)
+  | "nizamname"   // Decree (mevzuat type=2)
+  | "teblig";     // Communique / other
+
 export type HealthLegislationAccessStatus =
   | "verified"      // Official sourceId confirmed; active in HealthLegislationHint registry
   | "candidate"     // Likely official source exists; ID/URL not yet confirmed in this codebase
@@ -58,6 +64,8 @@ export interface HealthLegislationInventoryEntry {
   titleNormalized: string;
   category: HealthLegislationCategory;
   relevanceLevel: HealthLegislationRelevanceLevel;
+  /** Classification by Turkish legislative hierarchy: kanun, yonetmelik, nizamname, or teblig */
+  legislationType: LegislationClassification;
   officialSourceRequired: boolean;
   officialSourceStatus: HealthLegislationAccessStatus;
   /** mevzuat.gov.tr sourceId (format: type.arrangement.number) — only set for verified */
@@ -121,6 +129,7 @@ export interface HealthLegislationInventoryReport {
   uncoveredCoreCount: number;
   inventoryByCategory: Record<HealthLegislationCategory, number>;
   inventoryByAccessStatus: Record<HealthLegislationAccessStatus, number>;
+  inventoryByLegislationType: Record<LegislationClassification, number>;
   verifiedEntries: HealthLegislationInventoryEntry[];
   candidateEntries: HealthLegislationInventoryEntry[];
   gapEntries: HealthLegislationInventoryEntry[];
@@ -146,6 +155,7 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     titleNormalized: "hasta haklari yonetmeligi",
     category: "patient_rights",
     relevanceLevel: "core",
+    legislationType: "yonetmelik",
     officialSourceRequired: true,
     officialSourceStatus: "verified",
     mevzuatSourceId: "mevzuat:7.5.4847",
@@ -164,6 +174,7 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     titleNormalized: "tibbi deontoloji nizamnamesi",
     category: "professional_ethics",
     relevanceLevel: "core",
+    legislationType: "nizamname",
     officialSourceRequired: true,
     officialSourceStatus: "verified",
     mevzuatSourceId: "mevzuat:2.3.412578",
@@ -183,6 +194,7 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     category: "physician_practice",
     relevanceLevel: "core",
     officialSourceRequired: true,
+    legislationType: "kanun",
     officialSourceStatus: "verified",
     mevzuatSourceId: "mevzuat:1.3.1219",
     officialUrl: "https://www.mevzuat.gov.tr/mevzuatmetin/1.3.1219.pdf",
@@ -201,6 +213,7 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     category: "physician_practice",
     relevanceLevel: "core",
     officialSourceRequired: true,
+    legislationType: "kanun",
     officialSourceStatus: "verified",
     mevzuatSourceId: "mevzuat:1.5.3359",
     officialUrl: "https://www.mevzuat.gov.tr/mevzuatmetin/1.5.3359.pdf",
@@ -219,6 +232,7 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     category: "data_privacy",
     relevanceLevel: "supporting",
     officialSourceRequired: true,
+    legislationType: "kanun",
     officialSourceStatus: "verified",
     mevzuatSourceId: "mevzuat:1.5.6698",
     officialUrl: "https://www.mevzuat.gov.tr/mevzuatmetin/1.5.6698.pdf",
@@ -239,6 +253,7 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     category: "private_health_facility",
     relevanceLevel: "core",
     officialSourceRequired: true,
+    legislationType: "yonetmelik",
     officialSourceStatus: "gap",
     relatedIssueIds: ["private_health_facility"],
     relatedTopicClusters: ["private_health_facility"],
@@ -291,6 +306,7 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     category: "private_health_facility",
     relevanceLevel: "core",
     officialSourceRequired: true,
+    legislationType: "yonetmelik",
     officialSourceStatus: "gap",
     relatedIssueIds: ["private_health_facility"],
     relatedTopicClusters: ["private_health_facility"],
@@ -339,6 +355,7 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     category: "physician_practice",
     relevanceLevel: "core",
     officialSourceRequired: true,
+    legislationType: "yonetmelik",
     officialSourceStatus: "verified",
     mevzuatSourceId: "mevzuat:7.5.19696",
     officialUrl: "https://www.mevzuat.gov.tr/mevzuatmetin/7.5.19696.pdf",
@@ -375,6 +392,7 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     category: "emergency_services",
     relevanceLevel: "core",
     officialSourceRequired: true,
+    legislationType: "yonetmelik",
     officialSourceStatus: "candidate",
     relatedIssueIds: ["emergency_intervention"],
     relatedTopicClusters: ["emergency_intervention", "emergency_exception"],
@@ -421,6 +439,7 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     category: "physician_practice",
     relevanceLevel: "supporting",
     officialSourceRequired: true,
+    legislationType: "kanun",
     officialSourceStatus: "verified",
     mevzuatSourceId: "mevzuat:1.5.5258",
     officialUrl: "https://www.mevzuat.gov.tr/mevzuatmetin/1.5.5258.pdf",
@@ -443,6 +462,7 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     category: "occupational_health",
     relevanceLevel: "supporting",
     officialSourceRequired: true,
+    legislationType: "kanun",
     officialSourceStatus: "verified",
     mevzuatSourceId: "mevzuat:1.5.6331",
     officialUrl: "https://www.mevzuat.gov.tr/mevzuatmetin/1.5.6331.pdf",
@@ -465,6 +485,7 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     category: "occupational_health",
     relevanceLevel: "specialized",
     officialSourceRequired: true,
+    legislationType: "yonetmelik",
     officialSourceStatus: "candidate",
     relatedIssueIds: ["occupational_health"],
     relatedTopicClusters: ["professional_scope_of_practice"],
@@ -511,6 +532,7 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     category: "data_privacy",
     relevanceLevel: "supporting",
     officialSourceRequired: true,
+    legislationType: "yonetmelik",
     officialSourceStatus: "candidate",
     relatedIssueIds: ["personal_health_data"],
     relatedTopicClusters: ["personal_health_data"],
@@ -561,6 +583,7 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     category: "organ_tissue",
     relevanceLevel: "specialized",
     officialSourceRequired: true,
+    legislationType: "kanun",
     officialSourceStatus: "verified",
     mevzuatSourceId: "mevzuat:1.5.2238",
     officialUrl: "https://www.mevzuat.gov.tr/mevzuatmetin/1.5.2238.pdf",
@@ -584,6 +607,7 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     category: "reproductive_medicine",
     relevanceLevel: "specialized",
     officialSourceRequired: true,
+    legislationType: "yonetmelik",
     officialSourceStatus: "verified",
     mevzuatSourceId: "mevzuat:7.5.20085",
     officialUrl: "https://www.mevzuat.gov.tr/mevzuatmetin/7.5.20085.pdf",
@@ -605,6 +629,7 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     category: "complementary_medicine",
     relevanceLevel: "specialized",
     officialSourceRequired: true,
+    legislationType: "yonetmelik",
     officialSourceStatus: "verified",
     mevzuatSourceId: "mevzuat:7.5.45117",
     officialUrl: "https://www.mevzuat.gov.tr/mevzuatmetin/7.5.45117.pdf",
@@ -625,6 +650,7 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     category: "discipline",
     relevanceLevel: "supporting",
     officialSourceRequired: true,
+    legislationType: "yonetmelik",
     officialSourceStatus: "candidate",
     relatedIssueIds: ["disciplinary_administrative"],
     relatedTopicClusters: ["professional_ethics"],
@@ -682,6 +708,7 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     category: "discipline",
     relevanceLevel: "supporting",
     officialSourceRequired: true,
+    legislationType: "yonetmelik",
     officialSourceStatus: "verified",
     mevzuatSourceId: "mevzuat:7.5.17232",
     legislationNumber: "17232",
@@ -722,6 +749,7 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     category: "discipline",
     relevanceLevel: "supporting",
     officialSourceRequired: true,
+    legislationType: "yonetmelik",
     officialSourceStatus: "candidate",
     relatedIssueIds: ["disciplinary_administrative"],
     relatedTopicClusters: ["public_employment"],
@@ -758,6 +786,7 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     category: "discipline",
     relevanceLevel: "supporting",
     officialSourceRequired: true,
+    legislationType: "yonetmelik",
     officialSourceStatus: "candidate",
     relatedIssueIds: ["disciplinary_administrative"],
     relatedTopicClusters: ["disciplinary_administrative"],
@@ -797,6 +826,7 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     category: "discipline",
     relevanceLevel: "supporting",
     officialSourceRequired: true,
+    legislationType: "yonetmelik",
     officialSourceStatus: "candidate",
     relatedIssueIds: ["disciplinary_administrative"],
     relatedTopicClusters: ["disciplinary_administrative"],
@@ -833,6 +863,7 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     category: "discipline",
     relevanceLevel: "supporting",
     officialSourceRequired: true,
+    legislationType: "yonetmelik",
     officialSourceStatus: "candidate",
     relatedIssueIds: ["disciplinary_administrative"],
     relatedTopicClusters: ["public_employment", "transfer_assignment"],
@@ -869,6 +900,7 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     category: "discipline",
     relevanceLevel: "supporting",
     officialSourceRequired: true,
+    legislationType: "yonetmelik",
     officialSourceStatus: "candidate",
     relatedIssueIds: ["disciplinary_administrative"],
     relatedTopicClusters: ["public_employment"],
@@ -907,6 +939,7 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     category: "emergency_services",
     relevanceLevel: "specialized",
     officialSourceRequired: true,
+    legislationType: "yonetmelik",
     officialSourceStatus: "deferred",
     relatedIssueIds: [],
     relatedTopicClusters: [],
@@ -926,6 +959,7 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     category: "service_quality",
     relevanceLevel: "supporting",
     officialSourceRequired: true,
+    legislationType: "yonetmelik",
     officialSourceStatus: "candidate",
     relatedIssueIds: ["private_health_facility"],
     relatedTopicClusters: ["hospital_management", "healthcare_quality"],
@@ -964,6 +998,7 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     category: "insurance",
     relevanceLevel: "specialized",
     officialSourceRequired: true,
+    legislationType: "yonetmelik",
     officialSourceStatus: "candidate",
     relatedIssueIds: ["financial_liability", "malpractice_insurance"],
     relatedTopicClusters: ["financial_liability"],
@@ -1001,6 +1036,7 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     category: "diagnostics",
     relevanceLevel: "specialized",
     officialSourceRequired: true,
+    legislationType: "yonetmelik",
     officialSourceStatus: "deferred",
     relatedIssueIds: [],
     relatedTopicClusters: [],
@@ -1023,6 +1059,7 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     category: "medical_education",
     relevanceLevel: "supporting",
     officialSourceRequired: true,
+    legislationType: "yonetmelik",
     officialSourceStatus: "candidate",
     mevzuatSourceId: "mevzuat:7.5.39700",
     legislationNumber: "39700",
@@ -1058,6 +1095,7 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     category: "medical_education",
     relevanceLevel: "specialized",
     officialSourceRequired: true,
+    legislationType: "yonetmelik",
     officialSourceStatus: "candidate",
     relatedIssueIds: ["medical_education", "specialization"],
     relatedTopicClusters: ["medical_education"],
@@ -1092,6 +1130,7 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     category: "service_quality",
     relevanceLevel: "supporting",
     officialSourceRequired: true,
+    legislationType: "yonetmelik",
     officialSourceStatus: "candidate",
     relatedIssueIds: ["patient_safety", "employee_safety"],
     relatedTopicClusters: ["patient_safety"],
@@ -1125,6 +1164,7 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     category: "service_quality",
     relevanceLevel: "supporting",
     officialSourceRequired: true,
+    legislationType: "yonetmelik",
     officialSourceStatus: "candidate",
     relatedIssueIds: ["healthcare_quality", "quality_assurance"],
     relatedTopicClusters: ["healthcare_quality"],
@@ -1157,6 +1197,7 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     category: "discipline",
     relevanceLevel: "supporting",
     officialSourceRequired: true,
+    legislationType: "yonetmelik",
     officialSourceStatus: "candidate",
     relatedIssueIds: ["public_employment", "financial"],
     relatedTopicClusters: ["public_employment", "financial_liability"],
@@ -1195,6 +1236,7 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     category: "physician_practice",
     relevanceLevel: "supporting",
     officialSourceRequired: true,
+    legislationType: "yonetmelik",
     officialSourceStatus: "candidate",
     relatedIssueIds: ["primary_care", "family_medicine", "forensic_duties"],
     relatedTopicClusters: ["primary_care"],
@@ -1233,6 +1275,7 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     category: "forensic_administrative",
     relevanceLevel: "specialized",
     officialSourceRequired: true,
+    legislationType: "yonetmelik",
     officialSourceStatus: "candidate",
     relatedIssueIds: ["forensic_duties", "death_procedures"],
     relatedTopicClusters: ["death_procedures"],
@@ -1266,6 +1309,7 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     category: "physician_practice",
     relevanceLevel: "supporting",
     officialSourceRequired: true,
+    legislationType: "kanun",
     officialSourceStatus: "candidate",
     mevzuatSourceId: "mevzuat:1.3.1593",
     legislationNumber: "1593",
@@ -1299,6 +1343,7 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     category: "physician_practice",
     relevanceLevel: "supporting",
     officialSourceRequired: true,
+    legislationType: "yonetmelik",
     officialSourceStatus: "candidate",
     legislationNumber: "3359",
     relatedIssueIds: ["public_employment", "compulsory_service"],
@@ -1360,10 +1405,14 @@ export function buildInventoryReport(): HealthLegislationInventoryReport {
   const byAccessStatus: Record<HealthLegislationAccessStatus, number> = {
     verified: 0, candidate: 0, gap: 0, deferred: 0
   };
+  const byLegislationType: Record<LegislationClassification, number> = {
+    kanun: 0, yonetmelik: 0, nizamname: 0, teblig: 0
+  };
 
   for (const entry of HEALTH_LEGISLATION_INVENTORY) {
     byCategory[entry.category] = (byCategory[entry.category] ?? 0) + 1;
     byAccessStatus[entry.officialSourceStatus]++;
+    byLegislationType[entry.legislationType]++;
   }
 
   const coreCount = HEALTH_LEGISLATION_INVENTORY.filter((e) => e.relevanceLevel === "core").length;
@@ -1411,6 +1460,7 @@ export function buildInventoryReport(): HealthLegislationInventoryReport {
     uncoveredCoreCount: uncoveredCore,
     inventoryByCategory: byCategory,
     inventoryByAccessStatus: byAccessStatus,
+    inventoryByLegislationType: byLegislationType,
     verifiedEntries: verified,
     candidateEntries: candidate,
     gapEntries: gap,

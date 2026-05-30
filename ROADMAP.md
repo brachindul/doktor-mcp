@@ -574,7 +574,7 @@ tamamlanmadan sıradakine geçme; önce düzelt.
 > Envanter şu an kanun ile yönetmeliği karıştırıyor (DHY, Umumi Hıfzıssıhha, 657 aslında
 > kanun). Kamu hekimi için 657 kritik. Düzgün bir kanun katmanı gerekli.
 
-### [ ] T11.1 — Kanun/yönetmelik tip ayrımı
+### [x] T11.1 — Kanun/yönetmelik tip ayrımı
 - **Yapılacak**: Envantere `legislationType: "kanun" | "yonetmelik" | "nizamname" | "teblig"`
   alanı ekle; sourceId tertip kodundan (1=kanun, 7=yönetmelik) türet/teyit et; çıktı ve
   diagnostics tipi göstersin.
