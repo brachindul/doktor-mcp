@@ -7,6 +7,7 @@ export interface LiveLegislationUnavailable {
     | "search_failed"
     | "document_not_found"
     | "source_blocked"
+    | "source_blocked_cloudflare"
     | "source_error"
     | "unsupported_content_type"
     | "provision_not_found"

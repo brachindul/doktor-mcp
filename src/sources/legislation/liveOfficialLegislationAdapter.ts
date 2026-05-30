@@ -232,10 +232,45 @@ export class LiveOfficialLegislationAdapter implements LegislationSourceAdapter 
   }
 
   async getDocument(result: OfficialLegislationSearchResult): Promise<LiveLegislationDocument | LiveLegislationUnavailable> {
-    const response = await this.fetchWithAdaptiveBackoff(result.documentUrl, {
+    // Attempt 1: Direct PDF download
+    let response = await this.fetchWithAdaptiveBackoff(result.documentUrl, {
       headers: officialHeaders()
     }, "mevzuat-pdf");
-    if (isUnavailable(response)) return response;
+
+    // Fallback: if direct PDF fails, try landing page first
+    if (isUnavailable(response)) {
+      const landingResponse = await this.fetchWithAdaptiveBackoff(result.sourceUrl, {
+        headers: officialHeaders()
+      }, "mevzuat-landing");
+
+      if (!isUnavailable(landingResponse) && landingResponse.ok) {
+        const html = await landingResponse.text();
+        // Try to find PDF URL in landing page HTML
+        const pdfMatch = html.match(/href="(\/File\/GeneratePdf[^"]+)"/i)
+          ?? html.match(/href="(\/MevzuatMetin[^"]+\.pdf)"/i);
+
+        if (pdfMatch) {
+          const pdfUrl = new URL(pdfMatch[1], BASE_URL).toString();
+          // Retry with the extracted URL and full browser headers
+          response = await this.fetchWithAdaptiveBackoff(pdfUrl, {
+            headers: officialHeaders()
+          }, "mevzuat-pdf-fallback");
+        }
+      }
+    }
+
+    // Still failed — check if it's a Cloudflare block
+    if (isUnavailable(response)) {
+      if (response.errorCode === "source_blocked" || response.errorCode === "source_error") {
+        return unavailable(
+          "source_blocked_cloudflare",
+          `Mevzuat.gov.tr PDF erişimi Cloudflare bot koruması tarafından engellendi: ${result.documentUrl}. Landing page fallback de başarısız oldu.`,
+          true,
+          "Manuel olarak mevzuat.gov.tr adresini ziyaret edip Cloudflare challenge'ı geçtikten sonra tekrar deneyin veya recorded fixture kullanın."
+        );
+      }
+      return response; // return original error
+    }
 
     const contentType = response.headers.get("content-type") ?? "application/octet-stream";
     if (!contentType.toLocaleLowerCase("en-US").includes("pdf")) {
@@ -440,10 +475,11 @@ function officialDocumentUrlForParts(type: string, arrangement: string, number: 
 
 function officialHeaders(contentType?: string): Record<string, string> {
   return {
-    Accept: "application/pdf, application/json;q=0.9, text/html;q=0.8",
-    ...(contentType ? { "Content-Type": contentType } : {}),
+    Accept: "application/pdf, application/json, text/html;q=0.9",
+    "Accept-Language": "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7",
     Referer: `${BASE_URL}/`,
-    "User-Agent": "doktor-mcp/0.2 official-legislation-check"
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+    ...(contentType ? { "Content-Type": contentType } : {}),
   };
 }
 

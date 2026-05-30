@@ -6,7 +6,7 @@
 >
 > **Genel kurallar (her görevde geçerli):**
 > - `npm run build` (tsc) **0 hata** vermeli.
-> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 1020 testi kırma.
+> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 1024 testi kırma.
 > - Yeni davranış eklediysen **yeni test** yaz. Test yoksa görev "done" sayılmaz.
 > - Pakedin/araç JSON şekli (response contract) değişiyorsa README'yi güncelle.
 > - Türkçe kullanıcı mesajları ve İngilizce kod/yorum karışımını koru (mevcut konvansiyon).
@@ -409,7 +409,7 @@ tamamlanmadan sıradakine geçme; önce düzelt.
 > → sourceId **`mevzuat:7.5.<no>`**, tam metin `mevzuat.gov.tr/mevzuatmetin/7.5.<no>.pdf`.
 > **Uydurma kaynak/metin yasak**; doğrulanamayan girdi dürüstçe `needs_manual_review` kalır.
 
-### [ ] T8.2 — Cloudflare/bot-koruması PDF fetch engelini çöz (ÖNCE bu)
+### [x] T8.2 — Cloudflare/bot-koruması PDF fetch engelini çöz (ÖNCE bu)
 - **Sorun**: T7.4'te `mevzuat.gov.tr/mevzuatmetin/*.pdf` otomatik fetch Cloudflare/bot
   korumasına takıldı; 6 girdi bu yüzden doğrulanamadı. Bu engel çözülmeden yeni girdiler de
   doğrulanamaz. Bu yüzden Faz 8'in ilk adımı budur.
