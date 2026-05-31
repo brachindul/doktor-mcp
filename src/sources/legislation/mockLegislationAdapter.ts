@@ -37,8 +37,9 @@ const standardPriorityMap: Record<string, number> = {
 /** Priority map used when the query targets public-employment / assignment topics. */
 const publicEmploymentPriorityMap: Record<string, number> = {
   "Sağlık Bakanlığı Atama ve Yer Değiştirme Yönetmeliği": 1,
-  "657 Sayılı Devlet Memurları Kanunu": 2,
-  "Ek Ödeme Yönetmeliği": 3,
+  "Sağlık Bakanlığı Disiplin Amirleri Yönetmeliği": 2,
+  "657 Sayılı Devlet Memurları Kanunu": 3,
+  "Ek Ödeme Yönetmeliği": 4,
   "Tıpta ve Diş Hekimliğinde Uzmanlık Eğitimi Yönetmeliği": 4,
   "Sağlık Meslek Mensupları ile Sağlık Hizmetlerinde Çalışan Diğer Meslek Mensuplarının İş ve Görev Tanımlarına Dair Yönetmelik": 5,
   "Hasta Haklari Yonetmeligi": 10,

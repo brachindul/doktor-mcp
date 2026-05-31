@@ -6,7 +6,7 @@
 >
 > **Genel kurallar (her görevde geçerli):**
 > - `npm run build` (tsc) **0 hata** vermeli.
-> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 1101 testi kırma.
+> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 1104 testi kırma.
 > - Yeni davranış eklediysen **yeni test** yaz. Test yoksa görev "done" sayılmaz.
 > - Pakedin/araç JSON şekli (response contract) değişiyorsa README'yi güncelle.
 > - Türkçe kullanıcı mesajları ve İngilizce kod/yorum karışımını koru (mevcut konvansiyon).
@@ -587,7 +587,7 @@ tamamlanmadan sıradakine geçme; önce düzelt.
   bazlı), **DHY** (3359 Ek Madde 3–6). Canlı doğrula; doğrulanamayanı dürüstçe işaretle.
 - **Kabul**: En az 657 + 1593 canlı doğrulanmış; TCK madde-bazlı eşleşme çalışıyor; test var.
 
-### [ ] T11.3 — Kanun + yönetmelik birlikte sıralama
+### [x] T11.3 — Kanun + yönetmelik birlikte sıralama
 - **Yapılacak**: Pack ordering: konuya göre birincil yönetmelik → ilgili kanun → destekleyici
   genel kanun. Disiplin sorgusunda Disiplin Amirleri Yön. + 657 disiplin maddeleri birlikte.
 - **Kabul**: Uçtan uca test: disiplin sorgusu hem yönetmeliği hem 657'yi doğru sırada döndürüyor.
