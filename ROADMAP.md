@@ -760,7 +760,7 @@ tamamlanmadan sıradakine geçme; önce düzelt.
 - **Kabul**: `covered` sayısı artıyor (gerçek doğrulananlar kadar); rapor `exports/`'a yazılıyor;
   her promote edilen girdi canlı smoke ile gösterilebiliyor. Build + test yeşil.
 
-### [ ] T20.2 — Coverage matrisi + benchmark'ı güncelle
+### [x] T20.2 — Coverage matrisi + benchmark'ı güncelle
 - **Yapılacak**: `docs/COVERAGE_MATRIX.md`'i yeniden üret; benchmark beklentilerini yeni
   covered girdilere göre güncelle; README kapsam ifadelerini gerçek sayılarla hizala.
 - **Kabul**: Matris ↔ envanter ↔ README tutarlı; testler güncel.

@@ -202,7 +202,7 @@ function createMockReport(results: BenchmarkItemResult[], overrides: Partial<Ben
       primaryIssueDistribution: { informed_consent: results.length }
     },
     officialLegislationCoverage: {
-      coveredOfficialLegislationCount: 11,
+      coveredOfficialLegislationCount: 16,
       coveredLegislationTitles: ["Hasta Haklari Yonetmeligi"],
       knownUncoveredLegislation: [],
       missingKnownHealthLegislationCount: 0,
@@ -210,16 +210,16 @@ function createMockReport(results: BenchmarkItemResult[], overrides: Partial<Ben
       topicClusterCount: 1,
       unofficialLegislationSourceCount: 0,
       coverageWarnings: [],
-      inventoryTotalCount: 21,
+      inventoryTotalCount: 41,
       coreInventoryCount: 11,
-      verifiedOfficialSourceCount: 11,
-      candidateOfficialSourceCount: 6,
-      gapCount: 4,
-      deferredCount: 4,
-      coveredByActiveHintsCount: 11,
+      verifiedOfficialSourceCount: 16,
+      candidateOfficialSourceCount: 21,
+      gapCount: 2,
+      deferredCount: 2,
+      coveredByActiveHintsCount: 16,
       uncoveredCoreCount: 0,
       inventoryByCategory: {},
-      inventoryByAccessStatus: { verified: 11, candidate: 6, gap: 4, deferred: 4 }
+      inventoryByAccessStatus: { verified: 16, candidate: 21, gap: 2, deferred: 2 }
     },
     contractPassedCount: results.filter(r => r.contractPassed).length,
     contractFailedCount: results.filter(r => !r.contractPassed).length,
