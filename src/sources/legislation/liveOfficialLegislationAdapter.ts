@@ -145,7 +145,8 @@ export class LiveOfficialLegislationAdapter implements LegislationSourceAdapter 
         document,
         trace,
         articleRanking,
-        selectedSearchResult.rawMetadata
+        selectedSearchResult.rawMetadata,
+        article.articleStatus
       )));
     }
 
@@ -409,7 +410,8 @@ function provisionFromArticle(
   document: LiveLegislationDocument,
   sourceTrace: LegislationSourceTrace,
   ranking: LegislationProvision["ranking"],
-  rawMetadata?: Record<string, unknown>
+  rawMetadata?: Record<string, unknown>,
+  articleStatus?: LegislationProvision["articleStatus"]
 ): LegislationProvision {
   const forceMetadata = extractForceMetadata(rawMetadata);
   return {
@@ -422,6 +424,7 @@ function provisionFromArticle(
     sourceTrace,
     ...(ranking ? { ranking } : {}),
     ...forceMetadata,
+    ...(articleStatus ? { articleStatus } : {}),
     evidence: {
       source: "legislation",
       documentId: document.sourceId,

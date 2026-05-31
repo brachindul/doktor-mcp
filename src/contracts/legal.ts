@@ -98,6 +98,8 @@ export interface LegislationProvision {
   lastAmendedDate?: string;
   /** Whether the provision has been repealed. */
   repealed?: boolean;
+  /** Unified article status derived from inline markers (Mülga / Değişik). */
+  articleStatus?: "in_force" | "repealed" | "amended";
 }
 
 export interface ProvisionRanking {

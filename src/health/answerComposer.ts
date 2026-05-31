@@ -267,7 +267,8 @@ export function composeDoctorLegalInformationPack(
     ...(provision.ranking ? { ranking: provision.ranking } : {}),
     ...(provision.inForce !== undefined ? { inForce: provision.inForce } : {}),
     ...(provision.lastAmendedDate !== undefined ? { lastAmendedDate: provision.lastAmendedDate } : {}),
-    ...(provision.repealed !== undefined ? { repealed: provision.repealed } : {})
+    ...(provision.repealed !== undefined ? { repealed: provision.repealed } : {}),
+    ...(provision.articleStatus !== undefined ? { articleStatus: provision.articleStatus } : {})
   }));
   const verifiedHighCourtPrecedents = dedupedPrecedents.map((precedent) => formatPrecedent(precedent, classification));
   const legalClassification = classificationSection(classification);

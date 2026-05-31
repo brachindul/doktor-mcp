@@ -782,7 +782,7 @@ tamamlanmadan sıradakine geçme; önce düzelt.
   gibi gürültü madde metnine sızmasın; "MADDE N-" sınırları doğru ayrışsın; boş/parça maddeler elensin.
 - **Kabul**: Recorded-fixture testi: bilinen bir yönetmeliğin maddeleri temiz çıkıyor; gürültü yok.
 
-### [ ] T21.2 — Mülga (yürürlükten kalkmış) madde tespiti
+### [x] T21.2 — Mülga (yürürlükten kalkmış) madde tespiti
 - **Yapılacak**: Madde metninde "(Mülga ...)", "(Değişik ...)" işaretlerini tespit et;
   `articleStatus: "in_force" | "repealed" | "amended"` alanı ekle; mülga maddeler hekim-dönük
   çıktıda **uyarıyla** işaretlensin veya elensin (uydurma "yürürlükte" varsayma).

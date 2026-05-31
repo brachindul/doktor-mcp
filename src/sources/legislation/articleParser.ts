@@ -1,9 +1,38 @@
+export type ArticleStatus = "in_force" | "repealed" | "amended";
+
 export interface ExtractedArticle {
   articleNumber: string;
   text: string;
+  articleStatus: ArticleStatus;
 }
 
 const MIN_ARTICLE_LENGTH = 25;
+
+const REPEALED_PATTERN = /\(\s*M[üu]lga\s*[:;]/i;
+const AMENDED_PATTERN = /\(\s*De[ğg]i[sş]ik\s*[:;]/i;
+
+function detectArticleStatus(text: string): ArticleStatus {
+  // If any amendment marker appears, mark as amended.
+  if (AMENDED_PATTERN.test(text)) {
+    return "amended";
+  }
+  // If a repeal marker appears, check whether the article still has substantive text
+  // outside the marker. A "real word" heuristic: at least one word of 4+ letters
+  // outside the marker means the article still carries active legal text → amended.
+  const repealMatch = text.match(REPEALED_PATTERN);
+  if (repealMatch) {
+    const beforeRepeal = text.slice(0, repealMatch.index ?? 0).trim();
+    const afterRepeal = text.slice((repealMatch.index ?? 0) + repealMatch[0].length).trim();
+    const outside = (beforeRepeal + " " + afterRepeal).replace(/\s+/g, " ").trim();
+    // Require at least one real word (4+ letters) outside the marker for "amended"
+    const hasRealWord = /\b[a-zçğıöşü]{4,}\b/i.test(outside);
+    if (hasRealWord) {
+      return "amended";
+    }
+    return "repealed";
+  }
+  return "in_force";
+}
 
 const FOOTER_PATTERNS = [
   /Eki için tıklayınız\./i,
@@ -46,10 +75,12 @@ export function extractArticlesFromOfficialText(text: string): ExtractedArticle[
   const articles = matches.map((match, index) => {
     const start = (match.index ?? 0) + match[0].length;
     const end = matches[index + 1]?.index ?? cleaned.length;
+    const text = trimNextArticleHeading(cleaned.slice(start, end).trim());
 
     return {
       articleNumber: match[1],
-      text: trimNextArticleHeading(cleaned.slice(start, end).trim())
+      text,
+      articleStatus: detectArticleStatus(text)
     };
   });
 
