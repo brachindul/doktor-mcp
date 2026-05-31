@@ -74,6 +74,16 @@ export const DoktorMcpConfigSchema = z.object({
     /** Minimum relevance score (0-5) for a precedent to appear in preliminaryAssessment */
     minRelevanceScore: z.number().int().min(0).max(5).default(2),
   }).default(() => ({ minRelevanceScore: 2 })),
+
+  /** Precedent recency configuration */
+  precedentRecency: z.object({
+    /** Weight (0-1) of recency in the combined ranking score. 0 = disabled. */
+    weight: z.number().min(0).max(1).default(0.2),
+    /** Optional minimum decision year; decisions older than this are filtered out. 0 = disabled. */
+    minDecisionYear: z.number().int().min(0).max(2100).default(0),
+    /** Reference year for recency scoring; decisions from this year get max recency score. */
+    referenceYear: z.number().int().min(1900).max(2100).default(new Date().getFullYear()),
+  }).default(() => ({ weight: 0.2, minDecisionYear: 0, referenceYear: new Date().getFullYear() })),
 });
 
 export type DoktorMcpConfig = z.infer<typeof DoktorMcpConfigSchema>;
@@ -116,6 +126,20 @@ const ENV_SETTERS: Record<string, ConfigSetter> = {
   DOKTOR_MCP_ASSESSMENT_MIN_RELEVANCE_SCORE: (c, v) => {
     if (!c.assessment || typeof c.assessment !== "object") c.assessment = {};
     (c.assessment as Record<string, unknown>).minRelevanceScore = parseNum(v);
+  },
+
+  // precedentRecency
+  DOKTOR_MCP_RECENCY_WEIGHT: (c, v) => {
+    if (!c.precedentRecency || typeof c.precedentRecency !== "object") c.precedentRecency = {};
+    (c.precedentRecency as Record<string, unknown>).weight = parseNum(v);
+  },
+  DOKTOR_MCP_RECENCY_MIN_DECISION_YEAR: (c, v) => {
+    if (!c.precedentRecency || typeof c.precedentRecency !== "object") c.precedentRecency = {};
+    (c.precedentRecency as Record<string, unknown>).minDecisionYear = parseNum(v);
+  },
+  DOKTOR_MCP_RECENCY_REFERENCE_YEAR: (c, v) => {
+    if (!c.precedentRecency || typeof c.precedentRecency !== "object") c.precedentRecency = {};
+    (c.precedentRecency as Record<string, unknown>).referenceYear = parseNum(v);
   },
 
   // scalars

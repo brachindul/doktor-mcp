@@ -808,7 +808,7 @@ tamamlanmadan sıradakine geçme; önce düzelt.
   emsal seçiminde ilgili daireyi önceliklendir.
 - **Kabul**: Recorded-fixture: konu→daire önceliği çalışıyor; alakasız daire skoru düşük; test var.
 
-### [ ] T22.3 — Emsal tarih filtresi ve güncellik
+### [x] T22.3 — Emsal tarih filtresi ve güncellik
 - **Yapılacak**: Çok eski/ilgisiz kararları elemek için opsiyonel tarih filtresi; daha yeni
   içtihadı önceliklendiren bir recency sinyali (sıralama ağırlığı), `runtimeConfig`'ten ayarlanır.
 - **Kabul**: Test: eşit-ilgili iki karardan yeni olan öne geçiyor; filtre çalışıyor.
