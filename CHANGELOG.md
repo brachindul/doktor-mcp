@@ -1,6 +1,32 @@
 # Changelog
 
-## [Unreleased] — Faz 20 — Canlı Kapsama Tamamlama
+## [Unreleased] — Faz 20–22 Birikimi
+
+### Faz 22 — Emsal Derinleştirme
+
+- **T22.1**: Emsal tam-metin önbelleği — `PrecedentCache`'e `getFullText`/`setFullText` eklendi.
+  Yargıtay, Danıştay, Bedesten adapter'ları full-text fetch öncesinde cache kontrolü yapıyor;
+  cache hit → ağ çağrısı atlanıyor. `tests/precedentFullTextCache.test.ts` (5 test).
+- **T22.2**: Daire-uzmanlık eşlemesi — `precedentRelevance.ts`'e `ISSUE_PROFILE_CHAMBERS` tablosu eklendi.
+  Konu→daire/duruşma önceliği: `violence_threat` + Ceza Dairesi = +1; `public_employment` + Danıştay = +1;
+  alakasız daire (ör. Hukuk Dairesi + şiddet konusu) = -1. `tests/chamberMapping.test.ts` (7 test).
+- **T22.3**: Emsal tarih filtresi ve güncellik — `runtimeConfig`'e `precedentRecency` (weight, minDecisionYear, referenceYear)
+  eklendi. `rerankByIssueRelevance` combined score = relevanceScore + recencyScore * weight * 5.
+  Eşit ilgili iki karardan yenisi öne geçiyor; çok eski kararlar recency penalty alıyor.
+  `tests/precedentRecency.test.ts` (4 test).
+
+### Faz 21 — Mevzuat Madde-Düzeyi Kalite
+
+- **T21.1**: `articleParser.ts` gürültü temizliği — RG meta verisi, sayfa işaretçileri, ayırıcı çizgiler
+  çıkarıldı; `MIN_ARTICLE_LENGTH=25` boş/fragment madde filtresi eklendi.
+  `tests/articleParserSanitization.test.ts` (4 test: sentetik + canlı Atama Yönetmeliği + TUEY).
+- **T21.2**: Madde durumu tespiti — `detectArticleStatus()` ile `in_force` / `repealed` / `amended`
+  sınıflandırması. Heuristic: `AMENDED_PATTERN` önce; `REPEALED_PATTERN` için marker dışında
+  >=4 harfli gerçek kelime varsa `amended`, yoksa `repealed`.
+  `tests/articleStatusDetection.test.ts` (4 test: sentetik + canlı Atama Yönetmeliği).
+- **T21.3**: Madde içi çapraz-referans tespiti — `CROSS_REF_PATTERN` ile "5 inci maddede",
+  "3. fıkrasında", "2'nci bendinde" gibi atıflar yakalanıp `crossReferences: string[]` olarak çıkar.
+  Format: `madde:5`, `fikra:3`, `bent:2`. `tests/articleCrossReferences.test.ts` (4 test).
 
 ### Faz 20 — Canlı Kapsama Tamamlama (candidate → covered)
 
