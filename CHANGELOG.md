@@ -30,6 +30,11 @@
   emsale odaklanan takip sorusunu (`followUpQuestion`) keyword matching ile
   paket içindeki ilgili madde/kararla eşleştiriyor. `tests/drillDownTool.test.ts`
   (5 test): madde numarası, kanun adı, daire adı ve ilgisiz soru senaryoları.
+- **T24.2**: Oturum bağlam taşıma — `PrepareInformationPackInput`'e `previousContext`
+  alanı eklendi. `mergeClassifications` ile önceki sorunun `dimensions`,
+  `searchTerms` ve `missingInformation`'ı mevcut soruyla birleştiriliyor (current
+  öncelikli, unique değerler append). `tests/sessionContextCarryover.test.ts`
+  (5 test): dimension birleşimi, searchTerm/missingInfo dedup, opt-in davranışı.
 
 ### Faz 22 — Emsal Derinleştirme
 

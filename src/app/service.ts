@@ -126,6 +126,30 @@ export class DoktorMcpInformationService {
     return classifyMedicalLegalQuestion(question);
   }
 
+  /**
+   * T24.2 — Merge previous session context with current classification.
+   * Current dimensions take priority; previous searchTerms and missingInformation
+   * are appended (deduplicated) to improve follow-up question coverage.
+   */
+  mergeClassifications(
+    current: ClassifiedMedicalLegalQuestion,
+    previous: ClassifiedMedicalLegalQuestion
+  ): ClassifiedMedicalLegalQuestion {
+    const currentDimIds = new Set(current.dimensions);
+    const mergedDimensions = [
+      ...current.dimensions,
+      ...previous.dimensions.filter((d) => !currentDimIds.has(d))
+    ];
+    const mergedSearchTerms = Array.from(new Set([...current.searchTerms, ...previous.searchTerms]));
+    const mergedMissing = Array.from(new Set([...current.missingInformation, ...previous.missingInformation]));
+    return {
+      question: current.question,
+      dimensions: mergedDimensions,
+      searchTerms: mergedSearchTerms,
+      missingInformation: mergedMissing
+    };
+  }
+
   async searchLegislation(classification: ClassifiedMedicalLegalQuestion, sourceMode: LegislationSourceMode = "mock") {
     if (sourceMode === "live") {
       const result = await this.liveLegislation.getMappedHealthProvisions(classification.question);
@@ -196,7 +220,10 @@ export class DoktorMcpInformationService {
       timeBudgetTelemetry?: TimeBudgetTelemetry;
     }
   > {
-    const classification = this.classify(input.question);
+    let classification = this.classify(input.question);
+    if (input.previousContext) {
+      classification = this.mergeClassifications(classification, input.previousContext);
+    }
     this.rescueManager.clearPartialState();
 
     // Live mode: sequential research with time budget

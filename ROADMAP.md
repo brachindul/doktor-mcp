@@ -846,7 +846,7 @@ tamamlanmadan sıradakine geçme; önce düzelt.
   dayanıyor" gibi takip sorgularını mevcut pakete bağlayan bir drill-down aracı (MCP tool).
 - **Kabul**: Drill-down aracı önceki paketteki bir provision/karar için detay döndürüyor; test var.
 
-### [ ] T24.2 — Oturum bağlam taşıma
+### [x] T24.2 — Oturum bağlam taşıma
 - **Yapılacak**: Aynı oturumda önceki sorunun sınıflandırma/konu bağlamını opsiyonel taşı
   (ör. "peki ya acil durumda" → önceki konu + acil). Bağlam taşıma açıkça opt-in.
 - **Kabul**: Bağlamlı takip sorusu doğru genişletiliyor; bağlamsız davranış değişmiyor; test var.

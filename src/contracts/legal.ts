@@ -262,6 +262,8 @@ export interface PrepareInformationPackInput {
   timeBudget?: any;
   /** Controls whether the pack includes a source-grounded preliminary assessment. Defaults to "grounded-advisory". */
   assessmentTone?: "strict" | "grounded-advisory";
+  /** Optional previous question context for multi-turn sessions. When provided, dimensions/searchTerms are merged. */
+  previousContext?: ClassifiedMedicalLegalQuestion;
 }
 
 export interface PrecedentSourceSummary {
