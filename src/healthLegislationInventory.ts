@@ -1374,6 +1374,82 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
       "v0.44.0: Added as candidate. sourceId confirmed; DHY-specific provisions documented.",
       "needs_manual_review: verify that Ek Madde 7-8 provisions are current and not superseded."
     ]
+  },
+
+  // ── Core statutes — 657 DMK and TCK 5237 ──────────────────────────────────
+
+  {
+    key: "657-dmk",
+    title: "657 Sayılı Devlet Memurları Kanunu",
+    titleNormalized: "657 sayili devlet memurlari kanunu",
+    category: "discipline",
+    relevanceLevel: "supporting",
+    officialSourceRequired: true,
+    legislationType: "kanun",
+    officialSourceStatus: "candidate",
+    mevzuatSourceId: "mevzuat:1.5.657",
+    legislationNumber: "657",
+    relatedIssueIds: ["disciplinary_administrative", "public_employment"],
+    relatedTopicClusters: ["public_employment", "disciplinary_administrative"],
+    searchTerms: ["657", "devlet memurları kanunu", "memur disiplin", "özlük hakları"],
+    coverageStatus: "candidate",
+    expectedLegislationType: "kanun",
+    aliases: [
+      "Devlet Memurları Kanunu",
+      "Kanun 657",
+      "657 sayılı kanun"
+    ],
+    markerTerms: [
+      "devlet memuru", "disiplin cezası", "uyarma", "kınama",
+      "aşağı dereceye", "bir derece", "kadro", "derece",
+      "görevden uzaklaştırma"
+    ],
+    negativeMarkerTerms: [
+      "türk silahlı kuvvetleri", "asker", "tsk"
+    ],
+    knownWrongMatches: [],
+    notes: [
+      "Kamu hekimlerinin disiplin ve özlük hakları 657 sayılı kanuna tabidir.",
+      "Governs civil servant discipline, appointment, and employment rights for public physicians.",
+      "v0.44.0: Added as candidate. sourceId mevzuat:1.5.657 from ROADMAP; needs live verification."
+    ]
+  },
+
+  {
+    key: "tck-5237",
+    title: "5237 Sayılı Türk Ceza Kanunu (Hekimi İlgilendiren Maddeler)",
+    titleNormalized: "5237 sayili turk ceza kanunu hekimi ilgilendiren maddeler",
+    category: "physician_practice",
+    relevanceLevel: "supporting",
+    officialSourceRequired: true,
+    legislationType: "kanun",
+    officialSourceStatus: "candidate",
+    mevzuatSourceId: "mevzuat:1.5.5237",
+    legislationNumber: "5237",
+    relatedIssueIds: ["physician_liability", "criminal_liability", "medical_intervention"],
+    relatedTopicClusters: ["medical_intervention"],
+    searchTerms: ["5237", "türk ceza kanunu", "tck", "görevi ihmal", "görevi kötüye kullanma"],
+    coverageStatus: "candidate",
+    expectedLegislationType: "kanun",
+    aliases: [
+      "Türk Ceza Kanunu",
+      "TCK 5237",
+      "Kanun 5237"
+    ],
+    markerTerms: [
+      "görevi ihmal", "görevi kötüye kullanma", "taksir",
+      "bilinçli taksir", "mevzuatı bilmemezlik",
+      "sağlık hakkı", "insan vücut dokunulmazlığı"
+    ],
+    negativeMarkerTerms: [
+      "türk silahlı kuvvetleri", "asker"
+    ],
+    knownWrongMatches: [],
+    notes: [
+      "Hekimi ilgilendiren ceza maddeleri: md.94-97 (taksirle yaralama/ölüm), md.229 (görevi kötüye kullanma).",
+      "Relevant for physician criminal liability questions.",
+      "v0.44.0: Added as candidate. sourceId mevzuat:1.5.5237 from ROADMAP; needs live verification."
+    ]
   }
 ];
 

@@ -742,5 +742,19 @@ export const healthLegislationHints: HealthLegislationHint[] = [
     legislationArrangement: "3",
     articleNumbers: [],
     dimensions: ["disciplinary_administrative"] as any
-  } as any
+  } as any,
+
+  // ── 657 Devlet Memurları Kanunu — core public employment statute ─────────
+  {
+    sourceId: "mevzuat:1.5.657",
+    title: "657 Sayılı Devlet Memurları Kanunu",
+    query: "Devlet Memurları Kanunu",
+    articleNumbers: ["125", "126", "127", "135"],
+    topicCluster: "public_employment" as any,
+    legislationRole: "health_primary" as any,
+    healthLawPriority: 28,
+    selectionReason: "Kamu hekimlerinin disiplin ve özlük hakları 657 sayılı kanuna tabidir.",
+    terms: ["657", "devlet memurları", "devlet memuru", "memur", "dmk"],
+    dimensions: ["disciplinary_administrative"] as any
+  }
 ];

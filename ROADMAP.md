@@ -6,7 +6,7 @@
 >
 > **Genel kurallar (her görevde geçerli):**
 > - `npm run build` (tsc) **0 hata** vermeli.
-> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 1098 testi kırma.
+> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 1101 testi kırma.
 > - Yeni davranış eklediysen **yeni test** yaz. Test yoksa görev "done" sayılmaz.
 > - Pakedin/araç JSON şekli (response contract) değişiyorsa README'yi güncelle.
 > - Türkçe kullanıcı mesajları ve İngilizce kod/yorum karışımını koru (mevcut konvansiyon).
@@ -580,7 +580,7 @@ tamamlanmadan sıradakine geçme; önce düzelt.
   diagnostics tipi göstersin.
 - **Kabul**: Her girdi doğru tiplenmiş; test var.
 
-### [ ] T11.2 — Çekirdek kanunları ekle/doğrula
+### [x] T11.2 — Çekirdek kanunları ekle/doğrula
 - **Yapılacak**: **657 Devlet Memurları Kanunu** (`mevzuat:1.5.657` — kamu hekimi için temel,
   disiplin/özlük), **Umumi Hıfzıssıhha Kanunu 1593** (`mevzuat:1.3.1593`), **5237 TCK**'nın
   hekimi ilgilendiren maddeleri (taksirle yaralama/öldürme, görevi kötüye kullanma — madde
