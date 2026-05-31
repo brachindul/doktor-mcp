@@ -403,6 +403,7 @@
 17. Faz 16 (gözlemlenebilirlik/DX) → T16.1 → T16.2 → T16.3
 18. Faz 17 (klinik kapsam genişlemesi) → T17.1 → T17.2
 19. Faz 18 (v1.0.0 sürüm hazırlığı) → T18.1 → T18.2 → T18.3
+20. Faz 19 (gece koşusu kapanış düzeltmeleri) → T19.1 → T19.2 → T19.3 → T19.4
 
 **Her görev sonunda**: build + test yeşil → commit. Bir görev testi kırıyorsa, görev
 tamamlanmadan sıradakine geçme; önce düzelt.
@@ -518,6 +519,9 @@ tamamlanmadan sıradakine geçme; önce düzelt.
   `source_blocked_cloudflare` ile net raporla — ama önce (b) ve (c) tüketilsin.
 - **Kabul**: En az Atama Yönetmeliği'nin metni canlı olarak çıkarılıp en az 1 madde
   döndürülüyor; smoke `npm run verify:health-legislation` ile gösteriliyor. Build+test yeşil.
+- **⚠️ BAĞIMSIZ DOĞRULAMA NOTU**: Canlı incelemede `mevzuat:7.5.17232` canlı smoke hâlâ
+  `source_error` veriyor (gizlilik sorgusu çalışırken kamu sorgusu çalışmıyor). Bu görev
+  işaret olarak `[x]` durumunda ama kabul kriteri karşılanmamıştır. T19.1 bunu ele alır.
 
 ### [x] T9.2 — Yeni kamu/eğitim yönetmelikleri için mock provision ekle
 - **Sorun**: `mockLegislationAdapter`/`mockData`'da yeni yönetmelikler için hüküm yok; mock
@@ -677,3 +681,50 @@ tamamlanmadan sıradakine geçme; önce düzelt.
   benchmark; sonuçları `exports/` + bir özet rapora yaz; regresyon/güvenlik invariyantları yeşil.
 - **Kabul**: 10 sorunun her biri için pack üretiliyor veya dürüst no-pack diagnostic'i var;
   unsafe/uydurma yok.
+
+---
+
+## Faz 19 — Gece Koşusu Sonrası Kapanış Düzeltmeleri
+
+> Faz 0–18 tamamlandı ama bağımsız canlı doğrulamada iki açık bulundu.
+> Bu faz bunları kapatır.
+
+### [ ] T19.1 — Yeni kamu sourceId'lerinin canlı fetch'ini düzelt ve T9.1'i dürüstçe kapat
+- **Sorun**: Gizlilik yönetmelikleri (mevzuat:1.5.6698) canlıda çekiliyor, ama kamu
+  yönetmelikleri (mevzuat:7.5.17232 Atama vb.) hâlâ `source_error` veriyor. Fark muhtemelen
+  PDF URL formatında (type-7 yeni numara aralığı), landing-page fallback'in bunları yakalamaması,
+  veya bu mevzuat numaralarının farklı bir endpoint/path gerektirmesi.
+- **Yapılacak**:
+  - `mevzuat:7.5.17232` için adım adım teşhis: doğrudan PDF URL yapısı, landing-page HTML
+    parse, redirect zinciri. Neden başarısız olduğunu `source_blocked_cloudflare` / 
+    `document_not_found` / `pdf_parse_failed` şeklinde sınıflandır.
+  - Düzeltilebilirse: Atama Yönetmeliği'nden en az 1 madde metni canlı çıkarılabilmeli;
+    `coverageStatus` en az `candidate`→`covered`.
+  - Düzeltilemiyorsa: `errorCode: "document_not_found"` veya `"source_blocked"` ile net raporla;
+    T9.1'deki **⚠️ notunu** `[x]`'ten gerçek duruma göre düzelt (kabul karşılandıysa kalsın,
+    karşılanmadıysa CHANGELOG'a düzeltme düş).
+- **Kabul**: Ya `mevzuat:7.5.17232` canlıda metin veriyor (kapsama aldı), ya da başarısızlık
+  nedeni yapılandırılmış error kodu ile açıkça raporlanıyor — sessiz `source_error` yok.
+  Build + test yeşil.
+
+### [ ] T19.2 — Mevzuat provision dedup'ı
+- **Sorun**: Mock smoke'da Atama Yönetmeliği `relevantLegislation`'da **3 kez** tekrar ediyor.
+  Emsal dedup (T2.3) var ama mevzuat tarafında eşdeğer yok.
+- **Dosya**: `src/health/legislationMapper.ts` veya `src/app/legislationPhase.ts` (provision
+  birleştirme noktası).
+- **Yapılacak**: Aynı `sourceDocumentId` + `articleNumber` ikilisinden gelen provision'ları
+  dedupe et; en zengin `verbatimQuote` olanı tut. Diagnostics'e `dedupedProvisionCount` ekle.
+- **Kabul**: Test: aynı madde farklı kaynaklardan → tek provision; çıktıda tekrar yok.
+  Build + test yeşil.
+
+### [ ] T19.3 — Canlı kamu sorgusu için dürüst no-pack diagnostic testi
+- **Yapılacak**: Canlıda kamu yönetmelikleri `covered` değilken paket `sourceSufficiency:
+  "partial"` + `coverageGaps` ile dürüst diagnostic döndürmeli — sessizce `verifiedLegislationCount:0`
+  + boş mevzuat döndürmemeli. Test: kamu sorgusu + `sourceMode: live` → ya mevzuat var
+  ya da `coverageGaps` içinde kamu yönetmeliginin neden gelmediği açıkça belirtiliyor.
+- **Kabul**: Canlı kamu sorgusu sessiz boş dönmüyor; açık diagnostic veya provision var; test var.
+
+### [ ] T19.4 — Son CHANGELOG + sürüm turu
+- **Yapılacak**: T19.1–T19.3 bittikten sonra CHANGELOG'a Faz 19 girdisi, package.json +
+  lock sürümünü bump (0.46.0 → 0.47.0), `tests/version.test.ts` uyumu.
+- **Kabul**: Sürüm, changelog, lock tutarlı; build + test yeşil.
