@@ -257,6 +257,14 @@ export function composeDoctorLegalInformationPack(
     "Guncel mevzuat metni ve karar tam metninin canli kaynaktan yeniden dogrulanmasi"
   ];
 
+  // Context-aware lawyer review points based on classification dimensions
+  if (classification.dimensions.includes("disciplinary_administrative" as any)) {
+    lawyerReviewPoints.push("Disiplin soruşturmasında savunma süresi ve zamanaşımı kontrolü");
+  }
+  if (classification.dimensions.includes("privacy_kvkk" as any)) {
+    lawyerReviewPoints.push("Veri sorumlusuna başvuru ve KVK Kurulu'na şikayet süreleri");
+  }
+
   // Build preliminary assessment only in grounded-advisory mode
   let preliminaryAssessment: PreliminaryAssessment | null = null;
   if (tone !== "strict") {

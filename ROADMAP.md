@@ -6,7 +6,7 @@
 >
 > **Genel kurallar (her görevde geçerli):**
 > - `npm run build` (tsc) **0 hata** vermeli.
-> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 1114 testi kırma.
+> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 1117 testi kırma.
 > - Yeni davranış eklediysen **yeni test** yaz. Test yoksa görev "done" sayılmaz.
 > - Pakedin/araç JSON şekli (response contract) değişiyorsa README'yi güncelle.
 > - Türkçe kullanıcı mesajları ve İngilizce kod/yorum karışımını koru (mevcut konvansiyon).
@@ -622,17 +622,17 @@ tamamlanmadan sıradakine geçme; önce düzelt.
 
 ## Faz 13 — Çıktı / Ürün Kalitesi
 
-### [ ] T13.1 — `preliminaryAssessment`'i madde-atıflı zenginleştir
+### [x] T13.1 — `preliminaryAssessment`'i madde-atıflı zenginleştir
 - **Yapılacak**: Mevzuat cümleleri madde numarasını ve somut yükümlülüğü (alıntıdan
   türetilmiş, uydurma değil) belirtsin; emsal cümleleri daire + tarih + kısa sonuç içersin.
 - **Kabul**: Cümleler madde/karar künyesi taşıyor; her cümlede `sourceRef`; test var.
 
-### [ ] T13.2 — `missingInformation` ve `lawyerReviewPoints` otomatik kalitesi
+### [x] T13.2 — `missingInformation` ve `lawyerReviewPoints` otomatik kalitesi
 - **Yapılacak**: Konuya göre anlamlı eksik-bilgi ve avukat-inceleme noktaları üret (ör. kamu
   disiplininde: savunma süresi, zamanaşımı, yetkili kurul). Şablon değil, konu-duyarlı.
 - **Kabul**: Farklı konularda farklı, isabetli noktalar; test konu-duyarlılığı doğruluyor.
 
-### [ ] T13.3 — Markdown renderer'ı çok-eksenli pakete uyarla
+### [x] T13.3 — Markdown renderer'ı çok-eksenli pakete uyarla
 - **Yapılacak**: Klinik + idari/özlük eksenlerini ayrı başlıklarla göster; kanun/yönetmelik
   ayrımını işaretle; emsal ilgililik notunu ekle.
 - **Kabul**: Render deterministik, yeni alanları gösteriyor; test güncel.
