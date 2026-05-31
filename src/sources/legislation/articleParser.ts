@@ -4,12 +4,40 @@ export interface ExtractedArticle {
   articleNumber: string;
   text: string;
   articleStatus: ArticleStatus;
+  crossReferences?: string[];
 }
 
 const MIN_ARTICLE_LENGTH = 25;
 
 const REPEALED_PATTERN = /\(\s*M[üu]lga\s*[:;]/i;
 const AMENDED_PATTERN = /\(\s*De[ğg]i[sş]ik\s*[:;]/i;
+
+// Detects internal cross-references like "5 inci maddede", "3. fıkrasında", "2'nci bendinde"
+const CROSS_REF_PATTERN = /(\d+(?:[A-Za-z])?)\s*(?:[.'\s])?\s*(?:inci|ıncı|uncu|üncü|nci)?\s*(madde(?:si?n?d?e?)?|fıkra(?:sı?n?d?a?)?|ben[td](?:i?n?d?e?)?)/gi;
+
+function extractCrossReferences(text: string): string[] {
+  const refs: string[] = [];
+  let match: RegExpExecArray | null;
+  // Reset lastIndex to ensure we start from beginning
+  CROSS_REF_PATTERN.lastIndex = 0;
+  while ((match = CROSS_REF_PATTERN.exec(text)) !== null) {
+    const number = match[1];
+    const typeRaw = match[2].toLowerCase();
+    let type: string;
+    if (typeRaw.startsWith("madde")) {
+      type = "madde";
+    } else if (typeRaw.startsWith("fıkra")) {
+      type = "fikra";
+    } else if (/^ben[td]/.test(typeRaw)) {
+      type = "bent";
+    } else {
+      continue;
+    }
+    refs.push(`${type}:${number}`);
+  }
+  // Deduplicate while preserving order
+  return [...new Set(refs)];
+}
 
 function detectArticleStatus(text: string): ArticleStatus {
   // If any amendment marker appears, mark as amended.
@@ -76,11 +104,13 @@ export function extractArticlesFromOfficialText(text: string): ExtractedArticle[
     const start = (match.index ?? 0) + match[0].length;
     const end = matches[index + 1]?.index ?? cleaned.length;
     const text = trimNextArticleHeading(cleaned.slice(start, end).trim());
+    const crossReferences = extractCrossReferences(text);
 
     return {
       articleNumber: match[1],
       text,
-      articleStatus: detectArticleStatus(text)
+      articleStatus: detectArticleStatus(text),
+      ...(crossReferences.length > 0 ? { crossReferences } : {})
     };
   });
 

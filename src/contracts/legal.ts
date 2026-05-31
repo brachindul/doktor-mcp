@@ -100,6 +100,8 @@ export interface LegislationProvision {
   repealed?: boolean;
   /** Unified article status derived from inline markers (Mülga / Değişik). */
   articleStatus?: "in_force" | "repealed" | "amended";
+  /** Cross-references detected inside the article text (e.g. "madde:5", "fikra:3"). Detection only; resolution is optional. */
+  crossReferences?: string[];
 }
 
 export interface ProvisionRanking {

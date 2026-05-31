@@ -788,7 +788,7 @@ tamamlanmadan sıradakine geçme; önce düzelt.
   çıktıda **uyarıyla** işaretlensin veya elensin (uydurma "yürürlükte" varsayma).
 - **Kabul**: Mülga madde içeren fixture → doğru işaretleniyor; test var.
 
-### [ ] T21.3 — Madde içi çapraz-referans çözümü
+### [x] T21.3 — Madde içi çapraz-referans çözümü
 - **Yapılacak**: Madde metnindeki "... 5 inci maddede ..." gibi atıfları tespit edip
   `crossReferences: string[]` olarak çıkar; trace'e ekle (çözümleme opsiyonel, sadece tespit).
 - **Kabul**: Atıf içeren madde → referanslar çıkarılıyor; test var.

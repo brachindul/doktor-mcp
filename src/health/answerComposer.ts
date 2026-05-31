@@ -268,7 +268,8 @@ export function composeDoctorLegalInformationPack(
     ...(provision.inForce !== undefined ? { inForce: provision.inForce } : {}),
     ...(provision.lastAmendedDate !== undefined ? { lastAmendedDate: provision.lastAmendedDate } : {}),
     ...(provision.repealed !== undefined ? { repealed: provision.repealed } : {}),
-    ...(provision.articleStatus !== undefined ? { articleStatus: provision.articleStatus } : {})
+    ...(provision.articleStatus !== undefined ? { articleStatus: provision.articleStatus } : {}),
+    ...(provision.crossReferences && provision.crossReferences.length > 0 ? { crossReferences: provision.crossReferences } : {})
   }));
   const verifiedHighCourtPrecedents = dedupedPrecedents.map((precedent) => formatPrecedent(precedent, classification));
   const legalClassification = classificationSection(classification);
