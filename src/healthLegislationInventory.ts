@@ -1060,13 +1060,14 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     relevanceLevel: "supporting",
     officialSourceRequired: true,
     legislationType: "yonetmelik",
-    officialSourceStatus: "candidate",
+    officialSourceStatus: "verified",
     mevzuatSourceId: "mevzuat:7.5.39700",
+    officialUrl: "https://www.mevzuat.gov.tr/mevzuat?MevzuatNo=39700&MevzuatTur=7&MevzuatTertip=5",
     legislationNumber: "39700",
     relatedIssueIds: ["medical_education", "specialization"],
     relatedTopicClusters: ["medical_education"],
     searchTerms: ["TUEY", "uzmanlık eğitimi", "ihtisas", "asistan", "asistanlık", "tıpta uzmanlık"],
-    coverageStatus: "candidate",
+    coverageStatus: "covered",
     expectedLegislationType: "yonetmelik",
     aliases: [
       "Tıpta Uzmanlık Eğitimi Yönetmeliği",
@@ -1082,9 +1083,7 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     ],
     notes: [
       "Governs medical and dental specialization training programs in Turkey.",
-      "sourceId mevzuat:7.5.39700 provided from ROADMAP; needs live verification.",
-      "v0.44.0: Added as candidate. sourceId from ROADMAP but live search blocked by Cloudflare.",
-      "needs_manual_review: sourceId mevzuat:7.5.39700 should be verified via mevzuat.gov.tr."
+      "v0.48.0: Live direct-fetch verified — mevzuat:7.5.39700 fetched successfully; promoted to covered."
     ]
   },
 
@@ -1310,13 +1309,14 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     relevanceLevel: "supporting",
     officialSourceRequired: true,
     legislationType: "kanun",
-    officialSourceStatus: "candidate",
+    officialSourceStatus: "verified",
     mevzuatSourceId: "mevzuat:1.3.1593",
+    officialUrl: "https://www.mevzuat.gov.tr/mevzuat?MevzuatNo=1593&MevzuatTur=1&MevzuatTertip=3",
     legislationNumber: "1593",
     relatedIssueIds: ["public_health", "sanitation", "epidemic"],
     relatedTopicClusters: ["public_health"],
     searchTerms: ["hıfzıssıhha", "umumi hıfzıssıhha", "1593", "salgın", "bulaşıcı hastalık"],
-    coverageStatus: "candidate",
+    coverageStatus: "covered",
     expectedLegislationType: "kanun",
     aliases: [
       "Umumi Hıfzıssıhha Kanunu (1593)",
@@ -1330,9 +1330,7 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     notes: [
       "Kanun düzeyinde — yönetmelik envanterine değil kanun katmanına ait.",
       "Governs public health, sanitation, epidemic control, and quarantine measures.",
-      "sourceId mevzuat:1.3.1593 provided from ROADMAP; needs live verification.",
-      "v0.44.0: Added as candidate. sourceId from ROADMAP but live search blocked by Cloudflare.",
-      "needs_manual_review: sourceId mevzuat:1.3.1593 should be verified via mevzuat.gov.tr."
+      "v0.48.0: Live direct-fetch verified — mevzuat:1.3.1593 fetched successfully; promoted to covered."
     ]
   },
 
@@ -1386,13 +1384,14 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     relevanceLevel: "supporting",
     officialSourceRequired: true,
     legislationType: "kanun",
-    officialSourceStatus: "candidate",
+    officialSourceStatus: "verified",
     mevzuatSourceId: "mevzuat:1.5.657",
+    officialUrl: "https://www.mevzuat.gov.tr/mevzuat?MevzuatNo=657&MevzuatTur=1&MevzuatTertip=5",
     legislationNumber: "657",
     relatedIssueIds: ["disciplinary_administrative", "public_employment"],
     relatedTopicClusters: ["public_employment", "disciplinary_administrative"],
     searchTerms: ["657", "devlet memurları kanunu", "memur disiplin", "özlük hakları"],
-    coverageStatus: "candidate",
+    coverageStatus: "covered",
     expectedLegislationType: "kanun",
     aliases: [
       "Devlet Memurları Kanunu",
@@ -1411,7 +1410,7 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     notes: [
       "Kamu hekimlerinin disiplin ve özlük hakları 657 sayılı kanuna tabidir.",
       "Governs civil servant discipline, appointment, and employment rights for public physicians.",
-      "v0.44.0: Added as candidate. sourceId mevzuat:1.5.657 from ROADMAP; needs live verification."
+      "v0.48.0: Live direct-fetch verified — mevzuat:1.5.657 fetched successfully; promoted to covered."
     ]
   },
 
@@ -1423,13 +1422,14 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     relevanceLevel: "supporting",
     officialSourceRequired: true,
     legislationType: "kanun",
-    officialSourceStatus: "candidate",
+    officialSourceStatus: "verified",
     mevzuatSourceId: "mevzuat:1.5.5237",
+    officialUrl: "https://www.mevzuat.gov.tr/mevzuat?MevzuatNo=5237&MevzuatTur=1&MevzuatTertip=5",
     legislationNumber: "5237",
     relatedIssueIds: ["physician_liability", "criminal_liability", "medical_intervention"],
     relatedTopicClusters: ["medical_intervention"],
     searchTerms: ["5237", "türk ceza kanunu", "tck", "görevi ihmal", "görevi kötüye kullanma"],
-    coverageStatus: "candidate",
+    coverageStatus: "covered",
     expectedLegislationType: "kanun",
     aliases: [
       "Türk Ceza Kanunu",
@@ -1448,7 +1448,7 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
     notes: [
       "Hekimi ilgilendiren ceza maddeleri: md.94-97 (taksirle yaralama/ölüm), md.229 (görevi kötüye kullanma).",
       "Relevant for physician criminal liability questions.",
-      "v0.44.0: Added as candidate. sourceId mevzuat:1.5.5237 from ROADMAP; needs live verification."
+      "v0.48.0: Live direct-fetch verified — mevzuat:1.5.5237 fetched successfully; promoted to covered."
     ]
   },
 

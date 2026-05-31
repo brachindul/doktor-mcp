@@ -14,7 +14,8 @@ describe("T8.3: education / service quality / financial / clinical-forensic inve
     expect(entry).toBeDefined();
     expect(entry!.title).toContain("Uzmanlık Eğitimi");
     expect(entry!.mevzuatSourceId).toBe("mevzuat:7.5.39700");
-    expect(entry!.officialSourceStatus).toBe("candidate");
+    expect(entry!.officialSourceStatus).toBe("verified");
+    expect(entry!.coverageStatus).toBe("covered");
     expect(entry!.category).toBe("medical_education");
     expect(entry!.relatedTopicClusters).toContain("medical_education");
   });
@@ -74,7 +75,8 @@ describe("T8.3: education / service quality / financial / clinical-forensic inve
     expect(entry).toBeDefined();
     expect(entry!.title).toContain("Umumi Hıfzıssıhha");
     expect(entry!.mevzuatSourceId).toBe("mevzuat:1.3.1593");
-    expect(entry!.officialSourceStatus).toBe("candidate");
+    expect(entry!.officialSourceStatus).toBe("verified");
+    expect(entry!.coverageStatus).toBe("covered");
     expect(entry!.relatedTopicClusters).toContain("public_health");
   });
 
@@ -112,8 +114,8 @@ describe("T8.3: education / service quality / financial / clinical-forensic inve
       h.topicCluster === "medical_education"
     );
     expect(hints.length).toBeGreaterThanOrEqual(2);
-    // TUEY hint should have needs_manual_review sourceId (unverified)
-    const tueyHint = hints.find((h: any) => h.sourceId === "needs_manual_review:tuey");
+    // TUEY hint should now have verified sourceId
+    const tueyHint = hints.find((h: any) => h.sourceId === "mevzuat:7.5.39700");
     expect(tueyHint).toBeDefined();
     expect(tueyHint!.terms).toContain("tuey");
   });
@@ -137,7 +139,7 @@ describe("T8.3: education / service quality / financial / clinical-forensic inve
       h.topicCluster === "public_health"
     );
     expect(hints.length).toBeGreaterThanOrEqual(1);
-    const hifzHint = hints.find((h: any) => h.sourceId === "needs_manual_review:hifzissihha");
+    const hifzHint = hints.find((h: any) => h.sourceId === "mevzuat:1.3.1593");
     expect(hifzHint).toBeDefined();
   });
 

@@ -636,7 +636,6 @@ export const healthLegislationHints: HealthLegislationHint[] = [
   // ── T8.3: Education / Service Quality / Financial / Clinical-Forensic ──────
 
   // Tıpta ve Diş Hekimliğinde Uzmanlık Eğitimi Yönetmeliği (TUEY)
-  // sourceId: mevzuat:7.5.39700 (from ROADMAP; needs live verification)
   {
     topicCluster: "medical_education" as any,
     legislationRole: "health_primary" as any,
@@ -645,11 +644,11 @@ export const healthLegislationHints: HealthLegislationHint[] = [
     terms: ["tuey", "uzmanlık", "ihtisas", "asistan", "asistanlık", "tıpta uzmanlık"],
     query: "Tıpta Uzmanlık Eğitimi Yönetmeliği",
     title: "Tıpta ve Diş Hekimliğinde Uzmanlık Eğitimi Yönetmeliği",
-    sourceId: "needs_manual_review:tuey",
+    sourceId: "mevzuat:7.5.39700",
     legislationNumber: "39700",
     legislationType: "7",
     legislationArrangement: "5",
-    articleNumbers: [],
+    articleNumbers: ["3", "5", "7", "9"],
     dimensions: ["professional_ethics"] as any
   } as any,
 
@@ -727,7 +726,6 @@ export const healthLegislationHints: HealthLegislationHint[] = [
   } as any,
 
   // Umumi Hıfzıssıhha Kanunu (1593) — kanun katmanı
-  // sourceId: mevzuat:1.3.1593 (from ROADMAP; needs live verification)
   {
     topicCluster: "public_health" as any,
     legislationRole: "health_primary" as any,
@@ -736,11 +734,11 @@ export const healthLegislationHints: HealthLegislationHint[] = [
     terms: ["hıfzıssıhha", "umumi hıfzıssıhha", "salgın", "karantina", "bulaşıcı hastalık", "aşı zorunluluğu"],
     query: "Umumi Hıfzıssıhha Kanunu",
     title: "Umumi Hıfzıssıhha Kanunu",
-    sourceId: "needs_manual_review:hifzissihha",
+    sourceId: "mevzuat:1.3.1593",
     legislationNumber: "1593",
     legislationType: "1",
     legislationArrangement: "3",
-    articleNumbers: [],
+    articleNumbers: ["1", "2", "3", "4"],
     dimensions: ["disciplinary_administrative"] as any
   } as any,
 
@@ -749,12 +747,32 @@ export const healthLegislationHints: HealthLegislationHint[] = [
     sourceId: "mevzuat:1.5.657",
     title: "657 Sayılı Devlet Memurları Kanunu",
     query: "Devlet Memurları Kanunu",
+    legislationNumber: "657",
+    legislationType: "1",
+    legislationArrangement: "5",
     articleNumbers: ["125", "126", "127", "135"],
     topicCluster: "public_employment" as any,
     legislationRole: "health_primary" as any,
     healthLawPriority: 28,
     selectionReason: "Kamu hekimlerinin disiplin ve özlük hakları 657 sayılı kanuna tabidir.",
     terms: ["657", "devlet memurları", "devlet memuru", "memur", "dmk"],
+    dimensions: ["disciplinary_administrative"] as any
+  },
+
+  // ── 5237 Türk Ceza Kanunu — physician-relevant criminal provisions ─────────
+  {
+    sourceId: "mevzuat:1.5.5237",
+    title: "5237 Sayılı Türk Ceza Kanunu",
+    query: "Türk Ceza Kanunu",
+    articleNumbers: ["94", "95", "96", "97", "229"],
+    topicCluster: "medical_intervention" as any,
+    legislationRole: "supporting" as any,
+    healthLawPriority: 30,
+    selectionReason: "Hekimi ilgilendiren ceza maddeleri: taksirle yaralama/ölüm ve görevi kötüye kullanma.",
+    terms: ["tck", "türk ceza kanunu", "5237", "görevi ihmal", "görevi kötüye kullanma", "taksir"],
+    legislationNumber: "5237",
+    legislationType: "1",
+    legislationArrangement: "5",
     dimensions: ["disciplinary_administrative"] as any
   }
 ];

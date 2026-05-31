@@ -752,7 +752,7 @@ tamamlanmadan sıradakine geçme; önce düzelt.
 > candidate'leri canlı direct-fetch ile doğrulayıp `covered`'a yükseltir. **Uydurma yok:**
 > doğrulanamayan (gerçekten erişilemeyen) girdi gerekçeyle `candidate` kalır.
 
-### [ ] T20.1 — Candidate envanteri canlı doğrulama taraması
+### [x] T20.1 — Candidate envanteri canlı doğrulama taraması
 - **Yapılacak**: `verify:health-legislation` CLI'ını tüm `candidate` (sourceId'li) girdiler
   üzerinde çalıştır; her biri için direct-fetch ile en az 1 madde metni çıkarılabiliyorsa
   `coverageStatus: "covered"` + `officialSourceStatus: "verified"` yap. Çıkarılamıyanı
