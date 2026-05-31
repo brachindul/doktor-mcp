@@ -9,7 +9,8 @@ export type LegalDimension =
   | "disciplinary_administrative"
   | "patient_rights"
   | "privacy_kvkk"
-  | "professional_ethics";
+  | "professional_ethics"
+  | "emergency_services";
 
 export type PrecedentStatus =
   | "precedent_usable"

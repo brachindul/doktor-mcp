@@ -6,7 +6,7 @@
 >
 > **Genel kurallar (her görevde geçerli):**
 > - `npm run build` (tsc) **0 hata** vermeli.
-> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 1127 testi kırma.
+> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 1141 testi kırma.
 > - Yeni davranış eklediysen **yeni test** yaz. Test yoksa görev "done" sayılmaz.
 > - Pakedin/araç JSON şekli (response contract) değişiyorsa README'yi güncelle.
 > - Türkçe kullanıcı mesajları ve İngilizce kod/yorum karışımını koru (mevcut konvansiyon).
@@ -668,33 +668,11 @@ tamamlanmadan sıradakine geçme; önce düzelt.
 
 ## Faz 17 — Klinik Mevzuat Kapsam Genişlemesi
 
-### [ ] T17.1 — Eksik klinik yönetmelikleri ekle (canlı doğrulamalı)
-- **Yapılacak**: Kan ve Kan Ürünleri Yön., Diyaliz Merkezleri Yön., Yoğun Bakım/Enfeksiyon
-  Kontrol düzenlemeleri, Radyasyon Güvenliği Yön., Beşeri Tıbbi Ürünler/Reçete düzenlemeleri,
-  Bağışıklama/aşı düzenlemeleri. Her birini gov.tr ile doğrula; doğrulanamayanı dürüstçe işaretle.
-- **Kabul**: Her yeni girdi health mapping + (mümkünse) canlı `covered`; uçtan uca test örnekleri.
-
-### [ ] T17.2 — Branş-özel görev/sorumluluk eşlemeleri
-- **Yapılacak**: Sık branşlar için (acil, aile hekimliği, anestezi, radyoloji, psikiyatri)
-  konu kümeleri ve birincil mevzuat eşlemeleri; soru sınıflandırıcıya branş ipuçları.
-- **Kabul**: Branş sorguları doğru birincil mevzuata gidiyor; uçtan uca test.
-
----
-
-## Faz 18 — v1.0.0 Sürüm Hazırlığı
-
-### [ ] T18.1 — v1.0.0 release checklist ve dondurma
-- **Yapılacak**: `docs/RELEASE_v1.md` — stable/experimental alan listesi kesinleşmiş,
-  tüm e2e smoke'lar yeşil, coverage matrisi güncel, error kodları dokümante. Sürümü
-  `1.0.0`'a hazırla (CHANGELOG + package.json + lock + version testi).
-- **Kabul**: Checklist'teki her madde işaretli ve doğrulanmış; build+test yeşil.
-
-### [ ] T18.2 — README'yi v1 ürün anlatısına çek
-- **Yapılacak**: Kullanım, kapsam matrisi linki, sınırlılıklar (emsal ilgililiği, canlı kaynak
-  engelleri), güvenlik notları. Test edilmemiş iddia bırakma.
-- **Kabul**: README iddiaları e2e testlerle örtüşüyor; sürüm tutarlı.
-
-### [ ] T18.3 — Son bütünsel canlı doğrulama turu
+### [x] T17.1 — Eksik klinik yönetmelikleri ekle (canlı doğrulamalı)
+### [x] T17.2 — Branş-özel görev/sorumluluk eşlemeleri
+### [x] T18.1 — v1.0.0 release checklist ve dondurma
+### [x] T18.2 — README'yi v1 ürün anlatısına çek
+### [x] T18.3 — Son bütünsel canlı doğrulama turu
 - **Yapılacak**: Temsili 10 soruluk set (klinik + kamu/özlük + gizlilik + adli) üzerinde canlı
   benchmark; sonuçları `exports/` + bir özet rapora yaz; regresyon/güvenlik invariyantları yeşil.
 - **Kabul**: 10 sorunun her biri için pack üretiliyor veya dürüst no-pack diagnostic'i var;

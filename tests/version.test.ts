@@ -7,7 +7,7 @@ import { VERSION } from "../src/core/version.js";
 describe("version", () => {
   it("should match package.json version", () => {
     expect(VERSION).toBe(pkg.version);
-    expect(VERSION).toBe("0.45.0");
+    expect(VERSION).toBe("0.46.0");
   });
 
   it("should be a non-empty string", () => {

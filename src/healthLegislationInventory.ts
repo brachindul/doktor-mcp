@@ -1450,6 +1450,117 @@ export const HEALTH_LEGISLATION_INVENTORY: HealthLegislationInventoryEntry[] = [
       "Relevant for physician criminal liability questions.",
       "v0.44.0: Added as candidate. sourceId mevzuat:1.5.5237 from ROADMAP; needs live verification."
     ]
+  },
+
+  // ── T17.1: Clinical regulations — blood products, dialysis, radiation safety ──
+
+  {
+    key: "kan-ve-kan-urunleri",
+    title: "Kan ve Kan Ürünleri Yönetmeliği",
+    titleNormalized: "kan ve kan urunleri yonetmeligi",
+    category: "blood_products",
+    relevanceLevel: "specialized",
+    officialSourceRequired: true,
+    legislationType: "yonetmelik",
+    officialSourceStatus: "candidate",
+    relatedIssueIds: ["blood_transfusion", "patient_safety", "informed_consent"],
+    relatedTopicClusters: ["medical_intervention", "patient_safety"],
+    searchTerms: ["kan transfüzyonu", "kan ürünleri", "kan bankası", "kan verme", "transfüzyon"],
+    coverageStatus: "candidate",
+    expectedLegislationType: "yonetmelik",
+    aliases: [
+      "Kan ve Kan Ürünleri Hakkında Yönetmelik",
+      "Kan Ürünleri Yönetmeliği",
+      "Kan Transfüzyonu Yönetmeliği"
+    ],
+    markerTerms: [
+      "kan ürünleri", "kan transfüzyonu", "kan bankası",
+      "kan uygunluğu", "kanama", "transfüzyon reaksiyonu"
+    ],
+    negativeMarkerTerms: [
+      "organ nakli", "doku nakli"
+    ],
+    knownWrongMatches: [
+      "mevzuat:1.5.2238"  // Organ ve Doku Nakli Kanunu — different scope
+    ],
+    notes: [
+      "Governs blood collection, processing, storage, and transfusion standards.",
+      "Relevant for transfusion medicine, surgical, and emergency physician questions.",
+      "v0.45.0: Added as candidate (T17.1). sourceId unknown; needs manual mevzuat.gov.tr lookup.",
+      "healthMappings hint: blood_transfusion cluster."
+    ]
+  },
+
+  {
+    key: "diyaliz-merkezleri",
+    title: "Diyaliz Merkezleri Yönetmeliği",
+    titleNormalized: "diyaliz merkezleri yonetmeligi",
+    category: "service_quality",
+    relevanceLevel: "specialized",
+    officialSourceRequired: true,
+    legislationType: "yonetmelik",
+    officialSourceStatus: "candidate",
+    relatedIssueIds: ["dialysis", "patient_safety", "private_health_facility"],
+    relatedTopicClusters: ["medical_intervention", "patient_safety"],
+    searchTerms: ["diyaliz", "diyaliz merkezi", "hemodiyaliz", "böbrek yetmezliği", "dializ"],
+    coverageStatus: "candidate",
+    expectedLegislationType: "yonetmelik",
+    aliases: [
+      "Diyaliz Merkezleri Hakkında Yönetmelik",
+      "Hemodiyaliz Merkezleri Yönetmeliği",
+      "Diyaliz Merkezi Yönetmeliği"
+    ],
+    markerTerms: [
+      "diyaliz", "hemodiyaliz", "diyaliz merkezi",
+      "böbrek yetmezliği", "diyaliz hastası", "dijital filtre"
+    ],
+    negativeMarkerTerms: [
+      "organ nakli", "transplantasyon"
+    ],
+    knownWrongMatches: [],
+    notes: [
+      "Governs dialysis center licensing, staffing, and treatment standards.",
+      "Relevant for nephrology and internal medicine physician questions.",
+      "v0.45.0: Added as candidate (T17.1). sourceId unknown; needs manual mevzuat.gov.tr lookup.",
+      "healthMappings hint: dialysis/chronic renal failure cluster."
+    ]
+  },
+
+  {
+    key: "radyasyon-guvenligi",
+    title: "Radyasyon Güvenliği Yönetmeliği",
+    titleNormalized: "radyasyon guvenligi yonetmeligi",
+    category: "diagnostics",
+    relevanceLevel: "specialized",
+    officialSourceRequired: true,
+    legislationType: "yonetmelik",
+    officialSourceStatus: "candidate",
+    relatedIssueIds: ["radiation_safety", "occupational_health", "patient_safety"],
+    relatedTopicClusters: ["professional_scope_of_practice", "patient_safety"],
+    searchTerms: ["radyasyon", "radyoloji", "röntgen", "nükleer", "iyonize ışınım", "dozimetri"],
+    coverageStatus: "candidate",
+    expectedLegislationType: "yonetmelik",
+    aliases: [
+      "Radyasyon Güvenliği Hakkında Yönetmelik",
+      "Işınım Güvenliği Yönetmeliği",
+      "Radyasyon Güvenliği Yönetmeliği Hakkında"
+    ],
+    markerTerms: [
+      "radyasyon", "radyoloji", "nükleer tıp",
+      "iyonize ışınım", "dozimetri", "radyasyon güvenliği"
+    ],
+    negativeMarkerTerms: [
+      "nükleer silah", "nükleer enerji"
+    ],
+    knownWrongMatches: [
+      "mevzuat:7.5.29134"  // Different regulation, sometimes confused in search
+    ],
+    notes: [
+      "Governs radiation safety standards for medical imaging and nuclear medicine.",
+      "Relevant for radiology, nuclear medicine, and radiation oncology physician questions.",
+      "v0.45.0: Added as candidate (T17.1). sourceId unknown; needs manual mevzuat.gov.tr lookup.",
+      "healthMappings hint: radiation_safety/radiology cluster."
+    ]
   }
 ];
 

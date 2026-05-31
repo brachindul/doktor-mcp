@@ -1,5 +1,8 @@
 # Doktor MCP
 
+> **v1 Release Candidate** — `doktor-mcp v0.45.0` is the v1.0.0 release candidate.
+> See [docs/RELEASE_v1.md](docs/RELEASE_v1.md) for checklist.
+
 `doktor-mcp` is a standalone TypeScript/Node.js MCP skeleton for source-grounded
 legal information packs aimed at physicians. It does not provide categorical final legal
 opinions or tell a physician what to do. It matches questions to official legislation text

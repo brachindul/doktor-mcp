@@ -1,6 +1,58 @@
 # Changelog
 
-## [0.45.0] — 2026-05-30 — Kamu Hekimi Mevzuat Genişlemesi + Retrieval + Emsal Kalitesi
+## [0.46.0] — 2026-05-31 — v1 Release Candidate: Tüm Fazlar Tamamlandı
+
+> 72 görev tamamlandı. 78 test dosyası, 1141 test. Faz 0–18.
+
+### Faz 0–10: see v0.45.0 entry (46 tasks)
+
+### Faz 11 — Kanun Katmanı (3 tasks)
+- T11.1: legislationType alanı (kanun/yonetmelik/nizamname/teblig) tüm envantere eklendi
+- T11.2: 657 DMK + 5237 TCK core statutes + health mapping
+- T11.3: Law+regulation combined ordering E2E tests (3 tests)
+
+### Faz 12 — Retrieval Sağlamlığı (4 tasks)
+- T12.1: LegislationCache (.cache/legislation/, TTL 5 min, 6 tests)
+- T12.2: docs/ERROR_CODES.md — 5 source error taxonomy
+- T12.3: snapshot sourceMode (mock/live/snapshot)
+- T12.4: sourceHealthCli + health:sources script
+
+### Faz 13 — Çıktı Kalitesi (3 tasks)
+- T13.1: Assessment sentence article refs verified
+- T13.2: Context-aware lawyerReviewPoints (discipline/privacy)
+- T13.3: Markdown relevanceExplanation rendering verified
+
+### Faz 14 — CI/Kod Kalitesi (4 tasks)
+- T14.1: GitHub Actions CI (build+test+audit)
+- T14.2: ESLint config + lint script (0 errors)
+- T14.3: Record/replay harness test
+- T14.4: E2E smoke gate (clinical+privacy+public queries)
+
+### Faz 15 — Güvenlik (3 tasks)
+- T15.1: SSRF URL allowlist (gov.tr domains only)
+- T15.2: PII redaction in precedentFilter + safety test
+- T15.3: npm audit --audit-level=high in CI
+
+### Faz 16 — Gözlemlenebilirlik (3 tasks)
+- T16.1: doctorDiagnoseCli + doctor:diagnose script
+- T16.2: Structured JSON logger (debug/info/error)
+- T16.3: generateCoverageMatrixCli + docs:coverage-matrix
+
+### Faz 17 — Klinik Genişleme (2 tasks)
+- T17.1: 3 clinical regs: Kan Ürünleri, Diyaliz, Radyasyon
+- T17.2: Branch-specific mappings (acil/anestezi/radyoloji)
+
+### Faz 18 — v1.0.0 Sürüm Hazırlığı (3 tasks)
+- T18.1: docs/RELEASE_v1.md — release checklist
+- T18.2: README v1 RC badge and note
+- T18.3: v1FinalChecklist.test.ts — structural readiness tests
+
+### Özet
+- **Toplam**: 72 görev tamamlandı (Faz 0–18)
+- **Test**: 78 test dosyası, 1141 test
+- **Envanter**: 40+ mevzuat girdisi, 20+ health mapping hint, 12+ konu kümesi
+
+## [0.45.0] — 2026-05-30 — Kamu Hekimi Mevzuat Genişlemesi
 
 > 17 yeni görev (T8.1–T8.4, T9.1–T9.4, T10.1–T10.3, T11.1). 68 test dosyası, 1098+ test.
 

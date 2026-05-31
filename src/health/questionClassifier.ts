@@ -16,7 +16,11 @@ const termDimensions: Array<{ terms: string[]; dimensions: LegalDimension[] }> =
   { terms: ["redde", "reddet", "kabul etme", "iliskisini sonlandir", "ilişkisini sonlandır", "tedaviyi birak", "tedaviyi bırak", "tedaviyi sonlandir", "kacinma", "kaçınma", "bakmama"], dimensions: ["professional_ethics", "civil_compensation"] },
   { terms: ["uymuyor", "uyumsu", "uygulamıyor", "uygulamiyor", "talimatlara uyma", "talimatlara uyulma"], dimensions: ["patient_rights", "professional_ethics"] },
   { terms: ["komplikasyon", "malpraktis", "hata", "kusur", "özen", "ozen", "tazminat", "sorumlu"], dimensions: ["professional_ethics", "civil_compensation"] },
-  { terms: ["acil durum", "acil degil", "acil değil", "acil mudehale"], dimensions: ["professional_ethics", "patient_rights"] }
+  { terms: ["acil durum", "acil degil", "acil değil", "acil mudehale"], dimensions: ["professional_ethics", "patient_rights"] },
+  // ── T17.2: Branch-specific term mappings ──────────────────────────────────
+  { terms: ["acil servis", "acil tip", "acil tıp"], dimensions: ["emergency_services", "professional_ethics"] },
+  { terms: ["anestezi", "anestezist"], dimensions: ["professional_ethics", "patient_rights"] },
+  { terms: ["radyoloji", "radyolog", "radyasyon"], dimensions: ["patient_rights", "professional_ethics"] }
 ];
 
 export function classifyMedicalLegalQuestion(question: string): ClassifiedMedicalLegalQuestion {
