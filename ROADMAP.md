@@ -765,7 +765,7 @@ tamamlanmadan sıradakine geçme; önce düzelt.
   covered girdilere göre güncelle; README kapsam ifadelerini gerçek sayılarla hizala.
 - **Kabul**: Matris ↔ envanter ↔ README tutarlı; testler güncel.
 
-### [ ] T20.3 — Mevzuat provision dedup'ını uçtan uca doğrula ve düzelt
+### [x] T20.3 — Mevzuat provision dedup'ını uçtan uca doğrula ve düzelt
 - **Sorun**: Mock kamu sorgusunda Atama Yönetmeliği `relevantLegislation`'da birden çok kez
   görünebiliyor (aynı doküman, farklı/aynı madde). T19.2 dedup eklediğini iddia etti ama
   uçtan uca doğrulanmadı.
