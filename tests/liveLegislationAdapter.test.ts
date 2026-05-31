@@ -5,10 +5,10 @@ import { extractArticlesFromOfficialText } from "../src/sources/legislation/arti
 import { LiveOfficialLegislationAdapter } from "../src/sources/legislation/liveOfficialLegislationAdapter.js";
 
 const officialArticleText = [
-  "MADDE 5- Onceki madde metni.",
+  "MADDE 5- (1) Bu Yönetmelik kapsamında önceki hükümler geçerli olup ilgili kurumlar tarafından uygulanır.",
   "MADDE 6- (1) Kisilerin sagligina iliskin veriler ozel nitelikli kisisel veridir.",
   "(2) Bu cumle resmi kaynak metninden gelir.",
-  "MADDE 7- Sonraki madde metni."
+  "MADDE 7- (1) Sonraki hükümler bu Yönetmelik kapsamında ilgili taraflarca uygulanmak üzere yürürlüğe girer."
 ].join("\n");
 
 describe("live official legislation adapter", () => {
@@ -171,7 +171,7 @@ describe("live official legislation adapter", () => {
       title: "Hasta Haklari Yonetmeligi",
       sourceUrl: "https://www.mevzuat.gov.tr/mevzuat?MevzuatNo=4847&MevzuatTur=7&MevzuatTertip=5",
       documentUrl: "https://www.mevzuat.gov.tr/File/GeneratePdf?mevzuatNo=4847&mevzuatTur=KurumVeKurulusYonetmeligi&mevzuatTertip=5",
-      text: "MADDE 24- Riza metni.\nMADDE 26- Riza formu metni.\nMADDE 27- Sonraki madde.",
+      text: "MADDE 24- (1) Hasta bilgilendirilmesi ve aydınlatılmış rıza alınması esaslarını düzenleyen hükümler bu maddede yer alır.\nMADDE 26- (1) Rıza formu düzenlenmesi ve saklanması ile ilgili usul ve esaslar bu maddede belirtilmiştir.\nMADDE 27- (1) Bu Yönetmelik kapsamında uygulanacak diğer hükümler ile ilgili esaslar bu maddede yer alır.",
       contentType: "application/pdf",
       retrievedAt: "2026-05-22T00:00:00.000Z"
     });
@@ -227,8 +227,8 @@ describe("live official legislation adapter", () => {
       sourceUrl: result.sourceUrl,
       documentUrl: result.documentUrl,
       text: result.sourceId === "mevzuat:7.5.4847"
-        ? "MADDE 21- Hasta mahremiyeti metni.\nMADDE 22- Sonraki."
-        : "MADDE 6- Saglik verisi metni.\nMADDE 7- Sonraki.",
+        ? "MADDE 21- (1) Hasta mahremiyetine saygı gösterilmesi ve hasta bilgilerinin gizli tutulması esaslarını düzenler.\nMADDE 22- (1) Hasta haklarının kullanımına ilişkin usul ve esaslar bu maddede belirtilmiştir."
+        : "MADDE 6- (1) Kişisel sağlık verilerinin işlenmesi ve korunması esaslarını düzenleyen hükümler bu maddededir.\nMADDE 7- (1) Veri sorumlusu ve işleyici yükümlülükleri ile ilgili usul ve esaslar bu maddede yer alır.",
       contentType: "application/pdf",
       retrievedAt: "2026-05-22T00:00:00.000Z"
     }));
@@ -259,8 +259,8 @@ describe("live official legislation adapter", () => {
       sourceUrl: result.sourceUrl,
       documentUrl: result.documentUrl,
       text: result.sourceId === "mevzuat:7.5.4847"
-        ? "MADDE 24- Tibbi mudahale metni.\nMADDE 31- Riza kapsami metni.\nMADDE 32- Sonraki."
-        : "MADDE 1- Tababet icrasi metni.\nMADDE 2- Sonraki.",
+        ? "MADDE 24- (1) Tıbbi müdahale öncesi hastanın bilgilendirilmesi ve aydınlatılmış rıza alınması zorunludur.\nMADDE 31- (1) Rızanın kapsamı ve geçerlilik şartları bu maddede düzenlenmiştir.\nMADDE 32- (1) Tıbbi müdahalede acil durumlar ve istisnai haller bu maddede belirtilmiştir."
+        : "MADDE 1- (1) Tababet ve şuabatı sanatlarının icrasına dair usul ve esaslar bu kanunda düzenlenmiştir.\nMADDE 2- (1) Bu kanunun uygulanmasına ilişkin yönetmelikler ve tebliğler hakkında hükümler bu maddededir.",
       contentType: "application/pdf",
       retrievedAt: "2026-05-22T00:00:00.000Z"
     }));
@@ -289,7 +289,7 @@ describe("live official legislation adapter", () => {
           "MADDE 31- Rıza tıbbi müdahale kapsamını belirler.",
           "MADDE 32- Tıbbi müdahale tıbbi müdahale tıbbi müdahale."
         ].join("\n")
-        : "MADDE 1- Saglik hizmeti metni.\nMADDE 3- Hizmet esaslari metni.",
+        : "MADDE 1- (1) Kişisel verilerin korunması ve işlenmesi esasları bu kanunda düzenlenmiştir.\nMADDE 3- (1) Veri sorumlusu ve işleyici yükümlülükleri ile ilgili usul ve esaslar bu maddede yer alır.",
       contentType: "application/pdf",
       retrievedAt: "2026-05-22T00:00:00.000Z"
     }));

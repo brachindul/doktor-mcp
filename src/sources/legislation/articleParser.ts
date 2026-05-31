@@ -3,15 +3,47 @@ export interface ExtractedArticle {
   text: string;
 }
 
-export function extractArticlesFromOfficialText(text: string): ExtractedArticle[] {
-  const cleaned = text
+const MIN_ARTICLE_LENGTH = 25;
+
+const FOOTER_PATTERNS = [
+  /Eki için tıklayınız\./i,
+  /Yönetmeliğin\s+Yayımlandığı\s+Resm[iî]\s*Gazete/i,
+  /Yönetmelikte\s+Değişiklik\s+Yapan\s+Yönetmeliklerin\s+Yayımlandığı\s+Resm[iî]\s*Gazetelerin/i,
+  /Kanunun\s+Yayımlandığı\s+Resm[iî]\s*Gazete/i,
+  /Yönetmeliğin\s+Yayınlandığı\s+Düstur/i,
+  /Yönetmeliğin\s+Yayınlandığı\s+Resm[iî]\s*Gazete/i,
+];
+
+function stripTrailingMetadata(text: string): string {
+  // Find the earliest footer pattern match and cut from there
+  let cutIndex = text.length;
+  for (const pattern of FOOTER_PATTERNS) {
+    const match = text.match(pattern);
+    if (match && match.index !== undefined && match.index < cutIndex) {
+      cutIndex = match.index;
+    }
+  }
+  return text.slice(0, cutIndex).trimEnd();
+}
+
+function removePageMarkers(text: string): string {
+  return text
     .replace(/\r/g, "")
-    .replace(/\n-- \d+ of \d+ --\n/g, "\n")
-    .replace(/[ \t]+\n/g, "\n");
+    .replace(/\n?--\s*\d+\s+of\s+\d+\s*--\n?/g, "\n")
+    .replace(/^[ \t]+$/gm, "")
+    .replace(/_{3,}/g, "")
+    .replace(/\n{3,}/g, "\n\n");
+}
+
+export function extractArticlesFromOfficialText(text: string): ExtractedArticle[] {
+  let cleaned = removePageMarkers(text);
+  cleaned = stripTrailingMetadata(cleaned);
+  cleaned = cleaned.replace(/[ \t]+\n/g, "\n").trim();
+
   const articleMarker = /^\s*MADDE\s+(\d+[A-Za-z]?)\s*[-–—:]\s*/gim;
   const matches = [...cleaned.matchAll(articleMarker)];
 
-  return matches.map((match, index) => {
+  const articles = matches.map((match, index) => {
     const start = (match.index ?? 0) + match[0].length;
     const end = matches[index + 1]?.index ?? cleaned.length;
 
@@ -20,6 +52,9 @@ export function extractArticlesFromOfficialText(text: string): ExtractedArticle[
       text: trimNextArticleHeading(cleaned.slice(start, end).trim())
     };
   });
+
+  // Filter out empty or fragment articles
+  return articles.filter((a) => a.text.length >= MIN_ARTICLE_LENGTH);
 }
 
 function trimNextArticleHeading(text: string) {

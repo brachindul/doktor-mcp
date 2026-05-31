@@ -1,5 +1,20 @@
 # Changelog
 
+## [Unreleased] — Faz 20 — Canlı Kapsama Tamamlama
+
+### Faz 20 — Canlı Kapsama Tamamlama (candidate → covered)
+
+- **T20.1**: 4 sourceId'li candidate (TUEY mevzuat:7.5.39700, Umumi Hıfzıssıhha mevzuat:1.3.1593,
+  657 DMK mevzuat:1.5.657, TCK mevzuat:1.5.5237) canlı direct-fetch ile doğrulandı;
+  envanterde `covered` + `verified`, healthMappings'te gerçek sourceId'ye yükseltildi.
+  657 DMK hint'ine eksik `legislationNumber/Type/Arrangement` eklendi (direct-fetch fast-path için).
+  TCK hint'i healthMappings'e eklendi. `tests/t20CandidateVerification.test.ts` (11 test).
+- **T20.2**: `docs/COVERAGE_MATRIX.md` yeniden üretildi (16 verified entry).
+  Benchmark beklentileri yeni envanter sayılarına hizalandı (verified:16, candidate:21, gap:2, deferred:2, total:41).
+- **T20.3**: Mevzuat provision dedup uçtan uca doğrulandı. Mock + live `prepareInformationPack`
+  testleri: `sourceDocumentId + articleNumber` ikilisi 0 tekrar; farklı maddeler korunuyor.
+  `tests/legislationProvisionDedup.test.ts` yeniden yazıldı.
+
 ## [0.47.1] — 2026-05-31 — Canlı Kamu Mevzuatı Retrieval Fix
 
 > Bağımsız canlı doğrulamada bulunan kök neden düzeltmesi. 1147 test.

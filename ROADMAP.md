@@ -777,7 +777,7 @@ tamamlanmadan sıradakine geçme; önce düzelt.
 
 ## Faz 21 — Mevzuat Madde-Düzeyi Kalite
 
-### [ ] T21.1 — Madde çıkarımı gürültü temizliği
+### [x] T21.1 — Madde çıkarımı gürültü temizliği
 - **Yapılacak**: `articleParser`'ı sertleştir: PDF başlık/altbilgi/sayfa numarası/RG künyesi
   gibi gürültü madde metnine sızmasın; "MADDE N-" sınırları doğru ayrışsın; boş/parça maddeler elensin.
 - **Kabul**: Recorded-fixture testi: bilinen bir yönetmeliğin maddeleri temiz çıkıyor; gürültü yok.
