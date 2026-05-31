@@ -404,6 +404,13 @@
 18. Faz 17 (klinik kapsam genişlemesi) → T17.1 → T17.2
 19. Faz 18 (v1.0.0 sürüm hazırlığı) → T18.1 → T18.2 → T18.3
 20. Faz 19 (gece koşusu kapanış düzeltmeleri) → T19.1 → T19.2 → T19.3 → T19.4
+21. Faz 20 (canlı kapsama tamamlama) → T20.1 → T20.2 → T20.3
+22. Faz 21 (mevzuat madde-düzeyi kalite) → T21.1 → T21.2 → T21.3
+23. Faz 22 (emsal derinleştirme) → T22.1 → T22.2 → T22.3
+24. Faz 23 (yanıt kalitesi/değerlendirme) → T23.1 → T23.2 → T23.3
+25. Faz 24 (çok-adımlı bağlam) → T24.1 → T24.2
+26. Faz 25 (performans/bütçe) → T25.1 → T25.2 → T25.3
+27. Faz 26 (bütünsel gözden geçirme + v1.1) → T26.1 → T26.2 → T26.3
 
 **Her görev sonunda**: build + test yeşil → commit. Bir görev testi kırıyorsa, görev
 tamamlanmadan sıradakine geçme; önce düzelt.
@@ -735,3 +742,144 @@ tamamlanmadan sıradakine geçme; önce düzelt.
 - **Yapılacak**: T19.1–T19.3 bittikten sonra CHANGELOG'a Faz 19 girdisi, package.json +
   lock sürümünü bump (0.46.0 → 0.47.0), `tests/version.test.ts` uyumu.
 - **Kabul**: Sürüm, changelog, lock tutarlı; build + test yeşil.
+
+---
+
+## Faz 20 — Canlı Kapsama Tamamlama (candidate → covered)
+
+> v0.47.1'deki search-bypass fix'i, verified-sourceId taşıyan candidate girdilerin canlı
+> doğrulanmasının önünü açtı. Şu an 25 `candidate` / 13 `covered`. Bu faz, sourceId'si olan
+> candidate'leri canlı direct-fetch ile doğrulayıp `covered`'a yükseltir. **Uydurma yok:**
+> doğrulanamayan (gerçekten erişilemeyen) girdi gerekçeyle `candidate` kalır.
+
+### [ ] T20.1 — Candidate envanteri canlı doğrulama taraması
+- **Yapılacak**: `verify:health-legislation` CLI'ını tüm `candidate` (sourceId'li) girdiler
+  üzerinde çalıştır; her biri için direct-fetch ile en az 1 madde metni çıkarılabiliyorsa
+  `coverageStatus: "covered"` + `officialSourceStatus: "verified"` yap. Çıkarılamıyanı
+  yapılandırılmış error koduyla raporla ve `candidate` bırak.
+- **Kabul**: `covered` sayısı artıyor (gerçek doğrulananlar kadar); rapor `exports/`'a yazılıyor;
+  her promote edilen girdi canlı smoke ile gösterilebiliyor. Build + test yeşil.
+
+### [ ] T20.2 — Coverage matrisi + benchmark'ı güncelle
+- **Yapılacak**: `docs/COVERAGE_MATRIX.md`'i yeniden üret; benchmark beklentilerini yeni
+  covered girdilere göre güncelle; README kapsam ifadelerini gerçek sayılarla hizala.
+- **Kabul**: Matris ↔ envanter ↔ README tutarlı; testler güncel.
+
+### [ ] T20.3 — Mevzuat provision dedup'ını uçtan uca doğrula ve düzelt
+- **Sorun**: Mock kamu sorgusunda Atama Yönetmeliği `relevantLegislation`'da birden çok kez
+  görünebiliyor (aynı doküman, farklı/aynı madde). T19.2 dedup eklediğini iddia etti ama
+  uçtan uca doğrulanmadı.
+- **Yapılacak**: `prepareInformationPack` çıktısında aynı `sourceDocumentId + articleNumber`
+  ikilisi yalnızca bir kez görünsün; farklı maddeler korunsun. Uçtan uca test (mock + canlı/recorded).
+- **Kabul**: Test: kamu sorgusu çıktısında tekrarlı provision yok; farklı maddeler kalıyor.
+
+---
+
+## Faz 21 — Mevzuat Madde-Düzeyi Kalite
+
+### [ ] T21.1 — Madde çıkarımı gürültü temizliği
+- **Yapılacak**: `articleParser`'ı sertleştir: PDF başlık/altbilgi/sayfa numarası/RG künyesi
+  gibi gürültü madde metnine sızmasın; "MADDE N-" sınırları doğru ayrışsın; boş/parça maddeler elensin.
+- **Kabul**: Recorded-fixture testi: bilinen bir yönetmeliğin maddeleri temiz çıkıyor; gürültü yok.
+
+### [ ] T21.2 — Mülga (yürürlükten kalkmış) madde tespiti
+- **Yapılacak**: Madde metninde "(Mülga ...)", "(Değişik ...)" işaretlerini tespit et;
+  `articleStatus: "in_force" | "repealed" | "amended"` alanı ekle; mülga maddeler hekim-dönük
+  çıktıda **uyarıyla** işaretlensin veya elensin (uydurma "yürürlükte" varsayma).
+- **Kabul**: Mülga madde içeren fixture → doğru işaretleniyor; test var.
+
+### [ ] T21.3 — Madde içi çapraz-referans çözümü
+- **Yapılacak**: Madde metnindeki "... 5 inci maddede ..." gibi atıfları tespit edip
+  `crossReferences: string[]` olarak çıkar; trace'e ekle (çözümleme opsiyonel, sadece tespit).
+- **Kabul**: Atıf içeren madde → referanslar çıkarılıyor; test var.
+
+---
+
+## Faz 22 — Emsal Derinleştirme
+
+### [ ] T22.1 — Emsal tam-metin önbelleği
+- **Yapılacak**: Legislation cache (T12.1) mantığını emsal tam-metin getirme adımına da
+  uygula; tekrarlı sorgularda full-text ağdan tekrar çekilmesin.
+- **Kabul**: İkinci çağrı cache'ten; telemetri hit/miss; test var.
+
+### [ ] T22.2 — Daire-uzmanlık eşlemesi
+- **Yapılacak**: Hangi Yargıtay/Danıştay dairesinin hangi konuya baktığını eşleyen bir tablo
+  (ör. tıbbi malpraktis tazminat → Yargıtay ilgili HD; disiplin/atama iptali → Danıştay ilgili D);
+  emsal seçiminde ilgili daireyi önceliklendir.
+- **Kabul**: Recorded-fixture: konu→daire önceliği çalışıyor; alakasız daire skoru düşük; test var.
+
+### [ ] T22.3 — Emsal tarih filtresi ve güncellik
+- **Yapılacak**: Çok eski/ilgisiz kararları elemek için opsiyonel tarih filtresi; daha yeni
+  içtihadı önceliklendiren bir recency sinyali (sıralama ağırlığı), `runtimeConfig`'ten ayarlanır.
+- **Kabul**: Test: eşit-ilgili iki karardan yeni olan öne geçiyor; filtre çalışıyor.
+
+---
+
+## Faz 23 — Yanıt Kalitesi ve Değerlendirme
+
+### [ ] T23.1 — Kamu/özlük ekseni için golden-set
+- **Yapılacak**: 15–20 kamu hekimi sorusu (tayin, disiplin, mecburi hizmet, ek ödeme, nöbet,
+  görevde yükselme) için beklenen birincil mevzuatı sabitleyen bir golden-set; benchmark'a ekle.
+- **Kabul**: Benchmark golden-set'i koşturuyor; her soru için beklenen mevzuat doğrulanıyor.
+
+### [ ] T23.2 — Çok-eksenli kalite skorlaması
+- **Yapılacak**: Mevcut skorlamaya kanun/yönetmelik dengesi, eksen kapsama (klinik+idari),
+  emsal-ilgililik boyutlarını ekle; rapor bunları ayrı ayrı göstersin.
+- **Kabul**: Skor raporu yeni boyutları içeriyor; test var.
+
+### [ ] T23.3 — Adversarial güvenlik testi (ton sınırı)
+- **Yapılacak**: "Bana kesin sonuç söyle / suçlu mu / tazminat öder mi" gibi baskı sorularıyla
+  hard-blocked kategorik hüküm üretmediğini doğrulayan test seti; ton gevşemesinin sınırını koru.
+- **Kabul**: Adversarial set → kategorik hüküm yok; kaynak-bağlı koşullu değerlendirme korunuyor.
+
+---
+
+## Faz 24 — Çok-Adımlı Bağlam (Multi-Turn)
+
+### [ ] T24.1 — Takip sorusu / drill-down
+- **Yapılacak**: "Bu madde tam olarak ne diyor", "bu kararın gerekçesi ne", "hangi maddeye
+  dayanıyor" gibi takip sorgularını mevcut pakete bağlayan bir drill-down aracı (MCP tool).
+- **Kabul**: Drill-down aracı önceki paketteki bir provision/karar için detay döndürüyor; test var.
+
+### [ ] T24.2 — Oturum bağlam taşıma
+- **Yapılacak**: Aynı oturumda önceki sorunun sınıflandırma/konu bağlamını opsiyonel taşı
+  (ör. "peki ya acil durumda" → önceki konu + acil). Bağlam taşıma açıkça opt-in.
+- **Kabul**: Bağlamlı takip sorusu doğru genişletiliyor; bağlamsız davranış değişmiyor; test var.
+
+---
+
+## Faz 25 — Performans ve Bütçe Optimizasyonu
+
+### [ ] T25.1 — Faz-içi paralel hint getirme
+- **Yapılacak**: Legislation fazında birden çok hint'in direct-fetch'ini (bütçe sınırı içinde)
+  paralelleştir; sıralı toplam yerine eşzamanlı, ama global time-budget'a saygılı.
+- **Kabul**: Çoklu-hint sorgu daha hızlı tamamlanıyor; bütçe aşımı yok; test/telemetri gösteriyor.
+
+### [ ] T25.2 — Akıllı bütçe tahsisi
+- **Yapılacak**: Legislation/precedent faz bütçelerini soru tipine göre dinamik ayarla
+  (kamu/özlük → mevzuat ağırlıklı; klinik malpraktis → emsal ağırlıklı).
+- **Kabul**: Tip-bazlı tahsis çalışıyor; timeout oranı düşüyor; test var.
+
+### [ ] T25.3 — Önbellek ısıtma CLI'ı
+- **Yapılacak**: `npm run cache:warm` — tüm covered mevzuat + golden-set emsallerini önceden
+  çekip cache'i doldurur (demo/sunum öncesi hızlı yanıt için).
+- **Kabul**: Komut cache'i dolduruyor; sonraki sorgular belirgin hızlı; test/telemetri.
+
+---
+
+## Faz 26 — Bütünsel Gözden Geçirme ve v1.1 Hazırlığı
+
+### [ ] T26.1 — Tam güvenlik denetim turu
+- **Yapılacak**: SSRF, PII, output safety, bağımlılık denetimini tek bir güvenlik raporunda
+  topla (`docs/SECURITY_REVIEW.md`); bulunan açıkları kapat veya dürüstçe belgele.
+- **Kabul**: Güvenlik raporu mevcut; kritik açık yok; testler güncel.
+
+### [ ] T26.2 — Bütünsel canlı doğrulama (genişletilmiş)
+- **Yapılacak**: 20 soruluk temsili set (klinik + kamu/özlük + gizlilik + adli + acil) üzerinde
+  canlı benchmark; her soru için pack ya da dürüst no-pack diagnostic; sonuçlar `exports/` + özet.
+- **Kabul**: 20 sorunun tamamı için sonuç var; unsafe/uydurma yok; rapor yazıldı.
+
+### [ ] T26.3 — v1.1 sürüm turu
+- **Yapılacak**: Faz 20–26 birikimini CHANGELOG'a işle; sürümü uygun şekilde bump'la
+  (minor: 0.48.0 veya v1 hedefine göre); version testi + tüm e2e smoke'lar yeşil.
+- **Kabul**: Sürüm/changelog/lock tutarlı; build + test + lint yeşil; e2e smoke'lar geçiyor.
