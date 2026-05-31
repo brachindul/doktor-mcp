@@ -36,6 +36,15 @@
   öncelikli, unique değerler append). `tests/sessionContextCarryover.test.ts`
   (5 test): dimension birleşimi, searchTerm/missingInfo dedup, opt-in davranışı.
 
+### Faz 25 — Performans ve Bütçe Optimizasyonu
+
+- **T25.1**: Faz-içi paralel hint getirme — `liveOfficialLegislationAdapter.ts`'te
+  `getMappedHealthProvisions` içindeki sequential `for...of` loop kaldırıldı.
+  Hint resolution (search/direct-fetch) `Promise.all` ile paralelleştirildi;
+  document fetch ikinci `Promise.all` ile paralel. Hata durumunda eski
+  "fail fast" davranışı korunuyor (ilk unavailable'da return). Çoklu-hint
+  sorguları önemli ölçüde hızlandı. Tüm live testleri yeşil.
+
 ### Faz 22 — Emsal Derinleştirme
 
 - **T22.1**: Emsal tam-metin önbelleği — `PrecedentCache`'e `getFullText`/`setFullText` eklendi.

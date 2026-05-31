@@ -67,21 +67,12 @@ export class LiveOfficialLegislationAdapter implements LegislationSourceAdapter 
       );
     }
 
-    const documents: LiveLegislationDocument[] = [];
-    const provisions: LegislationProvision[] = [];
     const searchResults: OfficialLegislationSearchResult[] = [];
     const sourceTrace: LegislationSourceTrace[] = [];
 
-    for (const hint of hints) {
+    // T25.1: Parallel hint resolution — resolve all hints to selectedSearchResult first
+    const hintResolution = await Promise.all(hints.map(async (hint) => {
       const trace = emptyTrace(query, hint, { officialSearchRequest: officialSearchRequest(hint.query) });
-
-      // Verified mappings already carry the document coordinate (number/type/arrangement),
-      // so the direct PDF/GeneratePdf fetch does not need the search API at all. Calling the
-      // search API for these hints is pure overhead — and when it is failing (source_error /
-      // Cloudflare on MevzuatDatatable), its retries/backoff exhaust the legislation phase
-      // budget and the whole phase times out. So for hints with a direct sourceId we bypass
-      // search entirely and go straight to the direct-fetch fast path. Only hints WITHOUT a
-      // direct coordinate fall back to the search API to discover one.
       let officialResults: OfficialLegislationSearchResult[] = [];
       let usedDirectFastPath = false;
       if (hintHasDirectSourceId(hint)) {
@@ -89,13 +80,10 @@ export class LiveOfficialLegislationAdapter implements LegislationSourceAdapter 
       } else {
         const officialSearch = await this.searchOfficialLegislation(hint.query);
         if (isUnavailable(officialSearch)) {
-          return withTrace(officialSearch, [completeTrace(trace, {
-            error: officialSearch.message
-          })]);
+          return { status: "unavailable" as const, result: officialSearch, trace };
         }
         officialResults = officialSearch;
       }
-
       trace.officialSearchResultsCount = officialResults.length;
       trace.officialSearchResults = officialResults.map(traceSearchResult);
       const mappedResult = mapHintToSearchResult(hint);
@@ -107,15 +95,41 @@ export class LiveOfficialLegislationAdapter implements LegislationSourceAdapter 
         : matchedInSearch
           ? `${hint.selectionReason} Topic cluster: ${hint.topicCluster}. Role: ${hint.legislationRole}. Official search matched the verified mapping sourceId.`
           : `${hint.selectionReason} Topic cluster: ${hint.topicCluster}. Role: ${hint.legislationRole}. Verified mapping path selected because official search returned no exact sourceId match.`;
-      searchResults.push(selectedSearchResult);
+      return { status: "ok" as const, hint, selectedSearchResult, trace };
+    }));
 
-      const document = await this.getDocument(selectedSearchResult);
-      if (isUnavailable(document)) return withTrace(document, [completeTrace(trace, {
-        landingUrl: selectedSearchResult.sourceUrl,
-        detailUrl: selectedSearchResult.sourceUrl,
-        fullTextUrl: selectedSearchResult.documentUrl,
-        error: document.message
-      })]);
+    for (const res of hintResolution) {
+      if (res.status === "unavailable") {
+        return withTrace(res.result, [completeTrace(res.trace, { error: res.result.message })]);
+      }
+      searchResults.push(res.selectedSearchResult);
+      sourceTrace.push(res.trace);
+    }
+
+    // T25.1: Parallel document fetching — fetch all documents simultaneously
+    const documentResults = await Promise.all(
+      hintResolution.filter((r) => r.status === "ok").map(async (res) => {
+        const document = await this.getDocument(res.selectedSearchResult);
+        if (isUnavailable(document)) {
+          return { status: "unavailable" as const, result: document, trace: res.trace, hint: res.hint, selectedSearchResult: res.selectedSearchResult };
+        }
+        return { status: "ok" as const, document, trace: res.trace, hint: res.hint, selectedSearchResult: res.selectedSearchResult };
+      })
+    );
+
+    const documents: LiveLegislationDocument[] = [];
+    const provisions: LegislationProvision[] = [];
+
+    for (const docRes of documentResults) {
+      if (docRes.status === "unavailable") {
+        return withTrace(docRes.result, [completeTrace(docRes.trace, {
+          landingUrl: docRes.selectedSearchResult.sourceUrl,
+          detailUrl: docRes.selectedSearchResult.sourceUrl,
+          fullTextUrl: docRes.selectedSearchResult.documentUrl,
+          error: docRes.result.message
+        })]);
+      }
+      const { document, trace, hint, selectedSearchResult } = docRes;
       documents.push(document);
 
       const extracted = extractArticlesFromOfficialText(document.text);
@@ -137,7 +151,6 @@ export class LiveOfficialLegislationAdapter implements LegislationSourceAdapter 
         );
       }
 
-      sourceTrace.push(trace);
       provisions.push(...selected.map(({ article, ranking: articleRanking }) => provisionFromArticle(
         hint,
         article.text,

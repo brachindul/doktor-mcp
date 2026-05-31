@@ -855,7 +855,7 @@ tamamlanmadan sıradakine geçme; önce düzelt.
 
 ## Faz 25 — Performans ve Bütçe Optimizasyonu
 
-### [ ] T25.1 — Faz-içi paralel hint getirme
+### [x] T25.1 — Faz-içi paralel hint getirme
 - **Yapılacak**: Legislation fazında birden çok hint'in direct-fetch'ini (bütçe sınırı içinde)
   paralelleştir; sıralı toplam yerine eşzamanlı, ama global time-budget'a saygılı.
 - **Kabul**: Çoklu-hint sorgu daha hızlı tamamlanıyor; bütçe aşımı yok; test/telemetri gösteriyor.
