@@ -817,7 +817,7 @@ tamamlanmadan sıradakine geçme; önce düzelt.
 
 ## Faz 23 — Yanıt Kalitesi ve Değerlendirme
 
-### [ ] T23.1 — Kamu/özlük ekseni için golden-set
+### [x] T23.1 — Kamu/özlük ekseni için golden-set
 - **Yapılacak**: 15–20 kamu hekimi sorusu (tayin, disiplin, mecburi hizmet, ek ödeme, nöbet,
   görevde yükselme) için beklenen birincil mevzuatı sabitleyen bir golden-set; benchmark'a ekle.
 - **Kabul**: Benchmark golden-set'i koşturuyor; her soru için beklenen mevzuat doğrulanıyor.

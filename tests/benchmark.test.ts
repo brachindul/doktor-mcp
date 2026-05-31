@@ -10,7 +10,7 @@ describe("Benchmark Dataset & Runner Tests", () => {
   it("should validate that all benchmark questions have the correct schema and unique IDs", () => {
     expect(doctorQuestions).toBeInstanceOf(Array);
     expect(doctorQuestions.length).toBeGreaterThanOrEqual(15);
-    expect(doctorQuestions.length).toBeLessThanOrEqual(20);
+    expect(doctorQuestions.length).toBeLessThanOrEqual(35);
 
     const ids = new Set<string>();
 
