@@ -128,4 +128,32 @@ describe("E2E: public physician information pack", () => {
       expect(text).not.toContain("kesin hukuki kanaat");
     }
   });
+
+  // ── T14.4 E2E smoke gate ──
+
+  it("smoke: clinical query should produce non-empty pack", async () => {
+    const service = new DoktorMcpInformationService();
+    const pack = await service.prepareInformationPack({
+      question: "hastanın diyabet tanısı konuldu, SGK karşılaması gereken tedavi süreci nedir?",
+      sourceMode: "mock",
+    });
+
+    expect(pack).toBeDefined();
+    expect(pack.shortAnswer).toBeTruthy();
+    expect(pack.shortAnswer.length).toBeGreaterThan(0);
+    expect(pack.relevantLegislation.length).toBeGreaterThan(0);
+  });
+
+  it("smoke: privacy query should produce non-empty pack", async () => {
+    const service = new DoktorMcpInformationService();
+    const pack = await service.prepareInformationPack({
+      question: "hastanın kişisel sağlık verileri KVKK kapsamında nasıl korunur?",
+      sourceMode: "mock",
+    });
+
+    expect(pack).toBeDefined();
+    expect(pack.shortAnswer).toBeTruthy();
+    expect(pack.shortAnswer.length).toBeGreaterThan(0);
+    expect(pack.relevantLegislation.length).toBeGreaterThan(0);
+  });
 });

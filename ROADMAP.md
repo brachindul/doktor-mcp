@@ -6,7 +6,7 @@
 >
 > **Genel kurallar (her görevde geçerli):**
 > - `npm run build` (tsc) **0 hata** vermeli.
-> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 1117 testi kırma.
+> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 1121 testi kırma.
 > - Yeni davranış eklediysen **yeni test** yaz. Test yoksa görev "done" sayılmaz.
 > - Pakedin/araç JSON şekli (response contract) değişiyorsa README'yi güncelle.
 > - Türkçe kullanıcı mesajları ve İngilizce kod/yorum karışımını koru (mevcut konvansiyon).
@@ -641,23 +641,10 @@ tamamlanmadan sıradakine geçme; önce düzelt.
 
 ## Faz 14 — Test, CI ve Kod Kalitesi Altyapısı
 
-### [ ] T14.1 — GitHub Actions CI
-- **Yapılacak**: `.github/workflows/ci.yml` — push/PR'da `npm ci`, `npm run build`,
-  `npm test`, `npm run test:coverage`. Canlı testleri ağ gerektirmeyecek şekilde ayır
-  (live testler `describe.skipIf(!process.env.LIVE)` ile koşullu).
-- **Kabul**: CI workflow var; mock/offline testler CI'da yeşil; canlı testler opt-in.
-
-### [ ] T14.2 — Lint + format (ESLint + Prettier)
-- **Yapılacak**: ESLint (typescript-eslint) + Prettier ekle; `npm run lint`, `npm run format`;
-  mevcut kodu uyumlu hale getir (davranış değişmeden). CI'a lint adımı ekle.
-- **Kabul**: `npm run lint` 0 hata; format tutarlı; build+test yeşil.
-
-### [ ] T14.3 — Record/replay test harness'ı (canlı adapterler)
-- **Yapılacak**: Canlı adapter yanıtlarını kaydedip (sanitize) replay eden ortak bir harness;
-  böylece canlı yollar ağsız, deterministik test edilir. Mevcut fixture testlerini buna taşı.
-- **Kabul**: Her canlı adapter için record/replay testi var; ağsız çalışıyor.
-
-### [ ] T14.4 — "İzole-test maskelemesi" koruması (e2e smoke gate)
+### [x] T14.1 — GitHub Actions CI
+### [x] T14.2 — Lint + format (ESLint + Prettier)
+### [x] T14.3 — Record/replay test harness'ı (canlı adapterler)
+### [x] T14.4 — "İzole-test maskelemesi" koruması (e2e smoke gate)
 - **Yapılacak**: Her büyük özellik için en az bir `prepareInformationPack` seviyesinde e2e
   smoke testi zorunlu; bir kontrol listesi/CI adımı bunu hatırlatsın. Geçmiş izole-test
   maskelemelerini (T6.2, T8.4) e2e ile kapat.

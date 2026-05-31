@@ -12,7 +12,7 @@ interface LegislationCacheEntry {
 }
 
 function safeKey(sourceId: string): string {
-  return sourceId.replace(/[:\/]/g, "_") + ".json";
+  return sourceId.replace(/[:/]/g, "_") + ".json";
 }
 
 export class LegislationCache {
