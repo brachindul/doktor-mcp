@@ -14,6 +14,7 @@ import {
 } from "./bedestenApi.js";
 import { HttpClient, BedestenRateLimitError } from "../../core/httpClient.js";
 import { policyForSource } from "../../live/requestPolicy.js";
+import { PrecedentCache } from "../precedentCache.js";
 
 export interface LiveBedestenAdapterOptions {
   httpClient?: HttpClient;
@@ -33,6 +34,7 @@ export class LiveBedestenAdapter implements PrecedentSourceAdapter {
   private readonly now: () => Date;
   private readonly courtTypes: BedestenCourtType[];
   private readonly sourceName: "bedesten" | "yargitay" | "danistay";
+  private readonly cache: PrecedentCache;
 
   constructor(options: LiveBedestenAdapterOptions = {}) {
     const fetchImpl = options.fetchImpl ?? fetch;
@@ -52,6 +54,7 @@ export class LiveBedestenAdapter implements PrecedentSourceAdapter {
     this.now = options.now ?? (() => new Date());
     this.courtTypes = options.courtTypes ?? ["YARGITAYKARARI", "DANISTAYKARAR", "YERELHUKUK", "ISTINAFHUKUK", "KYB"];
     this.sourceName = options.sourceName ?? "bedesten";
+    this.cache = new PrecedentCache();
   }
 
   async searchHealthPrecedents(classification: ClassifiedMedicalLegalQuestion): Promise<CourtDecision[]> {

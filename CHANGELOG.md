@@ -1,6 +1,17 @@
 # Changelog
 
-## [Unreleased] — Faz 20–22 Birikimi
+## [Unreleased] — Faz 20–23 Birikimi
+
+### Faz 23 — Yanıt Kalitesi / Değerlendirme
+
+- **T23.1**: Kamu/özlük golden-seti — 15 kamu hekimi sorusu (tayin, disiplin, ek ödeme, nöbet,
+  görevde yükselme) eklendi; her soru için beklenen birincil mevzuat sabitlendi.
+  `doctorQuestions.length` 12 → 27. `tests/goldenSetPublicPhysician.test.ts` (7 test).
+- **T23.2**: Çok-eksenli kalite skorlaması — `BenchmarkScores`'a 3 yeni boyut eklendi:
+  `lawRegulationBalanceScore` (kanun+yönetmelik birlikte = +1), `axisCoverageScore`
+  (≥3 doldurulmuş klasifikasyon ekseni = +2), `precedentRelevanceScore` (ortalama
+  healthLawRelevanceScore ≥2 = +2). `maxScore` 12 → 15.
+  `tests/multiDimensionalScoring.test.ts` (6 test).
 
 ### Faz 22 — Emsal Derinleştirme
 

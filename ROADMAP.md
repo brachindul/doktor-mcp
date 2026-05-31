@@ -822,7 +822,7 @@ tamamlanmadan sıradakine geçme; önce düzelt.
   görevde yükselme) için beklenen birincil mevzuatı sabitleyen bir golden-set; benchmark'a ekle.
 - **Kabul**: Benchmark golden-set'i koşturuyor; her soru için beklenen mevzuat doğrulanıyor.
 
-### [ ] T23.2 — Çok-eksenli kalite skorlaması
+### [x] T23.2 — Çok-eksenli kalite skorlaması
 - **Yapılacak**: Mevcut skorlamaya kanun/yönetmelik dengesi, eksen kapsama (klinik+idari),
   emsal-ilgililik boyutlarını ekle; rapor bunları ayrı ayrı göstersin.
 - **Kabul**: Skor raporu yeni boyutları içeriyor; test var.

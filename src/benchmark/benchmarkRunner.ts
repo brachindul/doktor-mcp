@@ -56,6 +56,12 @@ export interface BenchmarkScores {
   sourceAvailabilityScore: number;
   auditScore: number;
   forbiddenFieldsScore: number;
+  /** 1 if both law (Kanun) and regulation (Yönetmelik/Nizamname) present, 0 otherwise. */
+  lawRegulationBalanceScore: number;
+  /** 2 if >=3 classification dimensions populated, 1 if 1-2, 0 if none. */
+  axisCoverageScore: number;
+  /** Average verified precedent health-law relevance (2=high, 1=moderate, 0=low/none). */
+  precedentRelevanceScore: number;
   totalScore: number;
   maxScore: number;
   scorePercent: number;

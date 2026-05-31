@@ -42,8 +42,30 @@ export function scoreBenchmarkItem(input: {
   const auditScore = auditErrors.length > 0 ? 0 : auditWarnings.length > 0 ? 1 : 2;
   const forbiddenFieldsScore = safety.forbiddenFieldsAbsent ? 2 : 0;
   const relevancePenalty = weakVerifiedCount >= 3 ? 2 : weakVerifiedCount > 0 ? 1 : 0;
-  const totalScore = legislationMatchScore + priorityScore + precedentSafetyScore + sourceAvailabilityScore + auditScore + forbiddenFieldsScore - relevancePenalty;
-  const maxScore = 12;
+
+  // ── New multi-dimensional quality scores (T23.2) ──
+  const lawCount = legislationOrder.filter((n) => /\bkanun\b/i.test(n)).length;
+  const regulationCount = legislationOrder.filter((n) => /y[oö]netmeli([kğ]i|k)|yonetmeli(gi|k)|nizamname/i.test(n)).length;
+  const lawRegulationBalanceScore = lawCount > 0 && regulationCount > 0 ? 1 : 0;
+
+  const classification = pack.legalClassification;
+  const populatedAxes = [
+    classification.criminal,
+    classification.civilCompensation,
+    classification.disciplinaryAdministrative,
+    classification.patientRights,
+    classification.privacyKvkk,
+    classification.professionalEthics
+  ].filter((v) => v && v.length > 0).length;
+  const axisCoverageScore = populatedAxes >= 3 ? 2 : populatedAxes >= 1 ? 1 : 0;
+
+  const avgRelevance = verifiedPrecedentAudit.length > 0
+    ? average(verifiedPrecedentAudit.map((e) => e.healthLawRelevanceScore ?? 0)) ?? 0
+    : hasVerifiedPrecedent ? 1 : 0;
+  const precedentRelevanceScore = avgRelevance >= 2 ? 2 : avgRelevance >= 1 ? 1 : 0;
+
+  const totalScore = legislationMatchScore + priorityScore + precedentSafetyScore + sourceAvailabilityScore + auditScore + forbiddenFieldsScore - relevancePenalty + lawRegulationBalanceScore + axisCoverageScore + precedentRelevanceScore;
+  const maxScore = 15;
   const scorePercent = Math.round((totalScore / maxScore) * 100);
 
   return {
@@ -53,6 +75,9 @@ export function scoreBenchmarkItem(input: {
     sourceAvailabilityScore,
     auditScore,
     forbiddenFieldsScore,
+    lawRegulationBalanceScore,
+    axisCoverageScore,
+    precedentRelevanceScore,
     totalScore,
     maxScore,
     scorePercent,

@@ -621,12 +621,12 @@ ${renderWeakRelevanceMarkdown(report)}
 
 ## Score Table
 
-| ID | Category | Regression | Band | Score | Legislation | Priority | Precedent Safety | Source | Audit | Forbidden | Warnings |
-|---|---|---:|---|---:|---:|---:|---:|---:|---:|---:|---|
+| ID | Category | Regression | Band | Score | Legislation | Priority | Precedent Safety | Source | Audit | Forbidden | Law/Reg Balance | Axis Coverage | Precedent Relevance | Warnings |
+|---|---|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|
 `;
 
   for (const result of report.results) {
-    md += `| \`${result.id}\` | ${result.category} | ${result.regressionStatus} | \`${result.scores.qualityBand}\` | ${result.scores.totalScore}/${result.scores.maxScore} (${result.scores.scorePercent}%) | ${result.scores.legislationMatchScore} | ${result.scores.priorityScore} | ${result.scores.precedentSafetyScore} | ${result.scores.sourceAvailabilityScore} | ${result.scores.auditScore} | ${result.scores.forbiddenFieldsScore} | ${result.warnings.length} |\n`;
+    md += `| \`${result.id}\` | ${result.category} | ${result.regressionStatus} | \`${result.scores.qualityBand}\` | ${result.scores.totalScore}/${result.scores.maxScore} (${result.scores.scorePercent}%) | ${result.scores.legislationMatchScore} | ${result.scores.priorityScore} | ${result.scores.precedentSafetyScore} | ${result.scores.sourceAvailabilityScore} | ${result.scores.auditScore} | ${result.scores.forbiddenFieldsScore} | ${result.scores.lawRegulationBalanceScore} | ${result.scores.axisCoverageScore} | ${result.scores.precedentRelevanceScore} | ${result.warnings.length} |\n`;
   }
 
   md += `\n## Source Unavailable Breakdown\n\n`;
