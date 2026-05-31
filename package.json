@@ -1,6 +1,6 @@
 {
   "name": "doktor-mcp",
-  "version": "0.47.0",
+  "version": "0.47.1",
   "description": "Source-grounded MCP skeleton for doktor legal information packs.",
   "type": "module",
   "bin": {

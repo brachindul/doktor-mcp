@@ -519,9 +519,12 @@ tamamlanmadan sıradakine geçme; önce düzelt.
   `source_blocked_cloudflare` ile net raporla — ama önce (b) ve (c) tüketilsin.
 - **Kabul**: En az Atama Yönetmeliği'nin metni canlı olarak çıkarılıp en az 1 madde
   döndürülüyor; smoke `npm run verify:health-legislation` ile gösteriliyor. Build+test yeşil.
-- **⚠️ BAĞIMSIZ DOĞRULAMA NOTU**: Canlı incelemede `mevzuat:7.5.17232` canlı smoke hâlâ
-  `source_error` veriyor (gizlilik sorgusu çalışırken kamu sorgusu çalışmıyor). Bu görev
-  işaret olarak `[x]` durumunda ama kabul kriteri karşılanmamıştır. T19.1 bunu ele alır.
+- **✅ ÇÖZÜLDÜ (commit 9942438, v0.47.1)**: Kök neden faz timeout'uydu — verified-sourceId
+  hint'leri için arama API'si (MevzuatDatatable) gereksiz çağrılıyor, başarısız olunca
+  retry/backoff faz bütçesini tüketip timeout üretiyordu. Fix: verified sourceId taşıyan
+  hint'ler arama API'sini atlayıp doğrudan-fetch fast-path'ine gidiyor. Canlı doğrulandı:
+  "tayin talebim reddedildi" → Atama ve Yer Değiştirme Yönetmeliği m.5/m.8 (sufficient,
+  unavailable: []). Kabul kriteri artık gerçekten karşılanıyor.
 
 ### [x] T9.2 — Yeni kamu/eğitim yönetmelikleri için mock provision ekle
 - **Sorun**: `mockLegislationAdapter`/`mockData`'da yeni yönetmelikler için hüküm yok; mock
@@ -706,6 +709,10 @@ tamamlanmadan sıradakine geçme; önce düzelt.
 - **Kabul**: Ya `mevzuat:7.5.17232` canlıda metin veriyor (kapsama aldı), ya da başarısızlık
   nedeni yapılandırılmış error kodu ile açıkça raporlanıyor — sessiz `source_error` yok.
   Build + test yeşil.
+- **✅ NİHAİ DURUM (commit 9942438)**: T19.1 yalnızca direct-fetch bileşenini düzeltmişti ama
+  pack hattı arama API'sini çağırmaya devam ettiği için canlı timeout sürüyordu. Asıl entegrasyon
+  fix'i sonradan yapıldı: verified-sourceId hint'leri arama API'sini bypass ediyor. `mevzuat:7.5.17232`
+  canlıda m.5/m.8 döndürüyor. Kabul gerçekten karşılandı.
 
 ### [x] T19.2 — Mevzuat provision dedup'ı
 - **Sorun**: Mock smoke'da Atama Yönetmeliği `relevantLegislation`'da **3 kez** tekrar ediyor.

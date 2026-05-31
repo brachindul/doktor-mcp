@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.47.1] — 2026-05-31 — Canlı Kamu Mevzuatı Retrieval Fix
+
+> Bağımsız canlı doğrulamada bulunan kök neden düzeltmesi. 1147 test.
+
+### Fixed
+
+- **Canlı kamu yönetmeliği retrieval'i** (`liveOfficialLegislationAdapter.getMappedHealthProvisions`):
+  Verified mevzuat koordinatı (number/type/arrangement) taşıyan hint'ler artık `searchOfficialLegislation`
+  (MevzuatDatatable arama API'si) çağrısını **tamamen atlıyor** ve doğrudan PDF/GeneratePdf fetch
+  fast-path'ine gidiyor. Önceden: kamu yönetmelikleri için arama API'si `source_error` veriyor,
+  retry/backoff çoklu hint üzerinde legislation faz bütçesini tüketiyor, faz timeout'a düşüp
+  0 mevzuat döndürüyordu — oysa doğrudan fetch (42KB) çalışıyordu.
+- **Etki**: "tayin talebim reddedildi" canlı sorgusu artık Atama ve Yer Değiştirme Yönetmeliği
+  m.5/m.8 döndürüyor (`sourceSufficiency: sufficient`, `sourceUnavailable: []`). Gizlilik sorgusu
+  regresyona uğramadı (Hasta Hakları m.21 + KVKK m.6). T9.1/T19.1 kabul kriteri nihayet karşılandı.
+- Arama API'si yalnızca direct koordinatı olmayan hint'ler için (sourceId keşfi) kullanılmaya devam ediyor.
+
 ## [0.47.0] — 2026-05-31 — Faz 19 Kapanış Düzeltmeleri
 
 > 4 kapanış görevi (T19.1–T19.4). 79 test dosyası, 1144 test.
