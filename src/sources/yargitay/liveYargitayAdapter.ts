@@ -154,18 +154,29 @@ export class LiveYargitayAdapter implements PrecedentSourceAdapter {
       let fullText: string | null = null;
       let fullTextRetrievalMethod: string | null = null;
 
-      try {
-        const docData = await this.httpClientFullText.postJson<unknown>("/emsal-karar/getDocumentContent", buildBedestenDocumentBody(searchResult.documentId), {
-          headers: BEDESTEN_PUBLIC_HEADERS
-        });
-        const doc = normalizeBedestenDocumentResponse(searchResult.documentId, docData);
-        if (doc.contentBase64) {
-          const html = Buffer.from(doc.contentBase64, "base64").toString("utf-8");
-          fullText = this.stripHtml(html);
-          fullTextRetrievalMethod = "bedesten-base64-html";
+      // Check full-text cache first
+      const docId = `yargitay:${searchResult.documentId}`;
+      const cached = await this.cache.getFullText(docId);
+      if (cached) {
+        fullText = cached.text;
+        fullTextRetrievalMethod = "bedesten-base64-html-cache";
+      } else {
+        try {
+          const docData = await this.httpClientFullText.postJson<unknown>("/emsal-karar/getDocumentContent", buildBedestenDocumentBody(searchResult.documentId), {
+            headers: BEDESTEN_PUBLIC_HEADERS
+          });
+          const doc = normalizeBedestenDocumentResponse(searchResult.documentId, docData);
+          if (doc.contentBase64) {
+            const html = Buffer.from(doc.contentBase64, "base64").toString("utf-8");
+            fullText = this.stripHtml(html);
+            fullTextRetrievalMethod = "bedesten-base64-html";
+            if (fullText) {
+              await this.cache.setFullText(docId, fullText);
+            }
+          }
+        } catch {
+          // Ignore document errors, fallback to metadata_only
         }
-      } catch {
-        // Ignore document errors, fallback to metadata_only
       }
 
       const legalReasoning = fullText ? extractLegalReasoning(fullText) : undefined;

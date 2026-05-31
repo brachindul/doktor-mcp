@@ -797,7 +797,7 @@ tamamlanmadan sıradakine geçme; önce düzelt.
 
 ## Faz 22 — Emsal Derinleştirme
 
-### [ ] T22.1 — Emsal tam-metin önbelleği
+### [x] T22.1 — Emsal tam-metin önbelleği
 - **Yapılacak**: Legislation cache (T12.1) mantığını emsal tam-metin getirme adımına da
   uygula; tekrarlı sorgularda full-text ağdan tekrar çekilmesin.
 - **Kabul**: İkinci çağrı cache'ten; telemetri hit/miss; test var.

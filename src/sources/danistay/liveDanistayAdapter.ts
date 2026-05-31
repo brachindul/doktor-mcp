@@ -153,12 +153,21 @@ export class LiveDanistayAdapter implements PrecedentSourceAdapter {
 
       let fullText: string | null = null;
       let fullTextRetrievalMethod: string | null = null;
-
       const docUrl = `${BASE_URL}/getDokuman?id=${encodeURIComponent(documentId)}&arananKelime=`;
-      const text = await this.fetchFullText(docUrl);
-      if (text !== null) {
-        fullText = text;
-        fullTextRetrievalMethod = "html-text";
+
+      // Check full-text cache first
+      const docId = `danistay:${documentId}`;
+      const cached = await this.cache.getFullText(docId);
+      if (cached) {
+        fullText = cached.text;
+        fullTextRetrievalMethod = "html-text-cache";
+      } else {
+        const text = await this.fetchFullText(docUrl);
+        if (text !== null) {
+          fullText = text;
+          fullTextRetrievalMethod = "html-text";
+          await this.cache.setFullText(docId, fullText);
+        }
       }
 
       const legalReasoning = fullText ? extractLegalReasoning(fullText) : undefined;
