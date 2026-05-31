@@ -6,7 +6,7 @@
 >
 > **Genel kurallar (her görevde geçerli):**
 > - `npm run build` (tsc) **0 hata** vermeli.
-> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 1121 testi kırma.
+> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 1127 testi kırma.
 > - Yeni davranış eklediysen **yeni test** yaz. Test yoksa görev "done" sayılmaz.
 > - Pakedin/araç JSON şekli (response contract) değişiyorsa README'yi güncelle.
 > - Türkçe kullanıcı mesajları ve İngilizce kod/yorum karışımını koru (mevcut konvansiyon).
@@ -654,37 +654,12 @@ tamamlanmadan sıradakine geçme; önce düzelt.
 
 ## Faz 15 — Güvenlik ve Uyum
 
-### [ ] T15.1 — SSRF / URL güvenliği
-- **Yapılacak**: Link checker ve resmî doc verifier yalnızca izinli gov.tr host'larına istek
-  atsın (allowlist); redirect'leri host bazında doğrula; iç ağ/localhost adreslerini reddet.
-- **Kabul**: Allowlist dışı/iç-ağ URL reddediliyor; test kötü URL'leri kapsıyor.
-
-### [ ] T15.2 — PII/gizlilik hijyeni
-- **Yapılacak**: Hiçbir hasta/kişisel veri log'a veya cache anahtarına sızmasın; soru metni
-  cache key'inde hash'lensin; telemetri PII içermesin.
-- **Kabul**: Test: PII içeren soru → cache key/log'da ham metin yok.
-
-### [ ] T15.3 — Bağımlılık denetimi ve sabitleme
-- **Yapılacak**: `npm audit` temizliği; sürümleri makul sabitle; gereksiz bağımlılıkları at;
-  `package.json` `engines` ekle.
-- **Kabul**: `npm audit` kritik/yüksek 0; build+test yeşil.
-
----
-
-## Faz 16 — Gözlemlenebilirlik ve Geliştirici Deneyimi
-
-### [ ] T16.1 — Tek-komut teşhis CLI'ı
-- **Yapılacak**: `npm run doctor:diagnose -- "<soru>" --sourceMode live` — soruyu tüm
-  katmanlardan geçirip sınıflandırma, yönlendirme, mevzuat seçimi, emsal seçimi ve tüm
-  trace'leri okunaklı tek raporda gösterir (debug için).
-- **Kabul**: Komut tüm hattı tek çıktıda gösteriyor; JSON + okunaklı özet.
-
-### [ ] T16.2 — Bayrak-arkası yapılandırılmış log
-- **Yapılacak**: `DOKTOR_MCP_LOG=debug` ile yapılandırılmış (JSON) log; MCP stdio çıktısını
-  kirletmeyecek şekilde stderr'e; varsayılan kapalı.
-- **Kabul**: Log açık/kapalı çalışıyor; MCP JSON çıktısı kirlenmiyor; test var.
-
-### [ ] T16.3 — Kapsam matrisi otomatik üretimi
+### [x] T15.1 — SSRF / URL güvenliği
+### [x] T15.2 — PII/gizlilik hijyeni
+### [x] T15.3 — Bağımlılık denetimi ve sabitleme
+### [x] T16.1 — Tek-komut teşhis CLI'ı
+### [x] T16.2 — Bayrak-arkası yapılandırılmış log
+### [x] T16.3 — Kapsam matrisi otomatik üretimi
 - **Yapılacak**: Envanterden `docs/COVERAGE_MATRIX.md` üreten bir script: her mevzuat, tipi,
   kaynak statüsü, coverageStatus, sourceId/RG. CI'da güncelliğini kontrol et.
 - **Kabul**: Matris script'le üretiliyor; CHANGELOG/README ile tutarlı.

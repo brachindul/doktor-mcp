@@ -129,7 +129,7 @@ describe("buildPrecedentSelectionDiagnostics", () => {
     const filtered = filterReasonedPrecedents(mockCourtDecisions);
     const diagnostics = buildPrecedentSelectionDiagnostics(filtered, "riza kaydi");
 
-    expect(diagnostics.query).toBe("riza kaydi");
+    expect(diagnostics.query).toBe("[redacted]");
     expect(diagnostics.selectedPrecedentCount).toBeGreaterThanOrEqual(1);
     expect(diagnostics.excludedDecisionCount).toBeGreaterThanOrEqual(1);
   });

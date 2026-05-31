@@ -76,7 +76,7 @@ export function buildPrecedentSelectionDiagnostics(
   });
 
   return {
-    query,
+    query: "[redacted]",
     selectedPrecedentCount: selected.length,
     excludedDecisionCount: excluded.length,
     sourceSummaries,

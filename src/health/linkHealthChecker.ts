@@ -8,6 +8,25 @@
  */
 
 // ──────────────────────────────────────────────────────────────
+// SSRF / URL allowlist
+// ──────────────────────────────────────────────────────────────
+
+const ALLOWED_HOSTS = [
+  "mevzuat.gov.tr", "resmigazete.gov.tr",
+  "adalet.gov.tr", "anayasa.gov.tr",
+  "danistay.gov.tr", "yargitay.gov.tr",
+  "karararama.danistay.gov.tr", "kararlarbilgibankasi.anayasa.gov.tr",
+  "bedesten.adalet.gov.tr"
+];
+
+export function isAllowedUrl(url: string): boolean {
+  try {
+    const hostname = new URL(url).hostname;
+    return ALLOWED_HOSTS.some(h => hostname === h || hostname.endsWith("." + h));
+  } catch { return false; }
+}
+
+// ──────────────────────────────────────────────────────────────
 // Types
 // ──────────────────────────────────────────────────────────────
 
@@ -119,6 +138,12 @@ export async function checkSourceUrls(
     const elapsed = Date.now() - startTime;
     if (elapsed >= budget) {
       // Skip remaining — budget exhausted
+      results.push({ url, status: "skipped", checkedAt: new Date().toISOString() });
+      continue;
+    }
+
+    // SSRF protection: skip URLs not on the allowlist
+    if (!isAllowedUrl(url)) {
       results.push({ url, status: "skipped", checkedAt: new Date().toISOString() });
       continue;
     }

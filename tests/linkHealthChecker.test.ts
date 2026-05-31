@@ -143,7 +143,7 @@ describe("checkSourceUrls", () => {
       status: 200,
     });
     const summary = await checkSourceUrls(
-      ["https://example.com/test"],
+      ["https://mevzuat.gov.tr/test"],
       { fetch: mockFetch, totalBudgetMs: 5000, perUrlTimeoutMs: 1000 }
     );
     expect(summary.reachableCount).toBe(1);
@@ -158,7 +158,7 @@ describe("checkSourceUrls", () => {
       status: 404,
     });
     const summary = await checkSourceUrls(
-      ["https://example.com/missing"],
+      ["https://adalet.gov.tr/missing"],
       { fetch: mockFetch, totalBudgetMs: 5000, perUrlTimeoutMs: 1000 }
     );
     expect(summary.reachableCount).toBe(0);
@@ -172,7 +172,7 @@ describe("checkSourceUrls", () => {
       status: 500,
     });
     const summary = await checkSourceUrls(
-      ["https://example.com/server-error"],
+      ["https://anayasa.gov.tr/server-error"],
       { fetch: mockFetch, totalBudgetMs: 5000, perUrlTimeoutMs: 1000 }
     );
     expect(summary.unreachableCount).toBe(1);
@@ -184,7 +184,7 @@ describe("checkSourceUrls", () => {
       new Promise((resolve) => setTimeout(() => resolve({ ok: true, status: 200 }), 2000))
     );
     const summary = await checkSourceUrls(
-      ["https://example.com/slow", "https://example.com/skipped"],
+      ["https://mevzuat.gov.tr/slow", "https://adalet.gov.tr/skipped"],
       { fetch: mockFetch, totalBudgetMs: 100, perUrlTimeoutMs: 1000 }
     );
     expect(summary.skippedCount).toBeGreaterThanOrEqual(1);
@@ -193,7 +193,7 @@ describe("checkSourceUrls", () => {
   it("should handle network errors", async () => {
     const mockFetch = vi.fn().mockRejectedValue(new Error("Network error"));
     const summary = await checkSourceUrls(
-      ["https://example.com/error"],
+      ["https://yargitay.gov.tr/error"],
       { fetch: mockFetch, totalBudgetMs: 5000, perUrlTimeoutMs: 1000 }
     );
     expect(summary.unreachableCount).toBe(1);
@@ -207,7 +207,7 @@ describe("checkSourceUrls", () => {
       });
     });
     const summary = await checkSourceUrls(
-      ["https://example.com/timeout"],
+      ["https://danistay.gov.tr/timeout"],
       { fetch: mockFetch, totalBudgetMs: 5000, perUrlTimeoutMs: 10 }
     );
     expect(summary.unreachableCount).toBe(1);
@@ -220,9 +220,9 @@ describe("checkSourceUrls", () => {
       .mockRejectedValueOnce(new Error("Connection refused"));
     const summary = await checkSourceUrls(
       [
-        "https://example.com/ok",
-        "https://example.com/forbidden",
-        "https://example.com/refused",
+        "https://mevzuat.gov.tr/ok",
+        "https://adalet.gov.tr/forbidden",
+        "https://anayasa.gov.tr/refused",
       ],
       { fetch: mockFetch, totalBudgetMs: 5000, perUrlTimeoutMs: 1000 }
     );
@@ -235,7 +235,7 @@ describe("checkSourceUrls", () => {
   it("should return checkedAt as ISO string", async () => {
     const mockFetch = vi.fn().mockResolvedValue({ ok: true, status: 200 });
     const summary = await checkSourceUrls(
-      ["https://example.com/test"],
+      ["https://mevzuat.gov.tr/test"],
       { fetch: mockFetch, totalBudgetMs: 5000, perUrlTimeoutMs: 1000 }
     );
     expect(summary.results[0].checkedAt).toBeTruthy();
@@ -245,7 +245,7 @@ describe("checkSourceUrls", () => {
   it("should record totalBudgetMs and elapsedMs in summary", async () => {
     const mockFetch = vi.fn().mockResolvedValue({ ok: true, status: 200 });
     const summary = await checkSourceUrls(
-      ["https://example.com/test"],
+      ["https://mevzuat.gov.tr/test"],
       { fetch: mockFetch, totalBudgetMs: 3000, perUrlTimeoutMs: 1000 }
     );
     expect(summary.totalBudgetMs).toBe(3000);

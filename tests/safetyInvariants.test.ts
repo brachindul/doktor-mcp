@@ -99,6 +99,19 @@ describe("safety invariants", () => {
     }
   });
 
+  // ── Invariant: Raw query PII must not appear in pack output ──
+  it("should not expose raw query in logs or cache keys", async () => {
+    const service = new DoktorMcpInformationService();
+    const pack = await service.prepareInformationPack({
+      question: "Hasta Ahmet Yılmaz TC 12345678901 kişisel verileri paylaşıldı",
+      sourceMode: "mock",
+    });
+    // Pack should not contain the PII data
+    const text = JSON.stringify(pack).toLowerCase();
+    expect(text).not.toContain("ahmet");
+    expect(text).not.toContain("12345678901");
+  });
+
   // ── Invariant 8: Strict mode must not produce assessment ──
   it("strict mode must NOT include preliminaryAssessment", async () => {
     const pack = await service.prepareInformationPack({

@@ -33,7 +33,9 @@
     "lint": "eslint src/ --ext .ts",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "doctor:diagnose": "tsx src/doctorDiagnoseCli.ts",
+    "docs:coverage-matrix": "tsx src/generateCoverageMatrixCli.ts > docs/COVERAGE_MATRIX.md"
   },
   "keywords": [],
   "author": "",
