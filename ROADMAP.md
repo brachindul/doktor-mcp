@@ -841,7 +841,7 @@ tamamlanmadan sıradakine geçme; önce düzelt.
 
 ## Faz 24 — Çok-Adımlı Bağlam (Multi-Turn)
 
-### [ ] T24.1 — Takip sorusu / drill-down
+### [x] T24.1 — Takip sorusu / drill-down
 - **Yapılacak**: "Bu madde tam olarak ne diyor", "bu kararın gerekçesi ne", "hangi maddeye
   dayanıyor" gibi takip sorgularını mevcut pakete bağlayan bir drill-down aracı (MCP tool).
 - **Kabul**: Drill-down aracı önceki paketteki bir provision/karar için detay döndürüyor; test var.

@@ -25,6 +25,11 @@ const decisionsSchema = z.object({
   query: z.string().optional()
 });
 
+const drillDownSchema = z.object({
+  pack: z.custom<DoctorLegalInformationPack>(),
+  followUpQuestion: z.string().min(1)
+});
+
 function jsonResult(value: unknown): CallToolResult {
   return {
     content: [{ type: "text", text: JSON.stringify(value, null, 2) }],
@@ -94,6 +99,39 @@ export function createMedicalLegalToolHandlers(service = new DoktorMcpInformatio
     prepare_doctor_legal_information_pack: async (input: unknown) => {
       const pack = await service.prepareInformationPack(packInputSchema.parse(input));
       return formatPackResponse(pack);
+    },
+    drill_down_pack_item: async (input: unknown) => {
+      const parsed = drillDownSchema.parse(input);
+      const q = parsed.followUpQuestion.toLowerCase();
+      // Simple keyword-based matching to find the relevant provision or precedent
+      const legislation = parsed.pack.relevantLegislation;
+      const precedents = parsed.pack.verifiedHighCourtPrecedents;
+
+      // Extract digit sequences as potential article/decision numbers
+      const digits = q.match(/\d+/g) ?? [];
+
+      // Look for legislation name mentions
+      const legislationMatches = legislation.filter((l) =>
+        q.includes(l.legislationName.toLowerCase()) ||
+        digits.some((d) => l.articleNumber?.includes(d))
+      );
+
+      // Look for precedent mentions (by sourceDocumentId, chamber, or decision/merits number)
+      const precedentMatches = precedents.filter((p) =>
+        q.includes(p.sourceDocumentId?.toLowerCase() ?? "") ||
+        q.includes(p.sourceId?.toLowerCase() ?? "") ||
+        q.includes(p.chamber?.toLowerCase() ?? "") ||
+        digits.some((d) => (p.meritsNumber ?? "").includes(d) || (p.decisionNumber ?? "").includes(d))
+      );
+
+      return {
+        matchedLegislation: legislationMatches,
+        matchedPrecedents: precedentMatches,
+        followUpQuestion: parsed.followUpQuestion,
+        totalLegislationInPack: legislation.length,
+        totalPrecedentsInPack: precedents.length,
+        disclaimer: "Bu detaylar kaynak kayıtlarına dayanmaktadır; nihai hukuki yorum değildir."
+      };
     }
   };
 }
@@ -133,4 +171,9 @@ export function registerMedicalLegalTools(
     description: "Prepares a source-grounded doktor legal information pack without a final legal opinion.",
     inputSchema: packInputSchema.shape
   }, async (input) => jsonResult(await handlers.prepare_doctor_legal_information_pack(input)));
+
+  server.registerTool("drill_down_pack_item", {
+    description: "Drill-down into a specific provision or precedent from a previously prepared doctor legal information pack. Matches the follow-up question against pack items.",
+    inputSchema: drillDownSchema.shape
+  }, async (input) => jsonResult(await handlers.drill_down_pack_item(input)));
 }

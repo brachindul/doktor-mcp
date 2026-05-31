@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased] — Faz 20–23 Birikimi
+## [Unreleased] — Faz 20–24 Birikimi
 
 ### Faz 23 — Yanıt Kalitesi / Değerlendirme
 
@@ -22,6 +22,14 @@
   `violence_threat` + Ceza = +1, `public_employment` + Danıştay = 0,
   `public_discipline` + Yargıtay Ceza = -1 gibi beklenen eşleşmeler tablo halinde
   doğrulandı.
+
+### Faz 24 — Çok-Adımlı Bağlam (Multi-Turn)
+
+- **T24.1**: Drill-down takip sorusu aracı — `drill_down_pack_item` MCP tool eklendi.
+  Önceki `prepare_doctor_legal_information_pack` çıktısındaki bir provision veya
+  emsale odaklanan takip sorusunu (`followUpQuestion`) keyword matching ile
+  paket içindeki ilgili madde/kararla eşleştiriyor. `tests/drillDownTool.test.ts`
+  (5 test): madde numarası, kanun adı, daire adı ve ilgisiz soru senaryoları.
 
 ### Faz 22 — Emsal Derinleştirme
 
