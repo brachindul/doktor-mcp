@@ -689,7 +689,7 @@ tamamlanmadan sıradakine geçme; önce düzelt.
 > Faz 0–18 tamamlandı ama bağımsız canlı doğrulamada iki açık bulundu.
 > Bu faz bunları kapatır.
 
-### [ ] T19.1 — Yeni kamu sourceId'lerinin canlı fetch'ini düzelt ve T9.1'i dürüstçe kapat
+### [x] T19.1 — Yeni kamu sourceId'lerinin canlı fetch'ini düzelt ve T9.1'i dürüstçe kapat
 - **Sorun**: Gizlilik yönetmelikleri (mevzuat:1.5.6698) canlıda çekiliyor, ama kamu
   yönetmelikleri (mevzuat:7.5.17232 Atama vb.) hâlâ `source_error` veriyor. Fark muhtemelen
   PDF URL formatında (type-7 yeni numara aralığı), landing-page fallback'in bunları yakalamaması,
@@ -707,7 +707,7 @@ tamamlanmadan sıradakine geçme; önce düzelt.
   nedeni yapılandırılmış error kodu ile açıkça raporlanıyor — sessiz `source_error` yok.
   Build + test yeşil.
 
-### [ ] T19.2 — Mevzuat provision dedup'ı
+### [x] T19.2 — Mevzuat provision dedup'ı
 - **Sorun**: Mock smoke'da Atama Yönetmeliği `relevantLegislation`'da **3 kez** tekrar ediyor.
   Emsal dedup (T2.3) var ama mevzuat tarafında eşdeğer yok.
 - **Dosya**: `src/health/legislationMapper.ts` veya `src/app/legislationPhase.ts` (provision
@@ -717,14 +717,14 @@ tamamlanmadan sıradakine geçme; önce düzelt.
 - **Kabul**: Test: aynı madde farklı kaynaklardan → tek provision; çıktıda tekrar yok.
   Build + test yeşil.
 
-### [ ] T19.3 — Canlı kamu sorgusu için dürüst no-pack diagnostic testi
+### [x] T19.3 — Canlı kamu sorgusu için dürüst no-pack diagnostic testi
 - **Yapılacak**: Canlıda kamu yönetmelikleri `covered` değilken paket `sourceSufficiency:
   "partial"` + `coverageGaps` ile dürüst diagnostic döndürmeli — sessizce `verifiedLegislationCount:0`
   + boş mevzuat döndürmemeli. Test: kamu sorgusu + `sourceMode: live` → ya mevzuat var
   ya da `coverageGaps` içinde kamu yönetmeliginin neden gelmediği açıkça belirtiliyor.
 - **Kabul**: Canlı kamu sorgusu sessiz boş dönmüyor; açık diagnostic veya provision var; test var.
 
-### [ ] T19.4 — Son CHANGELOG + sürüm turu
+### [x] T19.4 — Son CHANGELOG + sürüm turu
 - **Yapılacak**: T19.1–T19.3 bittikten sonra CHANGELOG'a Faz 19 girdisi, package.json +
   lock sürümünü bump (0.46.0 → 0.47.0), `tests/version.test.ts` uyumu.
 - **Kabul**: Sürüm, changelog, lock tutarlı; build + test yeşil.

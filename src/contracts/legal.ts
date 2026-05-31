@@ -320,6 +320,8 @@ export interface PrecedentSelectionDiagnostics {
   excludedDecisionCount: number;
   /** Number of decisions removed during cross-source deduplication. */
   dedupedCount?: number;
+  /** Number of legislation provisions removed during deduplication (same documentId + articleNumber). */
+  dedupedProvisionCount?: number;
   sourceSummaries: PrecedentSourceSummary[];
   selectedPrecedents: Array<{
     source: PrecedentSource;

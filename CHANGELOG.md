@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.47.0] — 2026-05-31 — Faz 19 Kapanış Düzeltmeleri
+
+> 4 kapanış görevi (T19.1–T19.4). 79 test dosyası, 1144 test.
+
+### Faz 19 — Gece Koşusu Sonrası Kapanış (4 tasks)
+
+- **T19.1**: Live fetch doğrulandı — `mevzuat:7.5.17232` (Atama Yönetmeliği) canlıda 42KB metin döndürüyor. Type-7 yönetmelikler için `File/GeneratePdf` URL'i çalışıyor. T9.1 kabul kriteri geçerli.
+- **T19.2**: `deduplicateProvisions()` eklendi — aynı `sourceDocumentId + articleNumber` ikilisi tek provision'a indirgeniyor, en zengin `verbatimText` olan tutuluyor. `dedupedProvisionCount` diagnostic'e eklendi.
+- **T19.3**: Dürüst no-pack diagnostic testi — kamu sorguları için `sourceWarnings`/`coverageGaps` ile şeffaf raporlama; sessiz boş mevzuat yasak.
+- **T19.4**: Package 0.46.0 → 0.47.0, CHANGELOG güncel, version testi güncel.
+
+### Özet
+- **Toplam**: 76 görev tamamlandı (Faz 0–19)
+- **Test**: 79 test dosyası, 1144 test
+
 ## [0.46.0] — 2026-05-31 — v1 Release Candidate: Tüm Fazlar Tamamlandı
 
 > 72 görev tamamlandı. 78 test dosyası, 1141 test. Faz 0–18.

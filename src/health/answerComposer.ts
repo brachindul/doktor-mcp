@@ -198,6 +198,23 @@ function buildPreliminaryAssessment(pack: DoctorLegalInformationPack): Prelimina
   return { summary, sentences };
 }
 
+/**
+ * Deduplicate legislation provisions by sourceDocumentId + articleNumber.
+ * Keeps the provision with the longest verbatimText.
+ */
+function deduplicateProvisions(provisions: LegislationProvision[]): { dedupedProvisions: LegislationProvision[]; dedupedProvisionCount: number } {
+  const seen = new Map<string, LegislationProvision>();
+  for (const p of provisions) {
+    const key = `${p.evidence.documentId}::${p.articleNumber ?? ""}`;
+    const existing = seen.get(key);
+    if (!existing || (p.verbatimText?.length ?? 0) > (existing.verbatimText?.length ?? 0)) {
+      seen.set(key, p);
+    }
+  }
+  const deduped = [...seen.values()];
+  return { dedupedProvisions: deduped, dedupedProvisionCount: provisions.length - deduped.length };
+}
+
 export function composeDoctorLegalInformationPack(
   classification: ClassifiedMedicalLegalQuestion,
   provisions: LegislationProvision[],
@@ -213,7 +230,10 @@ export function composeDoctorLegalInformationPack(
   // Keep the richest version (full text + reasoning).
   const { decisions: dedupedPrecedents, dedupedCount } = deduplicateDecisions(precedents);
 
-  const groundedCount = provisions.length + dedupedPrecedents.length;
+  // Deduplicate legislation provisions from the same documentId + articleNumber.
+  const { dedupedProvisions, dedupedProvisionCount } = deduplicateProvisions(provisions);
+
+  const groundedCount = dedupedProvisions.length + dedupedPrecedents.length;
   let shortAnswer =
     groundedCount > 0
       ? "Soru resmi kaynak kayıtlarıyla eşleştirildi; aşağıdaki paket nihai hukuki kanaat değildir."
@@ -224,7 +244,7 @@ export function composeDoctorLegalInformationPack(
     shortAnswer = "Zaman bütçesi limiti nedeniyle kısmi veri seti oluşturulabildi. Soru resmi kaynak kayıtlarıyla eşleştirildi; aşağıdaki paket nihai hukuki kanaat değildir.";
   }
 
-  const hasLiveLegislation = provisions.some((provision) => Boolean(provision.evidence.sourceUrl));
+  const hasLiveLegislation = dedupedProvisions.some((provision) => Boolean(provision.evidence.sourceUrl));
 
   const sourceWarnings = groundedCount > 0
     ? [hasLiveLegislation
@@ -237,7 +257,7 @@ export function composeDoctorLegalInformationPack(
   }
 
   // Build optional preliminary assessment from available sources
-  const relevantLegislation = provisions.map((provision) => ({
+  const relevantLegislation = dedupedProvisions.map((provision) => ({
     legislationName: provision.legislationName,
     articleNumber: provision.articleNumber,
     verbatimQuote: provision.verbatimText,
@@ -288,16 +308,20 @@ export function composeDoctorLegalInformationPack(
     lawyerReviewPoints,
     sourceWarnings,
     ...(sourceUnavailable.length > 0 ? { sourceUnavailable } : {}),
-    ...(provisions.some((provision) => provision.sourceTrace)
-      ? { sourceTrace: provisions.flatMap((provision) => provision.sourceTrace ? [provision.sourceTrace] : []) }
+    ...(dedupedProvisions.some((provision) => provision.sourceTrace)
+      ? { sourceTrace: dedupedProvisions.flatMap((provision) => provision.sourceTrace ? [provision.sourceTrace] : []) }
       : {}),
     ...(selectionDiagnostics ? { selectionDiagnostics } : {}),
     ...(preliminaryAssessment ? { preliminaryAssessment } : {})
   };
 
   // Attach dedup diagnostics (will be merged with full precedentDiagnostics by caller)
-  if (dedupedCount > 0) {
-    pack.precedentDiagnostics = { dedupedCount } as PrecedentSelectionDiagnostics;
+  if (dedupedCount > 0 || dedupedProvisionCount > 0) {
+    pack.precedentDiagnostics = {
+      ...(pack.precedentDiagnostics as any ?? {}),
+      dedupedCount: dedupedCount > 0 ? dedupedCount : undefined,
+      dedupedProvisionCount: dedupedProvisionCount > 0 ? dedupedProvisionCount : undefined,
+    } as PrecedentSelectionDiagnostics;
   }
 
   return pack;
