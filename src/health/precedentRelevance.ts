@@ -139,7 +139,7 @@ interface ChamberMapping {
   irrelevantChamberKeywords?: string[];
 }
 
-const ISSUE_PROFILE_CHAMBERS: Record<IssueProfile, ChamberMapping> = {
+export const ISSUE_PROFILE_CHAMBERS: Record<IssueProfile, ChamberMapping> = {
   informed_consent: { preferredCourts: ["yargitay"], defaultChamberKeywords: ["hukuk"] },
   malpractice_complication: { preferredCourts: ["yargitay"], defaultChamberKeywords: ["hukuk"] },
   emergency_care: { preferredCourts: ["yargitay"], defaultChamberKeywords: ["hukuk"], distinguishedChamberKeywords: ["ceza"] },
@@ -168,7 +168,7 @@ const ISSUE_PROFILE_CHAMBERS: Record<IssueProfile, ChamberMapping> = {
   }
 };
 
-function computeChamberBonus(profile: IssueProfile, court: string | undefined, chamber: string | undefined): number {
+export function computeChamberBonus(profile: IssueProfile, court: string | undefined, chamber: string | undefined): number {
   const mapping = ISSUE_PROFILE_CHAMBERS[profile];
   if (!mapping || !court) return 0;
   const normalizedCourt = normalizeText(court);

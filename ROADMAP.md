@@ -832,6 +832,11 @@ tamamlanmadan sıradakine geçme; önce düzelt.
   hard-blocked kategorik hüküm üretmediğini doğrulayan test seti; ton gevşemesinin sınırını koru.
 - **Kabul**: Adversarial set → kategorik hüküm yok; kaynak-bağlı koşullu değerlendirme korunuyor.
 
+### [x] T23.4 — Soru-daire-doküman üçlü doğrulama
+- **Yapılacak**: Soru metni → issue profile → beklenen daire/duruşma eşlemesinin `ISSUE_PROFILE_CHAMBERS`
+  tablosuyla tutarlılığını doğrulayan test; uyuşmazlık varsa raporlanıyor.
+- **Kabul**: Üçlü eşleşme tablosu testi var; `computeChamberBonus` doğru bonus/penaltı veriyor.
+
 ---
 
 ## Faz 24 — Çok-Adımlı Bağlam (Multi-Turn)

@@ -17,6 +17,11 @@
   ile kategorik hüküm üretilmediği doğrulandı. `tests/adversarialSafety.test.ts`
   (17 test): hard-blocked phrase yok, forbidden field yok, çıktı koşullu/disclaimer
   içeriyor.
+- **T23.4**: Soru-daire-doküman üçlü doğrulama — `ISSUE_PROFILE_CHAMBERS` ve
+  `computeChamberBonus` export edildi. `tests/tripleVerification.test.ts` (7 test):
+  `violence_threat` + Ceza = +1, `public_employment` + Danıştay = 0,
+  `public_discipline` + Yargıtay Ceza = -1 gibi beklenen eşleşmeler tablo halinde
+  doğrulandı.
 
 ### Faz 22 — Emsal Derinleştirme
 
