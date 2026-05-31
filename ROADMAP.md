@@ -6,7 +6,7 @@
 >
 > **Genel kurallar (her görevde geçerli):**
 > - `npm run build` (tsc) **0 hata** vermeli.
-> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 1104 testi kırma.
+> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 1110 testi kırma.
 > - Yeni davranış eklediysen **yeni test** yaz. Test yoksa görev "done" sayılmaz.
 > - Pakedin/araç JSON şekli (response contract) değişiyorsa README'yi güncelle.
 > - Türkçe kullanıcı mesajları ve İngilizce kod/yorum karışımını koru (mevcut konvansiyon).
@@ -596,13 +596,13 @@ tamamlanmadan sıradakine geçme; önce düzelt.
 
 ## Faz 12 — Retrieval Sağlamlığı ve Canlı Kaynak Dayanıklılığı
 
-### [ ] T12.1 — Mevzuat sonuç önbelleği (legislation cache)
+### [x] T12.1 — Mevzuat sonuç önbelleği (legislation cache)
 - **Yapılacak**: `PrecedentCache` mantığını mevzuat tarafına da getir: doğrulanmış sourceId →
   çıkarılmış madde metni dosya önbelleği (TTL'li, `.cache/legislation/`). Canlı çağrı öncesi
   önbelleği kontrol et.
 - **Kabul**: İkinci çağrı önbellekten geliyor; telemetri hit/miss gösteriyor; test var.
 
-### [ ] T12.2 — Yapılandırılmış hata taksonomisini tamamla
+### [x] T12.2 — Yapılandırılmış hata taksonomisini tamamla
 - **Yapılacak**: Tüm canlı kaynaklar için tutarlı `errorCode` seti (network, timeout,
   blocked_cloudflare, non_json, parse, not_found, empty). Her kod için `recommendedNextStep`.
 - **Kabul**: Hata kodları dokümante (`docs/ERROR_CODES.md`); test her kodu üretebiliyor.
