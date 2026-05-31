@@ -73,22 +73,40 @@ export class LiveOfficialLegislationAdapter implements LegislationSourceAdapter 
     const sourceTrace: LegislationSourceTrace[] = [];
 
     for (const hint of hints) {
-      const officialSearch = await this.searchOfficialLegislation(hint.query);
       const trace = emptyTrace(query, hint, { officialSearchRequest: officialSearchRequest(hint.query) });
-      if (isUnavailable(officialSearch)) {
-        return withTrace(officialSearch, [completeTrace(trace, {
-          error: officialSearch.message
-        })]);
+
+      // Verified mappings already carry the document coordinate (number/type/arrangement),
+      // so the direct PDF/GeneratePdf fetch does not need the search API at all. Calling the
+      // search API for these hints is pure overhead — and when it is failing (source_error /
+      // Cloudflare on MevzuatDatatable), its retries/backoff exhaust the legislation phase
+      // budget and the whole phase times out. So for hints with a direct sourceId we bypass
+      // search entirely and go straight to the direct-fetch fast path. Only hints WITHOUT a
+      // direct coordinate fall back to the search API to discover one.
+      let officialResults: OfficialLegislationSearchResult[] = [];
+      let usedDirectFastPath = false;
+      if (hintHasDirectSourceId(hint)) {
+        usedDirectFastPath = true;
+      } else {
+        const officialSearch = await this.searchOfficialLegislation(hint.query);
+        if (isUnavailable(officialSearch)) {
+          return withTrace(officialSearch, [completeTrace(trace, {
+            error: officialSearch.message
+          })]);
+        }
+        officialResults = officialSearch;
       }
 
-      trace.officialSearchResultsCount = officialSearch.length;
-      trace.officialSearchResults = officialSearch.map(traceSearchResult);
+      trace.officialSearchResultsCount = officialResults.length;
+      trace.officialSearchResults = officialResults.map(traceSearchResult);
       const mappedResult = mapHintToSearchResult(hint);
-      const selectedSearchResult = officialSearch.find((result) => result.sourceId === hint.sourceId) ?? mappedResult;
+      const matchedInSearch = officialResults.some((result) => result.sourceId === hint.sourceId);
+      const selectedSearchResult = officialResults.find((result) => result.sourceId === hint.sourceId) ?? mappedResult;
       trace.selectedSearchResult = traceSearchResult(selectedSearchResult);
-      trace.selectedResultReason = officialSearch.some((result) => result.sourceId === hint.sourceId)
-        ? `${hint.selectionReason} Topic cluster: ${hint.topicCluster}. Role: ${hint.legislationRole}. Official search matched the verified mapping sourceId.`
-        : `${hint.selectionReason} Topic cluster: ${hint.topicCluster}. Role: ${hint.legislationRole}. Verified mapping path selected because official search returned no exact sourceId match.`;
+      trace.selectedResultReason = usedDirectFastPath
+        ? `${hint.selectionReason} Topic cluster: ${hint.topicCluster}. Role: ${hint.legislationRole}. Verified mapping sourceId resolved via direct-fetch fast path (search API bypassed).`
+        : matchedInSearch
+          ? `${hint.selectionReason} Topic cluster: ${hint.topicCluster}. Role: ${hint.legislationRole}. Official search matched the verified mapping sourceId.`
+          : `${hint.selectionReason} Topic cluster: ${hint.topicCluster}. Role: ${hint.legislationRole}. Verified mapping path selected because official search returned no exact sourceId match.`;
       searchResults.push(selectedSearchResult);
 
       const document = await this.getDocument(selectedSearchResult);
@@ -440,6 +458,15 @@ function matchingHints(query: string): HealthLegislationHint[] {
   }
 
   return [...combined.values()].sort((a, b) => a.healthLawPriority - b.healthLawPriority);
+}
+
+/**
+ * A hint can be resolved via the direct-fetch fast path (bypassing the search API) when it
+ * carries a verified mevzuat document coordinate (number/type/arrangement). Those three fields
+ * are all that `mapHintToSearchResult` + `getDocument` need to build the PDF/GeneratePdf URL.
+ */
+function hintHasDirectSourceId(hint: HealthLegislationHint): boolean {
+  return Boolean(hint.legislationNumber && hint.legislationType && hint.legislationArrangement);
 }
 
 function mapHintToSearchResult(hint: HealthLegislationHint): OfficialLegislationSearchResult {
