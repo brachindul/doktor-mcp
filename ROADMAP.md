@@ -6,7 +6,7 @@
 >
 > **Genel kurallar (her görevde geçerli):**
 > - `npm run build` (tsc) **0 hata** vermeli.
-> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 1110 testi kırma.
+> - `npm test` (vitest) **tamamen yeşil** kalmalı. Mevcut 1114 testi kırma.
 > - Yeni davranış eklediysen **yeni test** yaz. Test yoksa görev "done" sayılmaz.
 > - Pakedin/araç JSON şekli (response contract) değişiyorsa README'yi güncelle.
 > - Türkçe kullanıcı mesajları ve İngilizce kod/yorum karışımını koru (mevcut konvansiyon).
@@ -607,13 +607,13 @@ tamamlanmadan sıradakine geçme; önce düzelt.
   blocked_cloudflare, non_json, parse, not_found, empty). Her kod için `recommendedNextStep`.
 - **Kabul**: Hata kodları dokümante (`docs/ERROR_CODES.md`); test her kodu üretebiliyor.
 
-### [ ] T12.3 — Offline snapshot/demo modu
+### [x] T12.3 — Offline snapshot/demo modu
 - **Yapılacak**: Kaydedilmiş gerçek yanıtlardan (`fixtures/live-samples/`) beslenen bir
   `sourceMode: "snapshot"` ekle: ağ olmadan gerçekçi çıktı üretir (demo/sunum/test için).
   Mock'tan farkı: gerçek sanitize edilmiş kaynak metinleri.
 - **Kabul**: `smoke:mcp --sourceMode snapshot` ağsız çalışıyor, gerçek metin döndürüyor; test var.
 
-### [ ] T12.4 — Canlı kaynak sağlık kontrolü CLI
+### [x] T12.4 — Canlı kaynak sağlık kontrolü CLI
 - **Yapılacak**: `npm run health:sources` — tüm canlı kaynakları (mevzuat, bedesten,
   danistay) yoklayıp erişilebilirlik + gecikme + engel durumu raporlar.
 - **Kabul**: Tek komut tüm kaynakların güncel statüsünü yazıyor; uydurma yok.

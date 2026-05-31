@@ -57,7 +57,7 @@ export const DoktorMcpConfigSchema = z.object({
   assessmentTone: z.enum(["strict", "grounded-advisory"]).default("grounded-advisory"),
 
   /** Default source mode */
-  sourceMode: z.enum(["mock", "live"]).default("mock"),
+  sourceMode: z.enum(["mock", "live", "snapshot"]).default("mock"),
 
   /** Retry configuration for live sources */
   retry: z.object({

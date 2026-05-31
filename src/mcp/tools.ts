@@ -7,7 +7,7 @@ import { buildPrecedentSelectionDiagnostics } from "../health/precedentFilter.js
 import { formatDoctorPackResponse, detectForbiddenOutputPhrases } from "./formatDoctorPackResponse.js";
 import type { DoctorPackResponse } from "./formatDoctorPackResponse.js";
 
-const sourceModeSchema = z.enum(["mock", "live"]).default("mock");
+const sourceModeSchema = z.enum(["mock", "live", "snapshot"]).default("mock");
 const precedentSourceSchema = z.enum(["yargitay", "danistay", "aym"]);
 const assessmentToneSchema = z.enum(["strict", "grounded-advisory"]).default("grounded-advisory");
 const questionSchema = z.object({ question: z.string().min(1) });

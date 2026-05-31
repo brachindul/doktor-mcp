@@ -29,6 +29,7 @@
     "verify:discovered-health-legislation": "tsx src/verifyDiscoveredHealthLegislationCli.ts",
     "resolve:health-legislation-rg-leads": "tsx src/resolveHealthLegislationRgLeadsCli.ts",
     "verify:official-gazette-health-legislation": "tsx src/verifyOfficialGazetteHealthLegislationCli.ts",
+    "health:sources": "tsx src/sourceHealthCli.ts",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest"

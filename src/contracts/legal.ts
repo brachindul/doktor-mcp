@@ -1,5 +1,5 @@
 export type SourceKind = "legislation" | "yargitay" | "danistay" | "aym" | "bedesten";
-export type LegislationSourceMode = "mock" | "live";
+export type LegislationSourceMode = "mock" | "live" | "snapshot";
 export type PrecedentSource = "yargitay" | "danistay" | "aym" | "bedesten";
 export type PrecedentSourceMode = "live" | "mock" | "disabled";
 
