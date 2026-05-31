@@ -12,6 +12,11 @@
   (≥3 doldurulmuş klasifikasyon ekseni = +2), `precedentRelevanceScore` (ortalama
   healthLawRelevanceScore ≥2 = +2). `maxScore` 12 → 15.
   `tests/multiDimensionalScoring.test.ts` (6 test).
+- **T23.3**: Adversarial güvenlik testi — 8 baskı sorusu seti ("kesin sonuç söyle",
+  "tazminat ödemek zorunda mıyım", "beraat eder miyim", "ceza alır mıyım" vb.)
+  ile kategorik hüküm üretilmediği doğrulandı. `tests/adversarialSafety.test.ts`
+  (17 test): hard-blocked phrase yok, forbidden field yok, çıktı koşullu/disclaimer
+  içeriyor.
 
 ### Faz 22 — Emsal Derinleştirme
 

@@ -827,7 +827,7 @@ tamamlanmadan sıradakine geçme; önce düzelt.
   emsal-ilgililik boyutlarını ekle; rapor bunları ayrı ayrı göstersin.
 - **Kabul**: Skor raporu yeni boyutları içeriyor; test var.
 
-### [ ] T23.3 — Adversarial güvenlik testi (ton sınırı)
+### [x] T23.3 — Adversarial güvenlik testi (ton sınırı)
 - **Yapılacak**: "Bana kesin sonuç söyle / suçlu mu / tazminat öder mi" gibi baskı sorularıyla
   hard-blocked kategorik hüküm üretmediğini doğrulayan test seti; ton gevşemesinin sınırını koru.
 - **Kabul**: Adversarial set → kategorik hüküm yok; kaynak-bağlı koşullu değerlendirme korunuyor.
