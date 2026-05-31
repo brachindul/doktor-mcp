@@ -121,6 +121,73 @@ const GENERIC_ONLY_SIGNALS = ["sağlık", "saglik", "hasta", "hekim", "tedavi"];
 /** Ratio threshold: if matched signals are all generic, apply penalty. */
 const GENERIC_MATCH_PENALTY = -1;
 
+/** Chamber relevance bonus/penalty for court-topic alignment.
+ *  +1: chamber is a specifically distinguished match (e.g. Ceza for violence)
+ *   0: default/expected chamber (e.g. Hukuk for malpractice) — no boost
+ *  -1: clearly wrong chamber or wrong court
+ */
+const CHAMBER_BONUS = 1;
+const CHAMBER_PENALTY = -1;
+
+interface ChamberMapping {
+  preferredCourts: ("yargitay" | "danistay")[];
+  /** Default chamber keywords — expected, no bonus. */
+  defaultChamberKeywords: string[];
+  /** Distinguished chamber keywords — gives +1 when matched. */
+  distinguishedChamberKeywords?: string[];
+  /** Clearly wrong chamber keywords — gives -1 when matched. */
+  irrelevantChamberKeywords?: string[];
+}
+
+const ISSUE_PROFILE_CHAMBERS: Record<IssueProfile, ChamberMapping> = {
+  informed_consent: { preferredCourts: ["yargitay"], defaultChamberKeywords: ["hukuk"] },
+  malpractice_complication: { preferredCourts: ["yargitay"], defaultChamberKeywords: ["hukuk"] },
+  emergency_care: { preferredCourts: ["yargitay"], defaultChamberKeywords: ["hukuk"], distinguishedChamberKeywords: ["ceza"] },
+  treatment_refusal: { preferredCourts: ["yargitay"], defaultChamberKeywords: ["hukuk"] },
+  privacy_records: { preferredCourts: ["yargitay"], defaultChamberKeywords: ["hukuk"] },
+  psychiatric_privacy: { preferredCourts: ["yargitay"], defaultChamberKeywords: ["hukuk"] },
+  violence_threat: {
+    preferredCourts: ["yargitay"],
+    defaultChamberKeywords: ["ceza"],
+    distinguishedChamberKeywords: ["ceza"],
+    irrelevantChamberKeywords: ["hukuk"]
+  },
+  referral_consultation: { preferredCourts: ["yargitay"], defaultChamberKeywords: ["hukuk"] },
+  private_hospital_fee: { preferredCourts: ["yargitay"], defaultChamberKeywords: ["hukuk"] },
+  public_discipline: {
+    preferredCourts: ["danistay"],
+    defaultChamberKeywords: ["daire"],
+    irrelevantChamberKeywords: ["hukuk", "ceza"]
+  },
+  intensive_care: { preferredCourts: ["yargitay"], defaultChamberKeywords: ["hukuk"] },
+  pregnancy_emergency: { preferredCourts: ["yargitay"], defaultChamberKeywords: ["hukuk"] },
+  public_employment: {
+    preferredCourts: ["danistay"],
+    defaultChamberKeywords: ["daire"],
+    irrelevantChamberKeywords: ["hukuk", "ceza"]
+  }
+};
+
+function computeChamberBonus(profile: IssueProfile, court: string | undefined, chamber: string | undefined): number {
+  const mapping = ISSUE_PROFILE_CHAMBERS[profile];
+  if (!mapping || !court) return 0;
+  const normalizedCourt = normalizeText(court);
+  const normalizedChamber = normalizeText(chamber ?? "");
+
+  const isPreferredCourt = mapping.preferredCourts.some((c) => normalizedCourt.includes(c));
+  if (!isPreferredCourt) return CHAMBER_PENALTY;
+
+  if (mapping.irrelevantChamberKeywords?.some((kw) => normalizedChamber.includes(kw))) {
+    return CHAMBER_PENALTY;
+  }
+
+  if (mapping.distinguishedChamberKeywords?.some((kw) => normalizedChamber.includes(kw))) {
+    return CHAMBER_BONUS;
+  }
+
+  return 0;
+}
+
 export function inferIssueProfileFromQuestion(question: string): IssueProfile {
   const normalized = normalizeText(question);
   const matched = ISSUE_PROFILES
@@ -171,6 +238,9 @@ export function assessPrecedentRelevance(
 
   // ── Apply core-body bonus ──
   score += coreBonus;
+
+  // ── Chamber relevance bonus/penalty ──
+  score += computeChamberBonus(profile.profile, decision.court, decision.chamber);
 
   // ── Penalty: only generic health terms matched, no specific issue signals ──
   if (matchedIssueSignals.length === 0 && matchedGeneralHealthSignals.length > 0) {

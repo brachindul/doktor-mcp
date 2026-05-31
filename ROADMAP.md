@@ -802,7 +802,7 @@ tamamlanmadan sıradakine geçme; önce düzelt.
   uygula; tekrarlı sorgularda full-text ağdan tekrar çekilmesin.
 - **Kabul**: İkinci çağrı cache'ten; telemetri hit/miss; test var.
 
-### [ ] T22.2 — Daire-uzmanlık eşlemesi
+### [x] T22.2 — Daire-uzmanlık eşlemesi
 - **Yapılacak**: Hangi Yargıtay/Danıştay dairesinin hangi konuya baktığını eşleyen bir tablo
   (ör. tıbbi malpraktis tazminat → Yargıtay ilgili HD; disiplin/atama iptali → Danıştay ilgili D);
   emsal seçiminde ilgili daireyi önceliklendir.
