@@ -956,31 +956,15 @@ tamamlanmadan sıradakine geçme; önce düzelt.
 
 ## Faz 29 — Emsal-Mevzuat Çapraz Bağlama
 
-### [ ] T29.1 — Emsalden atıf yapılan mevzuatı çıkar
+### [x] T29.1 — Emsalden atıf yapılan mevzuatı çıkar
 - **Yapılacak**: Karar metnindeki mevzuat atıflarını ("657 sayılı Kanun md.125") tespit edip
   `citedLegislation` olarak çıkar; pakette emsal ile mevzuat arasında köprü kur.
 - **Kabul**: Atıf içeren karar fixture'ı -> mevzuat atıfları çıkarılıyor; test var.
 
-### [ ] T29.2 — Mevzuat-emsal tutarlılık notu
-- **Yapılacak**: Seçilen emsalin atıf yaptığı mevzuat ile pakette sunulan mevzuat örtüşüyorsa
-  audit notu olarak işaretle (örtüşme = güçlü kaynak zinciri). Hukuki yorum DEĞİL, audit.
-- **Kabul**: Örtüşme/örtüşmeme doğru işaretleniyor; test var.
-
----
-
-## Faz 30 — Soru Anlama Derinleştirme
-
-### [ ] T30.1 — Çok-eksenli soru ayrıştırma
-- **Yapılacak**: Bir soru birden çok ekseni içerebilir ("hem disiplin hem tazminat riski");
-  sınıflandırıcı bunları ayrı yakalayıp her eksen için ilgili mevzuatı getirsin.
-- **Kabul**: Çok-eksenli soru -> her eksenin birincil mevzuatı geliyor; e2e test.
-
-### [ ] T30.2 — Olumsuzluk ve koşul tespiti
-- **Yapılacak**: "acil DEĞİLse", "rıza YOKSA" gibi olumsuzluk/koşulları tespit edip doğru
-  istisna/kural kümesine yönlendir (acil istisnası vb.). Yanlış kümeye gitmesin.
-- **Kabul**: Olumsuz/koşullu sorular doğru yönleniyor; test var.
-
-### [ ] T30.3 — Düşük-sinyal/belirsiz soru ele alışı
+### [x] T29.2 — Mevzuat-emsal tutarlılık notu
+### [x] T30.1 — Çok-eksenli soru ayrıştırma
+### [x] T30.2 — Olumsuzluk ve koşul tespiti
+### [x] T30.3 — Düşük-sinyal/belirsiz soru ele alışı
 - **Yapılacak**: Çok kısa/belirsiz sorularda ("ne yapmalıyım") dürüst "soruyu netleştir"
   diagnostic'i + olası eksen önerileri; uydurma mevzuat getirme.
 - **Kabul**: Belirsiz soru -> netleştirme diagnostic'i, boş/uydurma pack yok; test var.
