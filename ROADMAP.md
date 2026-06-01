@@ -928,7 +928,7 @@ tamamlanmadan sıradakine geçme; önce düzelt.
   yine de dönsün. Ayrıca "placeholder hint canlı çözümlemeye girmez" testi.
 - **Kabul**: Tek-hint-failure -> diğer provision'lar sağ; placeholder hint elenmiş; hard-fail invariyant.
 
-### [ ] T27.4 — CI'a canlı-opsiyonel eksen smoke job'u
+### [x] T27.4 — CI'a canlı-opsiyonel eksen smoke job'u
 - **Yapılacak**: CI'da iki mod: (a) PR'da recorded-fixture e2e (zorunlu, ağsız); (b) opsiyonel
   `LIVE=1` nightly job gerçek kaynaklara vurup eksen kapsamasını raporlar (kırmaz, raporlar).
 - **Kabul**: Fixture e2e CI'da zorunlu yeşil; nightly canlı job tanımlı (manuel/scheduled).

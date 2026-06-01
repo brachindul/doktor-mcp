@@ -25,6 +25,7 @@
     "benchmark:physician-real-world:live-smoke:mock": "tsx src/benchmark/realWorldLiveSmokeRunnerCli.ts --sourceMode mock",
     "benchmark:doctor-questions:performance": "tsx src/benchmark/performanceBenchmarkCli.ts",
     "cache:warm": "tsx src/cacheWarmCli.ts",
+    "ci:axis-e2e": "tsx src/ciAxisSmokeCli.ts",
     "verify:health-legislation": "tsx src/verifyHealthLegislationCli.ts",
     "discover:health-legislation-sources": "tsx src/discoverHealthLegislationSourcesCli.ts",
     "verify:discovered-health-legislation": "tsx src/verifyDiscoveredHealthLegislationCli.ts",
