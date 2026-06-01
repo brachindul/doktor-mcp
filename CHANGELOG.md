@@ -1,6 +1,10 @@
 # Changelog
 
-## [Unreleased] — Faz 20–26 Birikimi
+## [0.48.0] — 2026-06-01 — Faz 20–26 Birikimi
+
+> 16 task tamamlandı: canlı kapsama, madde kalitesi, emsal derinleştirme,
+> yanıt kalitesi, çok-adımlı bağlam, paralel hint, akıllı bütçe, önbellek
+> ısıtma, güvenlik denetimi. 1246+ test.
 
 ### Faz 23 — Yanıt Kalitesi / Değerlendirme
 

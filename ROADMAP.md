@@ -884,7 +884,7 @@ tamamlanmadan sıradakine geçme; önce düzelt.
   canlı benchmark; her soru için pack ya da dürüst no-pack diagnostic; sonuçlar `exports/` + özet.
 - **Kabul**: 20 sorunun tamamı için sonuç var; unsafe/uydurma yok; rapor yazıldı.
 
-### [ ] T26.3 — v1.1 sürüm turu
+### [x] T26.3 — v1.1 sürüm turu
 - **Yapılacak**: Faz 20–26 birikimini CHANGELOG'a işle; sürümü uygun şekilde bump'la
   (minor: 0.48.0 veya v1 hedefine göre); version testi + tüm e2e smoke'lar yeşil.
 - **Kabul**: Sürüm/changelog/lock tutarlı; build + test + lint yeşil; e2e smoke'lar geçiyor.
