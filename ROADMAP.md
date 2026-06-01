@@ -922,7 +922,7 @@ tamamlanmadan sıradakine geçme; önce düzelt.
   gizlilik -> Hasta Hakları + KVKK). Router/mapper izole testi DEĞİL — gerçek pack çıktısı.
 - **Kabul**: 8 eksenin her biri için e2e test; ilgili mevzuat gelmezse hard-fail; ağsız çalışıyor.
 
-### [ ] T27.3 — Graceful degradation regresyon testi
+### [x] T27.3 — Graceful degradation regresyon testi
 - **Yapılacak**: "Bir hint başarısız olsa bile diğerlerinin provision'ları korunur" invariyantını
   test et: bir hint'i kasten fail ettir (mock getDocument unavailable), diğerinin provision'ı
   yine de dönsün. Ayrıca "placeholder hint canlı çözümlemeye girmez" testi.
