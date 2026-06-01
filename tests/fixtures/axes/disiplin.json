@@ -1,7 +1,7 @@
 {
   "axis": "disiplin",
   "description": "Fixture for disciplinary/administrative cases — 657 DMK provisions",
-  "question": "Hekim olarak disiplin soruşturması geçiriyorum, haklarım nelerdir?",
+  "question": "devlet memurları kanunu disiplin soruşturması",
   "expectedPrimaryLegislation": ["657 sayılı Devlet Memurları Kanunu"],
   "provisions": [
     {

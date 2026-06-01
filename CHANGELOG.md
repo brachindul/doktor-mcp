@@ -1,5 +1,35 @@
 # Changelog
 
+## [0.51.0] — 2026-06-01 — Faz 36 Denetim Kapanışı II
+
+> Vacuous test sorunu kökten çözüldü: `buildReplayCache` + `docCache`
+> injection ile fixture'lar canlı kod yolundan GEÇİYOR, hard-assert
+> testler gerçekten koruyor. `docs/TEST_AUDIT.md` ile tüm suite tarandı.
+
+### Faz 36 — Test Kalitesi ve Denetim Kapanışı
+
+- **T36.1**: `buildReplayCache` — fixture metnini doğrudan `LegislationDocCache`'e
+  yazıp adapter'a `docCache` olarak enjekte eden yeni seam. `getDocument` cache'ten
+  okur, PDF fetch/parse bypass edilir. Tam pipeline (hint match → getDocument →
+  extractArticles → rankExtracted → provisions) çalışır.
+- **T36.2**: Hard-assert — `fixtureReplayLivePipeline.test.ts`'teki tüm `if (status ===
+  "ok")` guard'ları kaldırıldı. `expect(result.status).toBe("ok")` + birincil mevzuat
+  kontrolü koşulsuz. Test yeşil ve anlamlı.
+- **T36.3**: Vacuous-test taraması — tüm `tests/` taranıp 4 vacuous test tespit edildi,
+  hepsi T36.1/T36.2 ile düzeltildi. `docs/TEST_AUDIT.md` yazıldı. 151 `toBeDefined()`
+  kullanımı incelendi — hepsi anlamlı follow-up assertion'larla eşleşiyor.
+- **T36.4**: Mutation-sanity — T36.1 öncesi testler 8/9 fail (vacuous guard nedeniyle
+  "yeşil" görünüyordu ama gerçek koruma yoktu). T36.1 sonrası testler gerçek pipeline'ı
+  koruyor: cache boşaltılırsa test kırılıyor.
+- **T36.5**: Disiplin yönetmeliği sourceId — `candidate`/`needs_manual_review` durumu dürüstçe
+  belgelendi. RG bilgisi (No: 25450, Tarih: 2004-04-26) mevzuat.gov.tr manuel arama için
+  kaydedildi. Uydurma sourceId YOK.
+- **T36.6**: Eksen kapsama fixture-fed doğrulama — `axisCoverageFixtureFed.test.ts` ile
+  fixture-fed pipeline'ın beklenen birincil mevzuatı deterministik döndürdüğü doğrulandı.
+- **T36.7**: `package.json` bump 0.50.0 → 0.51.0, CHANGELOG güncellendi. Build + test yeşil.
+
+---
+
 ## [0.50.0] — 2026-06-01 — Faz 35 Denetim Kapanışı
 
 > Bağımsız denetim bulguları kapatıldı: fixture replay canlı kod yolundan

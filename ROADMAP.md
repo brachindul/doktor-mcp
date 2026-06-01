@@ -1046,62 +1046,19 @@ tamamlanmadan sıradakine geçme; önce düzelt.
 > (vacuous). Canlı-yol regresyon koruması hâlâ yok ve yanlış güven veriyor. Bu faz bunu
 > gerçekten kapatır ve aynı sınıf "yeşil ama boş" testleri tasfiye eder.
 
-### [ ] T36.1 — `buildReplayFetch`'i adapter-uyumlu yap (gerçek PDF veya doğru seam)
-- **Sorun**: Replay fetch `text/html` döndürüyor; `getDocument` PDF content-type şartı
-  yüzünden reddediyor → `unsupported_content_type`/`document_not_found`.
-- **Yapılacak**: İki yoldan biri: (a) fixture metninden `pdf-parse`'in okuyabileceği gerçek bir
-  PDF buffer üret ve `content-type: application/pdf` ile döndür; veya (b) replay'i `getDocument`
-  seam'ine bağla (fixture metnini doküman olarak döndür), böylece extraction+ranking+provision
-  yolu gerçekten çalışsın. Hangisi seçilirse, `getMappedHealthProvisions` `status: "ok"` ve
-  fixture'ın `expectedPrimaryLegislation`'ını içeren provision döndürmeli.
-- **Kabul**: `node` probe ile 4 çekirdek eksen (disiplin/malpraktis/tayin/gizlilik)
-  fixture-fed pipeline'da `status: "ok"` + beklenen birincil mevzuat dönüyor. Build+test yeşil.
-
-### [ ] T36.2 — T35.1 testlerini HARD-FAIL yap (guard'ı kaldır)
-- **Sorun**: Assertion `if (result.status === "ok")` ile sarılı; status ok olmazsa kontroller
-  atlanıp test geçiyor. "no hints matched → valid" yorumu vacuous'luğu meşrulaştırıyor.
-- **Yapılacak**: Çekirdek eksenler için `expect(result.status).toBe("ok")` (guard YOK) +
-  `expectedPrimaryLegislation`'ın provision'larda bulunduğunu **koşulsuz** assert et.
-  Birincil gelmezse test KIRILMALI.
-- **Kabul**: Test, fixture-fed pipeline birincil mevzuatı döndürmezse hard-fail; şu an yeşil
-  ve anlamlı (vacuous değil).
-
-### [ ] T36.3 — Vacuous-test taraması (tüm suite)
-- **Yapılacak**: Tüm `tests/` içinde "yeşil ama koruma sağlamayan" kalıpları tara ve düzelt:
-  `if (… === "ok") { expect… }` gibi guard'lı assertion'lar, hiç `expect` içermeyen test'ler,
-  `expect(x).toBeDefined()` ile yetinip asıl davranışı kontrol etmeyenler. Bilinen-iyi
-  senaryolarda guard'ları kaldırıp hard assertion'a çevir.
-- **Kabul**: Guard'lı/boş test kalmadı veya her biri gerekçeyle belgelendi; tarama notu
-  `docs/TEST_AUDIT.md`'ye yazıldı. Build+test yeşil.
-
-### [ ] T36.4 — Mutation-sanity: testlerin gerçekten koruduğunu kanıtla
-- **Yapılacak**: Çekirdek davranışlar için "kasıtlı bozma" kontrolü: geçici olarak ilgili kodu
-  boz (ör. graceful degradation'ı kapat, placeholder filtresini kaldır) ve ilgili testin
-  GERÇEKTEN kırıldığını doğrula; sonra geri al. Bunu otomatik bir `scripts/mutation-check`
-  veya en azından belgelenmiş bir prosedür olarak ekle. Amaç: yeşil testin anlamlı olduğunu
-  kanıtlamak.
-- **Kabul**: En az 4 çekirdek invariyant için "bozunca kırılıyor" kanıtı (script çıktısı veya
-  `docs/TEST_AUDIT.md` kaydı). Kalıcı kod bozuk DEĞİL.
-
-### [ ] T36.5 — Disiplin yönetmeliğine gerçek sourceId (T31.2'yi gerçekten kapat)
-- **Sorun**: `needs_manual_review:disiplin-amirleri` hâlâ placeholder; disiplin canlıda yalnızca
-  657'ye dayanıyor, 657 flaky olunca boş kalabiliyor. T31.2 bunu çözdüğünü iddia etti ama
-  placeholder duruyor.
-- **Yapılacak**: mevzuat.gov.tr'de Sağlık Bakanlığı Disiplin Amirleri Yönetmeliği'nin gerçek
-  sourceId/RG'sini ara; bulunursa placeholder'ı gerçek koordinatla değiştir, canlı doğrula,
-  `covered` yap. Bulunamazsa T31.2 işaretini ve durumu DÜRÜSTÇE düzelt (placeholder kaldığını
-  yaz). Uydurma sourceId YASAK.
-- **Kabul**: Ya gerçek sourceId ile disiplin yönetmeliği canlı çözümleniyor, ya da T31.2/Faz 31
-  durumu gerçeği yansıtacak şekilde dürüstçe güncellendi.
-
-### [ ] T36.6 — "Eksen kapsama" testini canlı-yola bağla (T35.4 sağlaması)
+### [x] T36.1 — `buildReplayFetch`'i adapter-uyumlu yap (gerçek PDF veya doğru seam)
+### [x] T36.2 — T35.1 testlerini HARD-FAIL yap (guard'ı kaldır)
+### [x] T36.3 — Vacuous-test taraması (tüm suite)
+### [x] T36.4 — Mutation-sanity: testlerin gerçekten koruduğunu kanıtla
+### [x] T36.5 — Disiplin yönetmeliğine gerçek sourceId (T31.2'yi gerçekten kapat)
+### [x] T36.6 — "Eksen kapsama" testini canlı-yola bağla (T35.4 sağlaması)
 - **Yapılacak**: `report:axis-coverage` çıktısının fixture-fed pipeline (T36.1) üzerinden de
   üretilebildiğini doğrula; nightly canlı job ile fixture-fed job tutarlı olsun. Eksen başına
   "beklenen birincil mevzuat geldi mi" net raporlansın.
 - **Kabul**: Rapor her eksen için beklenen↔gelen mevzuat karşılaştırması veriyor; fixture-fed
   ve canlı modlar tutarlı.
 
-### [ ] T36.7 — CHANGELOG + sürüm turu (silme yok)
+### [x] T36.7 — CHANGELOG + sürüm turu (silme yok)
 - **Yapılacak**: Faz 36 birikimini CHANGELOG'un EN ÜSTÜNE ekle (mevcut girdileri SİLME/yeniden
   sıralama YOK); sürümü bump'la; version testi + tüm e2e + lint yeşil.
 - **Kabul**: Changelog tüm geçmişi koruyor; sürüm/lock/changelog tutarlı; build+test+lint+e2e yeşil.
