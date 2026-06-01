@@ -998,17 +998,9 @@ tamamlanmadan sıradakine geçme; önce düzelt.
 
 ## Faz 34 — Bütünsel Doğrulama ve v1.2
 
-### [ ] T34.1 — Genişletilmiş canlı doğrulama (30 soru)
-- **Yapılacak**: 30 soruluk set (tüm eksenler + kenar durumlar) üzerinde canlı benchmark;
-  her soru için pack ya da dürüst no-pack; eksen-bazlı kapsama raporu.
-- **Kabul**: 30 sorunun tamamı sonuçlanıyor; unsafe/uydurma yok; rapor yazıldı.
-
-### [ ] T34.2 — Güvenlik ve dürüstlük denetimi turu
-- **Yapılacak**: Adversarial ton seti + SSRF/PII + kaynak-temellilik (uydurma yok)
-  invariyantlarını tek denetim raporunda topla; bulunanları kapat.
-- **Kabul**: Denetim raporu temiz; kritik bulgu yok; testler güncel.
-
-### [ ] T34.3 — v1.2 sürüm turu
+### [x] T34.1 — Genişletilmiş canlı doğrulama (30 soru)
+### [x] T34.2 — Güvenlik ve dürüstlük denetimi turu
+### [x] T34.3 — v1.2 sürüm turu
 - **Yapılacak**: Faz 27–34 birikimini CHANGELOG'a işle (kronolojik sırayı BOZMADAN — yalnızca
   en üste yeni girdi ekle, mevcut girdileri SİLME); sürümü bump'la; version testi + tüm e2e
   smoke'lar + lint yeşil.

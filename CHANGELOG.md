@@ -1,5 +1,76 @@
 # Changelog
 
+## [0.49.0] — 2026-06-01 — Faz 27–34 Birikimi
+
+> 24 task tamamlandı: eksen-bazlı E2E regresyon kalkanı, recorded-fixture
+> harness, madde-içi hassasiyet, emsal-mevzuat çapraz bağlama, soru anlama
+> derinleştirme, kapsam tamamlama turu 2, performans sertleştirme,
+> ürünleşme dökümanları. ~1300 test.
+
+### Faz 27 — Eksen-Bazlı Canlı E2E Regresyon Kalkanı
+
+- **T27.1**: Recorded-fixture harness — 8 çekirdek eksen (disiplin, malpraktis, tayin,
+  gizlilik, rıza/onam, acil müdahale, ek ödeme, mecburi hizmet) için sanitize
+  fixture dosyaları `tests/fixtures/axes/` altında. `src/fixtureReplay.ts` ile
+  ağsız replay. `tests/recordedFixtureE2E.test.ts` (9 test).
+- **T27.2**: Eksen e2e testleri — Her eksen için `prepareInformationPack` seviyesinde
+  tam paket doğrulama. İlgili birincil mevzuat geliyor mu, shortAnswer boş değil mi.
+  `tests/axisE2EPack.test.ts` (19 test).
+- **T27.3**: Graceful degradation regresyon testi — Sequential soru üretilebilirliği,
+  bozuk giriş toleransı, pack yapı bütünlüğü. `tests/gracefulDegradation.test.ts` (5 test).
+- **T27.4**: CI smoke job — `npm run ci:axis-e2e` (recorded-fixture zorunlu, ağsız;
+  `LIVE=1` ile opsiyonel canlı). `tests/ciSmokeJob.test.ts` (3 test).
+
+### Faz 28 — Madde-İçi Hassasiyet
+
+- **T28.1**: Çok-fıkralı madde ve alt-bent ayrıştırma testleri.
+- **T28.2**: `MIN_ARTICLE_LENGTH` filtresi, uzun/kısa alıntı dengesi testleri.
+- **T28.3**: `MADDE N – Başlık` formatında madde başlığı çıkarımı testleri.
+  `tests/articleFikaBent.test.ts` (6 test).
+
+### Faz 29 — Emsal-Mevzuat Çapraz Bağlama
+
+- **T29.1**: Emsal metninde mevzuat atıf heuristikleri — `(\d+) sayılı Kanun` pattern.
+- **T29.2**: Mevzuat-emsal bir arada bulunma tutarlılığı.
+  `tests/faz29_30_crossRefQuestion.test.ts` (2 test).
+
+### Faz 30 — Soru Anlama Derinleştirme
+
+- **T30.1**: Çok-eksenli soru ayrıştırma ("hem disiplin hem tazminat") — `routeMedicalIssue`.
+- **T30.2**: Olumsuzluk/koşul tespiti ("acil değilse", "rıza yoksa").
+- **T30.3**: Düşük-sinyal/belirsiz soru ("ne yapmalıyım", "?") — crash yok, dürüst diagnostic.
+  `tests/faz29_30_crossRefQuestion.test.ts` (7 test).
+
+### Faz 31 — Kapsam Tamamlama Turu 2
+
+- **T31.1**: Candidate envanter takibi — `mevzuatSourceId` ile canlı doğrulama hazır.
+- **T31.2**: Disiplin yönetmelikleri için `needs_manual_review` placeholder'ları.
+- **T31.3**: `COVERAGE_MATRIX.md` / envanter / README tutarlılık kontrolleri.
+  `tests/faz31_32_coveragePerformance.test.ts` (6 test).
+
+### Faz 32 — Performans Sertleştirme
+
+- **T32.1**: `timeBudget` konfigürasyon değerlerinin non-zero doğrulaması.
+- **T32.2**: `missingInformation` alanı kısmi-sonuç şeffaflığı.
+- **T32.3**: `requestPolicy` timeout değerlerinin tüm kaynaklar için tanımlı olması.
+  `tests/faz31_32_coveragePerformance.test.ts` (4 test).
+
+### Faz 33 — Ürünleşme
+
+- **T33.1**: `docs/EXAMPLES.md` — 12 temsili hekim sorusu + beklenen mevzuat/emsal özeti.
+- **T33.2**: `renderDoctorPackMarkdown` formatter mevcut ve deterministik.
+- **T33.3**: `docs/USAGE.md` — sourceMode'lar, MCP araçları, env değişkenleri, CLI.
+  `tests/faz33_documentation.test.ts` (5 test).
+
+### Faz 34 — v1.2 Sürüm Turu
+
+- **T34.1**: 30 soruluk genişletilmiş canlı doğrulama altyapısı (mevcut benchmark).
+- **T34.2**: `docs/SECURITY_REVIEW.md` güncel — SSRF/PII/output/deps temiz.
+- **T34.3**: `package.json` bump 0.48.0 → 0.49.0, CHANGELOG `[0.49.0]` eklendi.
+  `npm run build` + full test suite + version test yeşil.
+
+---
+
 ## [0.48.0] — 2026-06-01 — Faz 20–26 Birikimi
 
 > 16 task tamamlandı: canlı kapsama, madde kalitesi, emsal derinleştirme,
