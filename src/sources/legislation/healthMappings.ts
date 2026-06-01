@@ -178,8 +178,14 @@ export const healthLegislationHints: HealthLegislationHint[] = [
     topicCluster: "physician_duty_of_care",
     legislationRole: "health_primary",
     healthLawPriority: 30,
-    selectionReason: "Physician care and scientific diligence are expressly framed in medical deontology duties.",
-    terms: ["hekim yukumlulugu", "hekim yükümlülüğü", "ozen", "özen", "ihtimam"],
+    selectionReason: "Physician care and scientific diligence are expressly framed in medical deontology duties; malpractice/complication disputes turn on this duty of care.",
+    terms: [
+      "hekim yukumlulugu", "hekim yükümlülüğü", "ozen", "özen", "ihtimam",
+      "ozen yukumlulugu", "özen yükümlülüğü",
+      "malpraktis", "malpractice", "komplikasyon", "tibbi hata", "tıbbi hata",
+      "hatali tedavi", "hatalı tedavi", "yanlis tedavi", "yanlış tedavi",
+      "kusur", "hizmet kusuru", "tazminat", "ameliyat", "operasyon"
+    ],
     articleNumbers: ["2", "13", "14"],
     dimensions: ["professional_ethics", "civil_compensation"]
   },
@@ -754,8 +760,13 @@ export const healthLegislationHints: HealthLegislationHint[] = [
     topicCluster: "public_employment" as any,
     legislationRole: "health_primary" as any,
     healthLawPriority: 28,
-    selectionReason: "Kamu hekimlerinin disiplin ve özlük hakları 657 sayılı kanuna tabidir.",
-    terms: ["657", "devlet memurları", "devlet memuru", "memur", "dmk"],
+    selectionReason: "Kamu hekimlerinin disiplin ve özlük hakları 657 sayılı kanuna tabidir; disiplin soruşturması, savunma ve disiplin cezaları md.125 vd. ile düzenlenir.",
+    terms: [
+      "657", "devlet memurları", "devlet memuru", "memur", "dmk",
+      "disiplin", "disiplin soruşturması", "disiplin sorusturmasi",
+      "disiplin cezası", "disiplin cezasi", "savunma", "soruşturma", "sorusturma",
+      "kınama", "kinama", "uyarma", "aylıktan kesme", "kademe ilerlemesi"
+    ],
     dimensions: ["disciplinary_administrative"] as any
   },
 

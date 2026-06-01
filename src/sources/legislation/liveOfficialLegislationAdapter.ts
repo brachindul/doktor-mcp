@@ -98,9 +98,16 @@ export class LiveOfficialLegislationAdapter implements LegislationSourceAdapter 
       return { status: "ok" as const, hint, selectedSearchResult, trace };
     }));
 
+    // Graceful per-hint degradation: a single hint failing (search error, document fetch
+    // failure, or no rankable article) must NOT discard provisions already gathered from the
+    // other hints matched by the same query. Failures are collected; we only surface an
+    // unavailable result if NO hint produced any provision.
+    const failures: Array<{ result: LiveLegislationUnavailable; trace: LegislationSourceTrace }> = [];
+
     for (const res of hintResolution) {
       if (res.status === "unavailable") {
-        return withTrace(res.result, [completeTrace(res.trace, { error: res.result.message })]);
+        failures.push({ result: res.result, trace: completeTrace(res.trace, { error: res.result.message }) });
+        continue;
       }
       searchResults.push(res.selectedSearchResult);
       sourceTrace.push(res.trace);
@@ -122,12 +129,13 @@ export class LiveOfficialLegislationAdapter implements LegislationSourceAdapter 
 
     for (const docRes of documentResults) {
       if (docRes.status === "unavailable") {
-        return withTrace(docRes.result, [completeTrace(docRes.trace, {
+        failures.push({ result: docRes.result, trace: completeTrace(docRes.trace, {
           landingUrl: docRes.selectedSearchResult.sourceUrl,
           detailUrl: docRes.selectedSearchResult.sourceUrl,
           fullTextUrl: docRes.selectedSearchResult.documentUrl,
           error: docRes.result.message
-        })]);
+        }) });
+        continue;
       }
       const { document, trace, hint, selectedSearchResult } = docRes;
       documents.push(document);
@@ -142,13 +150,16 @@ export class LiveOfficialLegislationAdapter implements LegislationSourceAdapter 
         rankingMethod: PROVISION_RANKING_METHOD
       }));
       if (selected.length === 0) {
-        return unavailable(
-          "provision_not_found",
-          `Official text was retrieved for ${hint.title}, but no extracted article passed deterministic ranking.`,
-          false,
-          "Inspect the official article extraction and ranking signals before using this provision in an answer.",
-          [completeTrace(trace, { error: "No extracted article passed provision ranking." })]
-        );
+        failures.push({
+          result: unavailable(
+            "provision_not_found",
+            `Official text was retrieved for ${hint.title}, but no extracted article passed deterministic ranking.`,
+            false,
+            "Inspect the official article extraction and ranking signals before using this provision in an answer."
+          ),
+          trace: completeTrace(trace, { error: "No extracted article passed provision ranking." })
+        });
+        continue;
       }
 
       provisions.push(...selected.map(({ article, ranking: articleRanking }) => provisionFromArticle(
@@ -162,6 +173,23 @@ export class LiveOfficialLegislationAdapter implements LegislationSourceAdapter 
         article.articleStatus,
         article.crossReferences
       )));
+    }
+
+    // No hint produced any provision — surface the failure (prefer the last structured one)
+    // with the full trace trail so the audit shows every attempted source.
+    if (provisions.length === 0) {
+      const allTraces = [...sourceTrace, ...failures.map((f) => f.trace)];
+      const lastFailure = failures[failures.length - 1];
+      if (lastFailure) {
+        return withTrace(lastFailure.result, allTraces);
+      }
+      return unavailable(
+        "provision_not_found",
+        `No official provision could be resolved for "${query}".`,
+        false,
+        "Refine the health-law query or verify the mapped legislation sources.",
+        allTraces
+      );
     }
 
     const sortedProvisions = sortProvisionsByHealthPriority(provisions);
@@ -461,6 +489,13 @@ function provisionFromArticle(
 function matchingHints(query: string): HealthLegislationHint[] {
   const normalized = normalize(query);
   const matches = healthLegislationHints.filter((hint) =>
+    // Only hints carrying a verified mevzuat document coordinate are resolvable live.
+    // Placeholder/unverified hints (e.g. sourceId "needs_manual_review:...", empty
+    // legislationNumber) cannot be fetched — including them would build a garbage
+    // mevzuatNo= URL whose failure aborts the whole legislation result, silently
+    // dropping the valid hints matched by the same query. They stay out of live
+    // resolution (their coverage gap is surfaced separately).
+    hintHasDirectSourceId(hint) &&
     hint.terms.some((term) => normalized.includes(normalize(term)))
   );
   const combined = new Map<string, HealthLegislationHint>();
