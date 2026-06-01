@@ -1,0 +1,34 @@
+{
+  "axis": "disiplin",
+  "description": "Fixture for disciplinary/administrative cases — 657 DMK provisions",
+  "question": "Hekim olarak disiplin soruşturması geçiriyorum, haklarım nelerdir?",
+  "expectedPrimaryLegislation": ["657 sayılı Devlet Memurları Kanunu"],
+  "provisions": [
+    {
+      "legislationName": "657 sayılı Devlet Memurları Kanunu",
+      "articleNumber": "125",
+      "verbatimQuote": "Devlet memurlarına verilecek disiplin cezaları ile her bir disiplin cezasını gerektiren fiil ve haller şunlardır: A — Uyarma (...) B — Kınama (...) C — Aylıktan kesme (...) D — Kademe ilerlemesinin durdurulması (...) E — Devlet memurluğundan çıkarma (...)",
+      "connection": "Disiplin soruşturması sonucunda verilebilecek cezalar 657 sayılı Kanunun 125. maddesinde düzenlenmiştir.",
+      "sourceDocumentId": "mevzuat:1.5.657",
+      "articleStatus": "in_force"
+    },
+    {
+      "legislationName": "657 sayılı Devlet Memurları Kanunu",
+      "articleNumber": "127",
+      "verbatimQuote": "Uyarma, kınama ve aylıktan kesme cezalarına karşı itiraz, disiplin amirinin kararı ile cezanın verildiği tarihten itibaren yedi gün içinde bir üst disiplin amirine yapılır.",
+      "connection": "Disiplin cezalarına itiraz hakkı 657 sayılı Kanunun 127. maddesinde düzenlenmiştir.",
+      "sourceDocumentId": "mevzuat:1.5.657",
+      "articleStatus": "in_force"
+    }
+  ],
+  "precedents": [],
+  "legalClassification": {
+    "criminal": "",
+    "civilCompensation": "",
+    "disciplinaryAdministrative": "Disiplin soruşturması boyutu",
+    "patientRights": "",
+    "privacyKvkk": "",
+    "professionalEthics": ""
+  },
+  "sanitization_note": "Verbatim quotes from publicly available legislation (mevzuat.gov.tr). No PII or fabricated content."
+}

@@ -1,0 +1,26 @@
+{
+  "axis": "acil_mudahale",
+  "description": "Fixture for emergency intervention cases",
+  "question": "Acil serviste hasta yakını müdahaleye izin vermiyor, ne yapabilirim?",
+  "expectedPrimaryLegislation": ["Tıbbi Deontoloji Nizamnamesi"],
+  "provisions": [
+    {
+      "legislationName": "Tıbbi Deontoloji Nizamnamesi",
+      "articleNumber": "18",
+      "verbatimQuote": "Tabip ve diş tabibi, acil vakalar dışında, hastayı reddetme yetkisine sahiptir.",
+      "connection": "Acil durumlarda hekimin müdahale yükümlülüğü deontoloji kurallarıyla düzenlenir.",
+      "sourceDocumentId": "leg-deontology-18",
+      "articleStatus": "in_force"
+    }
+  ],
+  "precedents": [],
+  "legalClassification": {
+    "criminal": "",
+    "civilCompensation": "",
+    "disciplinaryAdministrative": "",
+    "patientRights": "Acil müdahale boyutu",
+    "privacyKvkk": "",
+    "professionalEthics": "Meslek etiği boyutu"
+  },
+  "sanitization_note": "Verbatim quotes from publicly available legislation (mevzuat.gov.tr). No PII or fabricated content."
+}

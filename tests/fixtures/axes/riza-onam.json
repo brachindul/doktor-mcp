@@ -1,0 +1,26 @@
+{
+  "axis": "riza_onam",
+  "description": "Fixture for informed consent cases",
+  "question": "Hasta ameliyata rıza göstermedi, ne yapmalıyım?",
+  "expectedPrimaryLegislation": ["Hasta Hakları Yönetmeliği", "Tıbbi Deontoloji Nizamnamesi"],
+  "provisions": [
+    {
+      "legislationName": "Hasta Hakları Yönetmeliği",
+      "articleNumber": "22",
+      "verbatimQuote": "Kanunen zorunlu olan haller dışında ve doğabilecek olumsuz sonuçların sorumluluğu hastaya ait olmak üzere; hasta kendisine uygulanması planlanan veya uygulanmakta olan tedaviyi reddetmek veya durdurulmasını istemek hakkına sahiptir.",
+      "connection": "Aydınlatılmış rıza hakkı Hasta Hakları Yönetmeliği'nde düzenlenmiştir.",
+      "sourceDocumentId": "leg-hastahaklari-22",
+      "articleStatus": "in_force"
+    }
+  ],
+  "precedents": [],
+  "legalClassification": {
+    "criminal": "",
+    "civilCompensation": "",
+    "disciplinaryAdministrative": "",
+    "patientRights": "Aydınlatılmış rıza boyutu",
+    "privacyKvkk": "",
+    "professionalEthics": ""
+  },
+  "sanitization_note": "Verbatim quotes from publicly available legislation (mevzuat.gov.tr). No PII or fabricated content."
+}

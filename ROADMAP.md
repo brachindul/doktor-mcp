@@ -910,7 +910,7 @@ tamamlanmadan sıradakine geçme; önce düzelt.
 > hatasının tüm sonucu çökertmesi + mapping/placeholder açıkları. Bunlar canlı fix'lerle
 > kapatıldı ama **regresyonu önleyecek kalıcı test yok**. Bu faz onu kurar.
 
-### [ ] T27.1 — Recorded-fixture tabanlı eksen e2e harness'ı
+### [x] T27.1 — Recorded-fixture tabanlı eksen e2e harness'ı
 - **Yapılacak**: Her çekirdek eksen için sanitize edilmiş canlı yanıt fixture'ları kaydet
   (mevzuat.gov.tr PDF + bedesten/danıştay yanıtları): disiplin, malpraktis, tayin, gizlilik,
   rıza/onam, acil müdahale, ek ödeme, mecburi hizmet. `tests/fixtures/axes/` altında sakla.

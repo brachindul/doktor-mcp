@@ -1,0 +1,34 @@
+{
+  "axis": "tayin",
+  "description": "Fixture for public physician appointment/assignment cases",
+  "question": "Kamu hastanesinde tayinim çıktı, itiraz edebilir miyim?",
+  "expectedPrimaryLegislation": ["657 sayılı Devlet Memurları Kanunu", "Sağlık Meslek Mensupları Yönetmeliği"],
+  "provisions": [
+    {
+      "legislationName": "657 sayılı Devlet Memurları Kanunu",
+      "articleNumber": "76",
+      "verbatimQuote": "Kurumlar, görev ve unvan eşitliği gözetmeden kazanılmış hak aylık dereceleriyle memurları bulundukları kadro derecelerine eşit veya 68 inci maddedeki esaslar çerçevesinde daha üst, kurum içinde aynı veya başka yerlerdeki diğer kadrolara naklen atayabilirler.",
+      "connection": "Memurların naklen atanması 657 sayılı Kanunun 76. maddesinde düzenlenmiştir.",
+      "sourceDocumentId": "mevzuat:1.5.657",
+      "articleStatus": "in_force"
+    },
+    {
+      "legislationName": "Sağlık Meslek Mensupları ile Sağlık Hizmetlerinde Çalışan Diğer Meslek Mensuplarının İş ve Görev Tanımlarına Dair Yönetmelik",
+      "articleNumber": "5",
+      "verbatimQuote": "Sağlık meslek mensupları, görevlerini kendi görev tanımları ve yetki sınırları çerçevesinde yürütürler.",
+      "connection": "Sağlık personelinin görev tanımları yönetmelikle belirlenmiştir.",
+      "sourceDocumentId": "mevzuat:7.5.4847",
+      "articleStatus": "in_force"
+    }
+  ],
+  "precedents": [],
+  "legalClassification": {
+    "criminal": "",
+    "civilCompensation": "",
+    "disciplinaryAdministrative": "Kamu personeli idari işlem boyutu",
+    "patientRights": "",
+    "privacyKvkk": "",
+    "professionalEthics": ""
+  },
+  "sanitization_note": "Verbatim quotes from publicly available legislation (mevzuat.gov.tr). No PII or fabricated content."
+}

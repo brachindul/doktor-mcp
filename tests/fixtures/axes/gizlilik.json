@@ -1,0 +1,26 @@
+{
+  "axis": "gizlilik",
+  "description": "Fixture for patient privacy/KVKK cases",
+  "question": "Hasta bilgilerini başka bir hekimle paylaşabilir miyim?",
+  "expectedPrimaryLegislation": ["Hasta Hakları Yönetmeliği"],
+  "provisions": [
+    {
+      "legislationName": "Hasta Hakları Yönetmeliği",
+      "articleNumber": "21",
+      "verbatimQuote": "Hastanın, sağlık durumu ile ilgili bilgileri içeren dosyayı ve kayıtları doğrudan veya vekili aracılığı ile incelemeye ve bir suretini almaya hakkı vardır.",
+      "connection": "Hasta mahremiyeti ve bilgi paylaşımı Hasta Hakları Yönetmeliği ile düzenlenmiştir.",
+      "sourceDocumentId": "leg-hastahaklari-21",
+      "articleStatus": "in_force"
+    }
+  ],
+  "precedents": [],
+  "legalClassification": {
+    "criminal": "",
+    "civilCompensation": "",
+    "disciplinaryAdministrative": "",
+    "patientRights": "Hasta mahremiyeti boyutu",
+    "privacyKvkk": "Kişisel veri boyutu",
+    "professionalEthics": ""
+  },
+  "sanitization_note": "Verbatim quotes from publicly available legislation (mevzuat.gov.tr). No PII or fabricated content."
+}

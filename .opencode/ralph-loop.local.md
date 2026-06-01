@@ -1,34 +1,7 @@
 ---
 active: true
-iteration: 1
-maxIterations: 100
-sessionId: ses_1804fb1c7ffeo25fYr8R6vihvg
+iteration: 0
+maxIterations: 50
 ---
 
-# Ralph Loop Görevi: ROADMAP.md'deki TÜM tamamlanmamış görevleri bu oturumda sırayla bitir.
-
-"Öncelik Sırası"nı takip et; [ ] görev kalmayana kadar durma.
-
-Her görev için:
-1. Sıradaki [ ] görevi seç (şu an: Faz 20 → T20.1...).
-2. "Yapılacak" + "Kabul"u uygula. Her kabul maddesi için gerçekten test yaz.
-3. ÖNEMLİ: Özelliği TAM PAKETTE (prepareInformationPack) doğrula —
-   sadece router/alt-fonksiyon testi yetmez (izole-test maskelemesi yasak).
-4. `npm run build` 0 hata + `npm test` tamamen yeşil olmadan commit etme.
-5. Görev başlığına [x] koy. Ayrı, göreve özel commit at.
-6. Sıradakine geç. Görev kalmadıysa dur.
-
-DÜRÜSTLÜK (zorunlu):
-- "Kabul"un TAMAMI gerçekten karşılanmıyorsa [x] yapma; [ ] bırak,
-  nedenini commit mesajına yaz.
-- Bug canlı modda ise canlı/recorded-fixture ile test et, mock'la maskeleme.
-- Uydurma mevzuat/karar/sourceId/metin YASAK. Doğrulanamayan girdi
-  gerekçeyle needs_manual_review/candidate kalır.
-- "Yaptım" demeden önce komutu çalıştırıp çıktıyı gör. Halüsinasyon yok.
-
-Her faz bittikçe ilgili işi CHANGELOG'a ekle.
-EN SONDA: tüm [ ] biterse → sürümü bump'la (package.json + lock + CHANGELOG
-en üst sürüm eşit olmalı; tests/version.test.ts geçmeli), son build+test+lint,
-commit, "ROADMAP tamamlandı" yaz ve dur.
-
-Türkçe kullanıcı mesajı + İngilizce kod konvansiyonu.
+Complete all remaining [ ] tasks in ROADMAP.md sequentially from Faz 27 T27.1 through Faz 34 T34.3. Rules: (1) build=0 + test=green + lint=clean before each commit, (2) write real tests for each task, (3) verify via prepareInformationPack not isolated unit tests, (4) no fabricated legislation/precedents, (5) mark [x] per task with separate commits, (6) CHANGELOG: only ADD new entry at top, never delete/reorder existing entries, (7) at the very end bump version + update CHANGELOG version header.

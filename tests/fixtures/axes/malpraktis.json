@@ -1,0 +1,34 @@
+{
+  "axis": "malpraktis",
+  "description": "Fixture for malpractice/complication cases — Deontology + liability provisions",
+  "question": "Hekim hatası iddiasıyla karşı karşıyayım, hukuki durumum nedir?",
+  "expectedPrimaryLegislation": ["Tıbbi Deontoloji Nizamnamesi", "Türk Ceza Kanunu"],
+  "provisions": [
+    {
+      "legislationName": "Tıbbi Deontoloji Nizamnamesi",
+      "articleNumber": "18",
+      "verbatimQuote": "Tabip ve diş tabibi, acil vakalar dışında, hastayı reddetme yetkisine sahiptir.",
+      "connection": "Hekimin hastayı reddetme ve tedaviyi bırakma hakkı deontoloji kurallarıyla düzenlenir.",
+      "sourceDocumentId": "leg-deontology-18",
+      "articleStatus": "in_force"
+    },
+    {
+      "legislationName": "Türk Ceza Kanunu",
+      "articleNumber": "86",
+      "verbatimQuote": "Kasten başkasının vücuduna acı veren veya sağlığının ya da algılama yeteneğinin bozulmasına neden olan kişi, bir yıldan üç yıla kadar hapis cezası ile cezalandırılır.",
+      "connection": "Taksirli yaralama ve mala karşı suçlar TCK 86. maddede düzenlenmiştir.",
+      "sourceDocumentId": "mevzuat:1.5.5237",
+      "articleStatus": "in_force"
+    }
+  ],
+  "precedents": [],
+  "legalClassification": {
+    "criminal": "Olası taksirli yaralama boyutu",
+    "civilCompensation": "Tazminat boyutu",
+    "disciplinaryAdministrative": "",
+    "patientRights": "",
+    "privacyKvkk": "",
+    "professionalEthics": "Meslek etiği boyutu"
+  },
+  "sanitization_note": "Verbatim quotes from publicly available legislation (mevzuat.gov.tr). No PII or fabricated content."
+}

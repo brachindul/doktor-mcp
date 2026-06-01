@@ -1,0 +1,26 @@
+{
+  "axis": "ek_odeme",
+  "description": "Fixture for additional payment/compensation cases for public physicians",
+  "question": "Ek ödeme miktarım eksik yatırıldı, ne yapabilirim?",
+  "expectedPrimaryLegislation": ["Sağlık Meslek Mensupları Yönetmeliği"],
+  "provisions": [
+    {
+      "legislationName": "Sağlık Meslek Mensupları ile Sağlık Hizmetlerinde Çalışan Diğer Meslek Mensuplarının İş ve Görev Tanımlarına Dair Yönetmelik",
+      "articleNumber": "5",
+      "verbatimQuote": "Sağlık meslek mensupları, görevlerini kendi görev tanımları ve yetki sınırları çerçevesinde yürütürler.",
+      "connection": "Ek ödeme hakları görev tanımlarıyla bağlantılıdır.",
+      "sourceDocumentId": "mevzuat:7.5.4847",
+      "articleStatus": "in_force"
+    }
+  ],
+  "precedents": [],
+  "legalClassification": {
+    "criminal": "",
+    "civilCompensation": "Mali hak boyutu",
+    "disciplinaryAdministrative": "",
+    "patientRights": "",
+    "privacyKvkk": "",
+    "professionalEthics": ""
+  },
+  "sanitization_note": "Verbatim quotes from publicly available legislation (mevzuat.gov.tr). No PII or fabricated content."
+}
