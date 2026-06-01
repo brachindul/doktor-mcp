@@ -916,7 +916,7 @@ tamamlanmadan sıradakine geçme; önce düzelt.
   rıza/onam, acil müdahale, ek ödeme, mecburi hizmet. `tests/fixtures/axes/` altında sakla.
 - **Kabul**: Fixture'lar ağsız replay edilebiliyor; her biri gerçek (sanitize) kaynak metni.
 
-### [ ] T27.2 — `prepareInformationPack` seviyesinde eksen e2e testleri
+### [x] T27.2 — `prepareInformationPack` seviyesinde eksen e2e testleri
 - **Yapılacak**: Her eksen için **tam pakette** hard-fail test: ilgili birincil mevzuat
   geliyor mu (disiplin -> 657 md.125 vd.; malpraktis -> Deontoloji; tayin -> Atama Yön.;
   gizlilik -> Hasta Hakları + KVKK). Router/mapper izole testi DEĞİL — gerçek pack çıktısı.
