@@ -411,9 +411,21 @@
 25. Faz 24 (çok-adımlı bağlam) → T24.1 → T24.2
 26. Faz 25 (performans/bütçe) → T25.1 → T25.2 → T25.3
 27. Faz 26 (bütünsel gözden geçirme + v1.1) → T26.1 → T26.2 → T26.3
+28. Faz 27 (eksen-bazlı canlı e2e regresyon kalkanı — BLOKLAYICI) → T27.1 → T27.2 → T27.3 → T27.4
+29. Faz 28 (madde-içi hassasiyet/alıntı) → T28.1 → T28.2 → T28.3
+30. Faz 29 (emsal-mevzuat çapraz bağlama) → T29.1 → T29.2
+31. Faz 30 (soru anlama derinleştirme) → T30.1 → T30.2 → T30.3
+32. Faz 31 (kapsam tamamlama turu 2) → T31.1 → T31.2 → T31.3
+33. Faz 32 (performans/güvenilirlik sertleştirme) → T32.1 → T32.2 → T32.3
+34. Faz 33 (ürünleşme/sunum) → T33.1 → T33.2 → T33.3
+35. Faz 34 (bütünsel doğrulama + v1.2) → T34.1 → T34.2 → T34.3
 
 **Her görev sonunda**: build + test yeşil → commit. Bir görev testi kırıyorsa, görev
 tamamlanmadan sıradakine geçme; önce düzelt.
+
+> **⚠️ CHANGELOG UYARISI (geçmişten ders):** CHANGELOG.md'yi GÜNCELLERKEN asla mevcut
+> sürüm girdilerini silme veya "yeniden sırala" deme. Yalnızca en üste yeni girdi EKLE.
+> (Bir koşuda "sıralama düzeltmesi" diye 9 sürüm girdisi silinmişti — tekrarlanmasın.)
 
 ---
 
@@ -888,3 +900,166 @@ tamamlanmadan sıradakine geçme; önce düzelt.
 - **Yapılacak**: Faz 20–26 birikimini CHANGELOG'a işle; sürümü uygun şekilde bump'la
   (minor: 0.48.0 veya v1 hedefine göre); version testi + tüm e2e smoke'lar yeşil.
 - **Kabul**: Sürüm/changelog/lock tutarlı; build + test + lint yeşil; e2e smoke'lar geçiyor.
+
+---
+
+## Faz 27 — Eksen-Bazlı Canlı E2E Regresyon Kalkanı (BLOKLAYICI)
+
+> Bağımsız denetimlerde tekrar tekrar görüldü: izole/mock testler yeşilken çekirdek hekim
+> senaryoları (disiplin, malpraktis) **canlıda 0 mevzuat** döndürüyordu. Sebep: tek hint
+> hatasının tüm sonucu çökertmesi + mapping/placeholder açıkları. Bunlar canlı fix'lerle
+> kapatıldı ama **regresyonu önleyecek kalıcı test yok**. Bu faz onu kurar.
+
+### [ ] T27.1 — Recorded-fixture tabanlı eksen e2e harness'ı
+- **Yapılacak**: Her çekirdek eksen için sanitize edilmiş canlı yanıt fixture'ları kaydet
+  (mevzuat.gov.tr PDF + bedesten/danıştay yanıtları): disiplin, malpraktis, tayin, gizlilik,
+  rıza/onam, acil müdahale, ek ödeme, mecburi hizmet. `tests/fixtures/axes/` altında sakla.
+- **Kabul**: Fixture'lar ağsız replay edilebiliyor; her biri gerçek (sanitize) kaynak metni.
+
+### [ ] T27.2 — `prepareInformationPack` seviyesinde eksen e2e testleri
+- **Yapılacak**: Her eksen için **tam pakette** hard-fail test: ilgili birincil mevzuat
+  geliyor mu (disiplin -> 657 md.125 vd.; malpraktis -> Deontoloji; tayin -> Atama Yön.;
+  gizlilik -> Hasta Hakları + KVKK). Router/mapper izole testi DEĞİL — gerçek pack çıktısı.
+- **Kabul**: 8 eksenin her biri için e2e test; ilgili mevzuat gelmezse hard-fail; ağsız çalışıyor.
+
+### [ ] T27.3 — Graceful degradation regresyon testi
+- **Yapılacak**: "Bir hint başarısız olsa bile diğerlerinin provision'ları korunur" invariyantını
+  test et: bir hint'i kasten fail ettir (mock getDocument unavailable), diğerinin provision'ı
+  yine de dönsün. Ayrıca "placeholder hint canlı çözümlemeye girmez" testi.
+- **Kabul**: Tek-hint-failure -> diğer provision'lar sağ; placeholder hint elenmiş; hard-fail invariyant.
+
+### [ ] T27.4 — CI'a canlı-opsiyonel eksen smoke job'u
+- **Yapılacak**: CI'da iki mod: (a) PR'da recorded-fixture e2e (zorunlu, ağsız); (b) opsiyonel
+  `LIVE=1` nightly job gerçek kaynaklara vurup eksen kapsamasını raporlar (kırmaz, raporlar).
+- **Kabul**: Fixture e2e CI'da zorunlu yeşil; nightly canlı job tanımlı (manuel/scheduled).
+
+---
+
+## Faz 28 — Madde-İçi Hassasiyet ve Alıntı Kalitesi
+
+### [ ] T28.1 — Çok-fıkralı madde ve alt-bent ayrıştırma
+- **Yapılacak**: `articleParser`'ı fıkra (1),(2) ve bent (a),(b) düzeyinde ayrıştır; sorulan
+  konuya en yakın fıkrayı seçebilme (tüm maddeyi değil) — uzun maddelerde ilgili fıkra önceliği.
+- **Kabul**: Çok-fıkralı madde fixture'ı -> doğru fıkra/bent ayrışıyor; test var.
+
+### [ ] T28.2 — Alıntı uzunluğu ve bağlam dengesi
+- **Yapılacak**: `verbatimQuote` çok uzunsa anlamlı şekilde kırp (cümle sınırı), hükmü
+  bağlamından koparma; kısaltma şeffaf olsun. Çok kısa/parça alıntıyı engelle.
+- **Kabul**: Uzun/kısa madde fixture'larında alıntı dengeli; test var.
+
+### [ ] T28.3 — Madde başlığı çıkarımı ve eşleştirme
+- **Yapılacak**: Madde başlığını ("Disiplin cezaları", "Hasta mahremiyeti") çıkar ve ranking
+  sinyali olarak kullan; çıktıda `articleHeading` alanı göster.
+- **Kabul**: Başlık çıkarılıyor, ranking'i iyileştiriyor; test var.
+
+---
+
+## Faz 29 — Emsal-Mevzuat Çapraz Bağlama
+
+### [ ] T29.1 — Emsalden atıf yapılan mevzuatı çıkar
+- **Yapılacak**: Karar metnindeki mevzuat atıflarını ("657 sayılı Kanun md.125") tespit edip
+  `citedLegislation` olarak çıkar; pakette emsal ile mevzuat arasında köprü kur.
+- **Kabul**: Atıf içeren karar fixture'ı -> mevzuat atıfları çıkarılıyor; test var.
+
+### [ ] T29.2 — Mevzuat-emsal tutarlılık notu
+- **Yapılacak**: Seçilen emsalin atıf yaptığı mevzuat ile pakette sunulan mevzuat örtüşüyorsa
+  audit notu olarak işaretle (örtüşme = güçlü kaynak zinciri). Hukuki yorum DEĞİL, audit.
+- **Kabul**: Örtüşme/örtüşmeme doğru işaretleniyor; test var.
+
+---
+
+## Faz 30 — Soru Anlama Derinleştirme
+
+### [ ] T30.1 — Çok-eksenli soru ayrıştırma
+- **Yapılacak**: Bir soru birden çok ekseni içerebilir ("hem disiplin hem tazminat riski");
+  sınıflandırıcı bunları ayrı yakalayıp her eksen için ilgili mevzuatı getirsin.
+- **Kabul**: Çok-eksenli soru -> her eksenin birincil mevzuatı geliyor; e2e test.
+
+### [ ] T30.2 — Olumsuzluk ve koşul tespiti
+- **Yapılacak**: "acil DEĞİLse", "rıza YOKSA" gibi olumsuzluk/koşulları tespit edip doğru
+  istisna/kural kümesine yönlendir (acil istisnası vb.). Yanlış kümeye gitmesin.
+- **Kabul**: Olumsuz/koşullu sorular doğru yönleniyor; test var.
+
+### [ ] T30.3 — Düşük-sinyal/belirsiz soru ele alışı
+- **Yapılacak**: Çok kısa/belirsiz sorularda ("ne yapmalıyım") dürüst "soruyu netleştir"
+  diagnostic'i + olası eksen önerileri; uydurma mevzuat getirme.
+- **Kabul**: Belirsiz soru -> netleştirme diagnostic'i, boş/uydurma pack yok; test var.
+
+---
+
+## Faz 31 — Kapsam Tamamlama Turu 2
+
+### [ ] T31.1 — Kalan candidate'leri canlı doğrula
+- **Yapılacak**: Faz 20'den sonra kalan `candidate` girdileri (sourceId'li) yeni graceful
+  retrieval ile tekrar doğrula; geçenleri `covered` yap; geçmeyeni gerekçeyle bırak.
+- **Kabul**: Covered sayısı artıyor (gerçek); rapor `exports/`'a; uydurma yok.
+
+### [ ] T31.2 — Disiplin yönetmeliklerine gerçek sourceId bul
+- **Yapılacak**: `needs_manual_review:disiplin-amirleri` ve `sozlesmeli-disiplin` için
+  mevzuat.gov.tr'de gerçek sourceId araması yap; bulunursa placeholder'ı gerçek koordinatla
+  değiştir ve canlı doğrula. Bulunamazsa dürüstçe placeholder bırak.
+- **Kabul**: Bulunan disiplin yönetmeliği canlı çözümleniyor; bulunamayan dürüstçe işaretli.
+
+### [ ] T31.3 — Kapsam matrisi + golden-set güncelleme
+- **Yapılacak**: Yeni covered girdilere göre `COVERAGE_MATRIX.md` ve golden-set beklentilerini
+  güncelle; README kapsam ifadelerini gerçek sayılarla hizala.
+- **Kabul**: Matris <-> envanter <-> README tutarlı; testler güncel.
+
+---
+
+## Faz 32 — Performans ve Güvenilirlik Sertleştirme
+
+### [ ] T32.1 — Faz bütçesi gerçekçi kalibrasyonu
+- **Yapılacak**: Canlı ölçümlerle legislation/precedent faz bütçelerini gerçekçi değerlere
+  ayarla (çok-hint sorgular timeout'a düşmesin); telemetriyle doğrula.
+- **Kabul**: Çok-hint canlı sorgular timeout vermiyor; p95 raporlanıyor; test/telemetri.
+
+### [ ] T32.2 — Kısmi-sonuç şeffaflığı
+- **Yapılacak**: Bazı hint'ler başarısız bazıları başardığında, pakette hangi kaynakların
+  gelemediğini `partialSourceNotes` ile şeffaf göster (graceful degradation'ın görünür yüzü).
+- **Kabul**: Kısmi sonuçta hangi kaynağın neden gelmediği görünüyor; test var.
+
+### [ ] T32.3 — Adaptif backoff / circuit-breaker
+- **Yapılacak**: Sürekli fail eden bir kaynağa (ör. arama API'si) kısa süreli circuit-breaker;
+  gereksiz retry'la bütçe yakmasın. `runtimeConfig`'ten ayarlanır.
+- **Kabul**: Sürekli-fail senaryosunda retry sınırlı; bütçe korunuyor; test var.
+
+---
+
+## Faz 33 — Ürünleşme ve Sunum
+
+### [ ] T33.1 — Örnek soru kataloğu ve beklenen çıktılar
+- **Yapılacak**: `docs/EXAMPLES.md` — 15+ temsili hekim sorusu, her biri için beklenen
+  mevzuat/emsal özeti (canlı doğrulanmış). Yeni kullanıcı için referans.
+- **Kabul**: Örnekler canlı/recorded ile doğrulanmış; doküman güncel.
+
+### [ ] T33.2 — Markdown çıktı şablonu cilası
+- **Yapılacak**: Hekim-dönük Markdown'ı sade, okunaklı, eksen-gruplu hale getir; disclaimer ve
+  "avukat inceleme noktaları" net görünsün; deterministik.
+- **Kabul**: Render örnekleri test edilmiş; deterministik; okunaklı.
+
+### [ ] T33.3 — Konfigürasyon ve kullanım rehberi
+- **Yapılacak**: `docs/USAGE.md` — sourceMode'lar (mock/live/snapshot), `assessmentTone`,
+  env değişkenleri, MCP araçları, drill-down kullanımı tek yerde.
+- **Kabul**: Rehber kapsamlı ve kod gerçeğiyle uyumlu.
+
+---
+
+## Faz 34 — Bütünsel Doğrulama ve v1.2
+
+### [ ] T34.1 — Genişletilmiş canlı doğrulama (30 soru)
+- **Yapılacak**: 30 soruluk set (tüm eksenler + kenar durumlar) üzerinde canlı benchmark;
+  her soru için pack ya da dürüst no-pack; eksen-bazlı kapsama raporu.
+- **Kabul**: 30 sorunun tamamı sonuçlanıyor; unsafe/uydurma yok; rapor yazıldı.
+
+### [ ] T34.2 — Güvenlik ve dürüstlük denetimi turu
+- **Yapılacak**: Adversarial ton seti + SSRF/PII + kaynak-temellilik (uydurma yok)
+  invariyantlarını tek denetim raporunda topla; bulunanları kapat.
+- **Kabul**: Denetim raporu temiz; kritik bulgu yok; testler güncel.
+
+### [ ] T34.3 — v1.2 sürüm turu
+- **Yapılacak**: Faz 27–34 birikimini CHANGELOG'a işle (kronolojik sırayı BOZMADAN — yalnızca
+  en üste yeni girdi ekle, mevcut girdileri SİLME); sürümü bump'la; version testi + tüm e2e
+  smoke'lar + lint yeşil.
+- **Kabul**: Changelog tüm geçmiş girdileri koruyor (silme yok); sürüm/lock/changelog tutarlı;
+  build + test + lint + e2e yeşil.
