@@ -860,7 +860,7 @@ tamamlanmadan sıradakine geçme; önce düzelt.
   paralelleştir; sıralı toplam yerine eşzamanlı, ama global time-budget'a saygılı.
 - **Kabul**: Çoklu-hint sorgu daha hızlı tamamlanıyor; bütçe aşımı yok; test/telemetri gösteriyor.
 
-### [ ] T25.2 — Akıllı bütçe tahsisi
+### [x] T25.2 — Akıllı bütçe tahsisi
 - **Yapılacak**: Legislation/precedent faz bütçelerini soru tipine göre dinamik ayarla
   (kamu/özlük → mevzuat ağırlıklı; klinik malpraktis → emsal ağırlıklı).
 - **Kabul**: Tip-bazlı tahsis çalışıyor; timeout oranı düşüyor; test var.

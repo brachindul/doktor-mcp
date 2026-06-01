@@ -17,6 +17,23 @@ export interface SourceBudgetDecision {
   reason: string;
 }
 
+export type IssueProfileForBudget =
+  | "public_employment"
+  | "public_discipline"
+  | "malpractice_complication"
+  | "civil_compensation"
+  | "violence_threat"
+  | "informed_consent"
+  | "emergency_care"
+  | "treatment_refusal"
+  | "privacy_records"
+  | "psychiatric_privacy"
+  | "referral_consultation"
+  | "private_hospital_fee"
+  | "intensive_care"
+  | "pregnancy_emergency"
+  | "unknown";
+
 export class ResearchTimeBudget {
   public readonly deadlineMs: number;
   public readonly startedAt: number;
@@ -41,6 +58,39 @@ export class ResearchTimeBudget {
       legislation: config.legislationPhaseBudgetMs,
       precedent: config.precedentPhaseBudgetMs
     };
+  }
+
+  /**
+   * T25.2 — Create a budget with dynamic allocation based on issue profile.
+   * Public employment / discipline → legislation-heavy.
+   * Malpractice / civil compensation → precedent-heavy.
+   * Default → balanced (config defaults).
+   */
+  static createWithIssueProfile(
+    profile: IssueProfileForBudget,
+    options: {
+      deadlineMs?: number;
+      reserveMs?: number;
+      nowProvider?: () => number;
+    } = {}
+  ): ResearchTimeBudget {
+    const config = readConfig().timeBudget;
+    const total = config.deadlineMs - (options.reserveMs ?? config.reserveMs);
+    const legislationHeavy = { legislation: Math.round(total * 0.65), precedent: Math.round(total * 0.35) };
+    const precedentHeavy = { legislation: Math.round(total * 0.35), precedent: Math.round(total * 0.65) };
+    const balanced = { legislation: config.legislationPhaseBudgetMs, precedent: config.precedentPhaseBudgetMs };
+
+    const budgets =
+      profile === "public_employment" || profile === "public_discipline"
+        ? legislationHeavy
+        : profile === "malpractice_complication" || profile === "civil_compensation" || profile === "violence_threat"
+          ? precedentHeavy
+          : balanced;
+
+    return new ResearchTimeBudget({
+      ...options,
+      sourceBudgets: budgets
+    });
   }
 
   elapsedMs(): number {

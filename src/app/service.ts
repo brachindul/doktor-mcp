@@ -228,12 +228,11 @@ export class DoktorMcpInformationService {
 
     // Live mode: sequential research with time budget
     if (input.sourceMode === "live") {
+      // T25.2: Dynamic budget allocation based on issue profile
+      const issueProfile = inferIssueProfileFromQuestion(input.question);
       const budget = input.timeBudget instanceof ResearchTimeBudget
         ? input.timeBudget
-        : new ResearchTimeBudget();
-
-      // Infer issue profile for source prioritization
-      const issueProfile = inferIssueProfileFromQuestion(input.question);
+        : ResearchTimeBudget.createWithIssueProfile(issueProfile);
       const prioritizedSources = prioritizeSourcesByIssue(issueProfile, input.precedentSources ?? ["yargitay", "danistay"]);
 
       // Phase 1: Legislation (time-bounded with hard cap)

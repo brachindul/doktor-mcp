@@ -1,7 +1,8 @@
 ---
 active: true
-iteration: 0
+iteration: 1
 maxIterations: 100
+sessionId: ses_1804fb1c7ffeo25fYr8R6vihvg
 ---
 
 # Ralph Loop Görevi: ROADMAP.md'deki TÜM tamamlanmamış görevleri bu oturumda sırayla bitir.

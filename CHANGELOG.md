@@ -44,6 +44,11 @@
   document fetch ikinci `Promise.all` ile paralel. Hata durumunda eski
   "fail fast" davranışı korunuyor (ilk unavailable'da return). Çoklu-hint
   sorguları önemli ölçüde hızlandı. Tüm live testleri yeşil.
+- **T25.2**: Akıllı bütçe tahsisi — `ResearchTimeBudget.createWithIssueProfile`
+  factory ile soru tipine göre dinamik bütçe dağıtımı: `public_employment`/
+  `public_discipline` → legislation-heavy (%65), `malpractice_complication`/
+  `civil_compensation`/`violence_threat` → precedent-heavy (%65), diğerleri
+  → balanced (config defaults). `tests/dynamicBudgetAllocation.test.ts` (8 test).
 
 ### Faz 22 — Emsal Derinleştirme
 
