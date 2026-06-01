@@ -1,6 +1,6 @@
 {
   "name": "doktor-mcp",
-  "version": "0.49.0",
+  "version": "0.50.0",
   "description": "Source-grounded MCP skeleton for doktor legal information packs.",
   "type": "module",
   "bin": {
@@ -26,6 +26,7 @@
     "benchmark:doctor-questions:performance": "tsx src/benchmark/performanceBenchmarkCli.ts",
     "cache:warm": "tsx src/cacheWarmCli.ts",
     "ci:axis-e2e": "tsx src/ciAxisSmokeCli.ts",
+    "report:axis-coverage": "tsx src/axisCoverageReportCli.ts",
     "verify:health-legislation": "tsx src/verifyHealthLegislationCli.ts",
     "discover:health-legislation-sources": "tsx src/discoverHealthLegislationSourcesCli.ts",
     "verify:discovered-health-legislation": "tsx src/verifyDiscoveredHealthLegislationCli.ts",

@@ -10,6 +10,7 @@ import { extractArticlesFromOfficialText } from "./articleParser.js";
 import { healthLegislationHints } from "./healthMappings.js";
 import { PROVISION_RANKING_METHOD, rankExtractedArticles } from "./provisionRanker.js";
 import { buildLegislationSelectionDiagnostics } from "./selectionDiagnostics.js";
+import { LegislationDocCache } from "../legislationDocCache.js";
 import type {
   HealthLegislationHint,
   LiveLegislationDocument,
@@ -25,17 +26,21 @@ export interface LiveOfficialLegislationAdapterOptions {
   fetchImpl?: typeof fetch;
   now?: () => Date;
   wait?: (milliseconds: number) => Promise<void>;
+  /** T35.2: Document cache for large PDF resilience (e.g., 657 DMK) */
+  docCache?: LegislationDocCache;
 }
 
 export class LiveOfficialLegislationAdapter implements LegislationSourceAdapter {
   private readonly fetchImpl: typeof fetch;
   private readonly now: () => Date;
   private readonly wait: (milliseconds: number) => Promise<void>;
+  private readonly docCache: LegislationDocCache | null;
 
   constructor(options: LiveOfficialLegislationAdapterOptions = {}) {
     this.fetchImpl = options.fetchImpl ?? fetch;
     this.now = options.now ?? (() => new Date());
     this.wait = options.wait ?? ((milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)));
+    this.docCache = options.docCache ?? null;
   }
 
   async searchHealthLegislation(classification: ClassifiedMedicalLegalQuestion): Promise<LegislationProvision[]> {
@@ -293,6 +298,22 @@ export class LiveOfficialLegislationAdapter implements LegislationSourceAdapter 
   }
 
   async getDocument(result: OfficialLegislationSearchResult): Promise<LiveLegislationDocument | LiveLegislationUnavailable> {
+    // T35.2: Check document cache first — avoid refetch on flaky PDF
+    if (this.docCache) {
+      const cachedText = await this.docCache.get(result.sourceId);
+      if (cachedText) {
+        return {
+          sourceId: result.sourceId,
+          title: result.title,
+          sourceUrl: result.sourceUrl,
+          documentUrl: result.documentUrl,
+          text: cachedText,
+          contentType: "text/plain; cached",
+          retrievedAt: this.now().toISOString()
+        };
+      }
+    }
+
     // Attempt 1: Direct PDF download
     let response = await this.fetchWithAdaptiveBackoff(result.documentUrl, {
       headers: officialHeaders()
@@ -347,6 +368,11 @@ export class LiveOfficialLegislationAdapter implements LegislationSourceAdapter 
       const parser = new PDFParse({ data: new Uint8Array(await response.arrayBuffer()) });
       const text = (await parser.getText()).text;
       await parser.destroy();
+
+      // T35.2: Cache successful document fetch for future resilience
+      if (this.docCache && text) {
+        await this.docCache.set(result.sourceId, text);
+      }
 
       return {
         sourceId: result.sourceId,

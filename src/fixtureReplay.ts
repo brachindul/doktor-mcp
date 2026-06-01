@@ -68,3 +68,35 @@ export function validateFixture(fixture: AxisFixture): { valid: boolean; errors:
   if (!fixture.sanitization_note) errors.push("Missing sanitization_note");
   return { valid: errors.length === 0, errors };
 }
+
+/**
+ * T35.1 — Build a fake `fetchImpl` that replays fixture data through the
+ * live adapter pipeline (getMappedHealthProvisions) without network access.
+ *
+ * The fetch intercepts `mevzuat.gov.tr` URLs and returns an HTML response
+ * containing the fixture's provision texts formatted as articles.
+ */
+export function buildReplayFetch(fixture: AxisFixture): typeof fetch {
+  // Build an HTML document containing fixture articles in MADDE format
+  const articles = fixture.provisions.map((p) =>
+    `MADDE ${p.articleNumber} –\n${p.verbatimQuote}`
+  ).join("\n\n");
+
+  const html = `<!DOCTYPE html>
+<html><body>
+${articles}
+</body></html>`;
+
+  return async (input: string | URL | Request, _init?: RequestInit): Promise<Response> => {
+    const url = typeof input === "string" ? input : (input instanceof URL ? input.href : (input as Request).url);
+    // Intercept mevzuat.gov.tr calls — return fixture HTML
+    if (url && url.includes("mevzuat.gov.tr")) {
+      return new Response(html, {
+        status: 200,
+        headers: new Headers({ "content-type": "text/html; charset=utf-8" })
+      });
+    }
+    // For other URLs, return a generic error
+    return new Response("Not mocked", { status: 404 });
+  };
+}

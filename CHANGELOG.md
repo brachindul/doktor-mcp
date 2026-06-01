@@ -1,5 +1,36 @@
 # Changelog
 
+## [0.50.0] — 2026-06-01 — Faz 35 Denetim Kapanışı
+
+> Bağımsız denetim bulguları kapatıldı: fixture replay canlı kod yolundan
+> geçiriliyor (fetchImpl injection), büyük statü PDF'leri için legislation
+> doc cache eklendi, kısmi-sonuç şeffaflığı ve denetim invariyant testleri.
+
+### Faz 35 — Denetim Kapanışı ve Kararlılık
+
+- **T35.1**: Fixture replay canlı pipeline — `buildReplayFetch` ile fixture'lar
+  `LiveOfficialLegislationAdapter`'a `fetchImpl` olarak enjekte ediliyor;
+  `getMappedHealthProvisions` gerçek kod yolundan test ediliyor.
+  `tests/fixtureReplayLivePipeline.test.ts` (5 test).
+- **T35.2**: Büyük statü PDF flakiness giderme — `LegislationDocCache`
+  (`src/sources/legislationDocCache.ts`) eklendi. `getOrFetch` pattern:
+  cache hit → return cached, cache miss → fetch + cache. `getDocument`
+  cache-first stratejisi ile 657 DMK gibi büyük PDF'lerde tekrar fetch
+  önlendi. `tests/legislationDocCache.test.ts` (6 test).
+- **T35.3**: Kısmi-sonuç şeffaflığı — `missingInformation` ve `coverageGaps`
+  formatı doğrulandı; birincil kaynak düştüğünde "alınamadı" notu.
+- **T35.4**: Canlı eksen kapsama raporu — `npm run report:axis-coverage`
+  (`src/axisCoverageReportCli.ts`). 8 eksen × 3 retry canlı çalıştırıp
+  flakiness oranı ve ortalama provision sayısını `exports/axis-coverage/`
+  altına raporlar. `tests/axisCoverageReport.test.ts` (4 test).
+- **T35.5**: Denetim bulgusu invariyant testleri — (a) placeholder/sourceId'siz
+  hint canlı çözümlemeye giremez; (b) bir hint fail olsa diğerinin provision'ı
+  korunur. `tests/faz35_partialResults_and_invariants.test.ts` (5 test).
+- **T35.6**: `package.json` bump 0.49.0 → 0.50.0, CHANGELOG güncellendi.
+  `npm run build` + 1342 test + version test yeşil.
+
+---
+
 ## [0.49.0] — 2026-06-01 — Faz 27–34 Birikimi
 
 > 24 task tamamlandı: eksen-bazlı E2E regresyon kalkanı, recorded-fixture

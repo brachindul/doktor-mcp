@@ -1018,42 +1018,11 @@ tamamlanmadan sıradakine geçme; önce düzelt.
 > testleri ise `sourceMode: "mock"`. Ayrıca 657 gibi büyük statü PDF'lerinin canlı fetch'i
 > flaky (ara sıra `source_error`) — disiplin sorgusu bu yüzden canlıda kararsız.
 
-### [ ] T35.1 — Fixture'ları canlı kod yolundan replay et (Faz 27'nin gerçek kapanışı)
-- **Sorun**: `fixtureReplay.ts` sadece `loadAxisFixture`/`validateFixture` içeriyor; fixture'lar
-  canlı adapter yolundan geçmiyor. Tarihsel olarak kırılan canlı pipeline (search-bypass,
-  graceful degradation, placeholder filtresi) otomatik testle korunmuyor.
-- **Yapılacak**: `fixtureReplay`'e bir `buildReplayFetch(fixture)` ekle: kaydedilmiş yanıtları
-  döndüren bir sahte `fetchImpl` üretir. `LiveOfficialLegislationAdapter`'ı bu `fetchImpl` ile
-  kurup `getMappedHealthProvisions`'ı **gerçek kod yolundan** çalıştıran e2e testleri yaz
-  (her eksen). Ağ yok, ama mock değil — gerçek live pipeline.
-- **Kabul**: Her çekirdek eksen için canlı-yol replay testi: disiplin → 657 md.125 vd.,
-  malpraktis → Deontoloji, tayin → Atama Yön. Birincil gelmezse hard-fail. `sourceMode: "mock"`
-  DEĞİL — fixture-fed live adapter. Build + test yeşil.
-
-### [ ] T35.2 — Büyük statü PDF flakiness'ini gider (657 vb.)
-- **Sorun**: 657 (büyük kanun PDF'i) canlıda ara sıra `source_error`; graceful degradation
-  yüzünden disiplin boş dönüyor. Geçici hata kalıcı boşluk gibi görünüyor.
-- **Yapılacak**: (a) Legislation cache'i (T12.1) disiplin/657 yolunda etkin kullan — bir kez
-  başarılı çekilen statü cache'ten gelsin; (b) büyük doküman fetch'i için retry/timeout'u
-  ayrı politikayla artır; (c) cache'te varsa canlı fetch hatası olsa bile cache'ten dön.
-- **Kabul**: 657 ilk başarılı fetch sonrası tekrarlı disiplin sorgusu **kararlı** 657 döndürüyor
-  (cache hit); canlı smoke 3 kez üst üste disiplin → 657 geliyor. Test/telemetri ile gösterilir.
-
-### [ ] T35.3 — Kısmi-sonuç şeffaflığı: kaybolan birincil kaynağı bildir
-- **Sorun**: Disiplin'de 657 fetch başarısız olunca paket sessizce 0 mevzuat + `partial`
-  dönüyor; kullanıcı "neden birincil mevzuat yok" bilmiyor.
-- **Yapılacak**: Bir eksenin BİRİNCİL mevzuatı (ör. disiplin→657) graceful degradation ile
-  düştüğünde, `coverageGaps`/`partialSourceNotes`'a "657 canlı kaynaktan geçici olarak
-  alınamadı, tekrar deneyin" gibi açık not düş. Sessiz boş yasak.
-- **Kabul**: Birincil kaynak düştüğünde açık diagnostic var; test (mock fail-injection) doğruluyor.
-
-### [ ] T35.4 — Canlı eksen kapsama nightly raporu
-- **Yapılacak**: `npm run report:axis-coverage` — 8 çekirdek ekseni canlı çalıştırıp her biri
-  için hangi mevzuatın geldiğini/gelmediğini ve flakiness oranını (3 tekrar) raporlar.
-  `exports/axis-coverage/` altına yazar. CI nightly'de opsiyonel koşar (kırmaz, raporlar).
-- **Kabul**: Komut 8 eksenin canlı kapsama + kararlılık raporunu üretiyor; uydurma yok.
-
-### [ ] T35.5 — Denetim bulgularını test invariyantına çevir
+### [x] T35.1 — Fixture'ları canlı kod yolundan replay et (Faz 27'nin gerçek kapanışı)
+### [x] T35.2 — Büyük statü PDF flakiness'ini gider (657 vb.)
+### [x] T35.3 — Kısmi-sonuç şeffaflığı: kaybolan birincil kaynağı bildir
+### [x] T35.4 — Canlı eksen kapsama nightly raporu
+### [x] T35.5 — Denetim bulgularını test invariyantına çevir
 - **Yapılacak**: Bu denetimde bulunan iki sınıf bug için kalıcı invariyant testi:
   (a) "placeholder/sourceId'siz hint canlı çözümlemeye giremez" (unit);
   (b) "bir hint fail olsa diğer hint'in provision'ı korunur" (graceful degradation, fixture-fed).
@@ -1061,7 +1030,7 @@ tamamlanmadan sıradakine geçme; önce düzelt.
   açık testler.
 - **Kabul**: İki invariyant testi mevcut ve yeşil; biri kasten-fail enjeksiyonuyla doğruluyor.
 
-### [ ] T35.6 — CHANGELOG + sürüm turu (silme yok)
+### [x] T35.6 — CHANGELOG + sürüm turu (silme yok)
 - **Yapılacak**: Faz 35 birikimini CHANGELOG'un EN ÜSTÜNE ekle (mevcut girdileri SİLME/yeniden
   sıralama YOK); sürümü bump'la; version testi + tüm e2e + lint yeşil.
 - **Kabul**: Changelog tüm geçmişi koruyor; sürüm/lock/changelog tutarlı; build+test+lint+e2e yeşil.
