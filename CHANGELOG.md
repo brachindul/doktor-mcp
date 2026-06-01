@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased] — Faz 20–24 Birikimi
+## [Unreleased] — Faz 20–26 Birikimi
 
 ### Faz 23 — Yanıt Kalitesi / Değerlendirme
 
@@ -52,7 +52,15 @@
 - **T25.3**: Önbellek ısıtma CLI'ı — `npm run cache:warm` (`src/cacheWarmCli.ts`)
   eklendi. Covered envanterdeki 16 legislation kaydını direct-fetch ile,
   10 temsili emsal sorgusunu cache-check ile ısıtır. Demo/sunum öncesi
-  hızlı yanıt için. `tests/cacheWarmCli.test.ts` (4 test).
+   hızlı yanıt için. `tests/cacheWarmCli.test.ts` (4 test).
+
+### Faz 26 — Bütünsel Gözden Geçirme
+
+- **T26.1**: Tam güvenlik denetim turu — `docs/SECURITY_REVIEW.md` oluşturuldu.
+  SSRF (hardcoded trusted endpoints), PII (no collection), output safety
+  (multi-layer hard-blocking + disclaimer), ve dependency audit (small surface,
+  MIT-licensed). Overall: Low risk, no critical findings.
+  `tests/securityReview.test.ts` (6 test).
 
 ### Faz 22 — Emsal Derinleştirme
 

@@ -874,7 +874,7 @@ tamamlanmadan sıradakine geçme; önce düzelt.
 
 ## Faz 26 — Bütünsel Gözden Geçirme ve v1.1 Hazırlığı
 
-### [ ] T26.1 — Tam güvenlik denetim turu
+### [x] T26.1 — Tam güvenlik denetim turu
 - **Yapılacak**: SSRF, PII, output safety, bağımlılık denetimini tek bir güvenlik raporunda
   topla (`docs/SECURITY_REVIEW.md`); bulunan açıkları kapat veya dürüstçe belgele.
 - **Kabul**: Güvenlik raporu mevcut; kritik açık yok; testler güncel.
