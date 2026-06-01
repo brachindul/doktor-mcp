@@ -865,7 +865,7 @@ tamamlanmadan sıradakine geçme; önce düzelt.
   (kamu/özlük → mevzuat ağırlıklı; klinik malpraktis → emsal ağırlıklı).
 - **Kabul**: Tip-bazlı tahsis çalışıyor; timeout oranı düşüyor; test var.
 
-### [ ] T25.3 — Önbellek ısıtma CLI'ı
+### [x] T25.3 — Önbellek ısıtma CLI'ı
 - **Yapılacak**: `npm run cache:warm` — tüm covered mevzuat + golden-set emsallerini önceden
   çekip cache'i doldurur (demo/sunum öncesi hızlı yanıt için).
 - **Kabul**: Komut cache'i dolduruyor; sonraki sorgular belirgin hızlı; test/telemetri.

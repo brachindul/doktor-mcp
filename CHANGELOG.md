@@ -49,6 +49,10 @@
   `public_discipline` → legislation-heavy (%65), `malpractice_complication`/
   `civil_compensation`/`violence_threat` → precedent-heavy (%65), diğerleri
   → balanced (config defaults). `tests/dynamicBudgetAllocation.test.ts` (8 test).
+- **T25.3**: Önbellek ısıtma CLI'ı — `npm run cache:warm` (`src/cacheWarmCli.ts`)
+  eklendi. Covered envanterdeki 16 legislation kaydını direct-fetch ile,
+  10 temsili emsal sorgusunu cache-check ile ısıtır. Demo/sunum öncesi
+  hızlı yanıt için. `tests/cacheWarmCli.test.ts` (4 test).
 
 ### Faz 22 — Emsal Derinleştirme
 
