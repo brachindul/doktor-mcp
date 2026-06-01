@@ -4,7 +4,46 @@
 
 > 16 task tamamlandı: canlı kapsama, madde kalitesi, emsal derinleştirme,
 > yanıt kalitesi, çok-adımlı bağlam, paralel hint, akıllı bütçe, önbellek
-> ısıtma, güvenlik denetimi. 1246+ test.
+> ısıtma, güvenlik denetimi. 1256 test.
+
+### Faz 20 — Canlı Kapsama Tamamlama (candidate → covered)
+
+- **T20.1**: 4 sourceId'li candidate (TUEY mevzuat:7.5.39700, Umumi Hıfzıssıhha mevzuat:1.3.1593,
+  657 DMK mevzuat:1.5.657, TCK mevzuat:1.5.5237) canlı direct-fetch ile doğrulandı;
+  envanterde `covered` + `verified`, healthMappings'te gerçek sourceId'ye yükseltildi.
+  657 DMK hint'ine eksik `legislationNumber/Type/Arrangement` eklendi (direct-fetch fast-path için).
+  TCK hint'i healthMappings'e eklendi. `tests/t20CandidateVerification.test.ts` (11 test).
+- **T20.2**: `docs/COVERAGE_MATRIX.md` yeniden üretildi (16 verified entry).
+  Benchmark beklentileri yeni envanter sayılarına hizalandı (verified:16, candidate:21, gap:2, deferred:2, total:41).
+- **T20.3**: Mevzuat provision dedup uçtan uca doğrulandı. Mock + live `prepareInformationPack`
+  testleri: `sourceDocumentId + articleNumber` ikilisi 0 tekrar; farklı maddeler korunuyor.
+  `tests/legislationProvisionDedup.test.ts` yeniden yazıldı.
+
+### Faz 21 — Mevzuat Madde-Düzeyi Kalite
+
+- **T21.1**: `articleParser.ts` gürültü temizliği — RG meta verisi, sayfa işaretçileri, ayırıcı çizgiler
+  çıkarıldı; `MIN_ARTICLE_LENGTH=25` boş/fragment madde filtresi eklendi.
+  `tests/articleParserSanitization.test.ts` (4 test: sentetik + canlı Atama Yönetmeliği + TUEY).
+- **T21.2**: Madde durumu tespiti — `detectArticleStatus()` ile `in_force` / `repealed` / `amended`
+  sınıflandırması. Heuristic: `AMENDED_PATTERN` önce; `REPEALED_PATTERN` için marker dışında
+  >=4 harfli gerçek kelime varsa `amended`, yoksa `repealed`.
+  `tests/articleStatusDetection.test.ts` (4 test: sentetik + canlı Atama Yönetmeliği).
+- **T21.3**: Madde içi çapraz-referans tespiti — `CROSS_REF_PATTERN` ile "5 inci maddede",
+  "3. fıkrasında", "2'nci bendinde" gibi atıflar yakalanıp `crossReferences: string[]` olarak çıkar.
+  Format: `madde:5`, `fikra:3`, `bent:2`. `tests/articleCrossReferences.test.ts` (4 test).
+
+### Faz 22 — Emsal Derinleştirme
+
+- **T22.1**: Emsal tam-metin önbelleği — `PrecedentCache`'e `getFullText`/`setFullText` eklendi.
+  Yargıtay, Danıştay, Bedesten adapter'ları full-text fetch öncesinde cache kontrolü yapıyor;
+  cache hit → ağ çağrısı atlanıyor. `tests/precedentFullTextCache.test.ts` (5 test).
+- **T22.2**: Daire-uzmanlık eşlemesi — `precedentRelevance.ts`'e `ISSUE_PROFILE_CHAMBERS` tablosu eklendi.
+  Konu→daire/duruşma önceliği: `violence_threat` + Ceza Dairesi = +1; `public_employment` + Danıştay = +1;
+  alakasız daire (ör. Hukuk Dairesi + şiddet konusu) = -1. `tests/chamberMapping.test.ts` (7 test).
+- **T22.3**: Emsal tarih filtresi ve güncellik — `runtimeConfig`'e `precedentRecency` (weight, minDecisionYear, referenceYear)
+  eklendi. `rerankByIssueRelevance` combined score = relevanceScore + recencyScore * weight * 5.
+  Eşit ilgili iki karardan yenisi öne geçiyor; çok eski kararlar recency penalty alıyor.
+  `tests/precedentRecency.test.ts` (4 test).
 
 ### Faz 23 — Yanıt Kalitesi / Değerlendirme
 
@@ -56,7 +95,7 @@
 - **T25.3**: Önbellek ısıtma CLI'ı — `npm run cache:warm` (`src/cacheWarmCli.ts`)
   eklendi. Covered envanterdeki 16 legislation kaydını direct-fetch ile,
   10 temsili emsal sorgusunu cache-check ile ısıtır. Demo/sunum öncesi
-   hızlı yanıt için. `tests/cacheWarmCli.test.ts` (4 test).
+  hızlı yanıt için. `tests/cacheWarmCli.test.ts` (4 test).
 
 ### Faz 26 — Bütünsel Gözden Geçirme
 
@@ -70,526 +109,6 @@
   acil), canlı mod smoke test. `tests/extendedLiveVerification.test.ts` (4 test).
 - **T26.3**: v1.1 sürüm turu — `package.json` bump 0.47.1 → 0.48.0,
   CHANGELOG `[0.48.0]` eklendi. `npm run build` + 1256 test + version test yeşil.
-
-### Faz 22 — Emsal Derinleştirme
-
-- **T22.1**: Emsal tam-metin önbelleği — `PrecedentCache`'e `getFullText`/`setFullText` eklendi.
-  Yargıtay, Danıştay, Bedesten adapter'ları full-text fetch öncesinde cache kontrolü yapıyor;
-  cache hit → ağ çağrısı atlanıyor. `tests/precedentFullTextCache.test.ts` (5 test).
-- **T22.2**: Daire-uzmanlık eşlemesi — `precedentRelevance.ts`'e `ISSUE_PROFILE_CHAMBERS` tablosu eklendi.
-  Konu→daire/duruşma önceliği: `violence_threat` + Ceza Dairesi = +1; `public_employment` + Danıştay = +1;
-  alakasız daire (ör. Hukuk Dairesi + şiddet konusu) = -1. `tests/chamberMapping.test.ts` (7 test).
-- **T22.3**: Emsal tarih filtresi ve güncellik — `runtimeConfig`'e `precedentRecency` (weight, minDecisionYear, referenceYear)
-  eklendi. `rerankByIssueRelevance` combined score = relevanceScore + recencyScore * weight * 5.
-  Eşit ilgili iki karardan yenisi öne geçiyor; çok eski kararlar recency penalty alıyor.
-  `tests/precedentRecency.test.ts` (4 test).
-
-### Faz 21 — Mevzuat Madde-Düzeyi Kalite
-
-- **T21.1**: `articleParser.ts` gürültü temizliği — RG meta verisi, sayfa işaretçileri, ayırıcı çizgiler
-  çıkarıldı; `MIN_ARTICLE_LENGTH=25` boş/fragment madde filtresi eklendi.
-  `tests/articleParserSanitization.test.ts` (4 test: sentetik + canlı Atama Yönetmeliği + TUEY).
-- **T21.2**: Madde durumu tespiti — `detectArticleStatus()` ile `in_force` / `repealed` / `amended`
-  sınıflandırması. Heuristic: `AMENDED_PATTERN` önce; `REPEALED_PATTERN` için marker dışında
-  >=4 harfli gerçek kelime varsa `amended`, yoksa `repealed`.
-  `tests/articleStatusDetection.test.ts` (4 test: sentetik + canlı Atama Yönetmeliği).
-- **T21.3**: Madde içi çapraz-referans tespiti — `CROSS_REF_PATTERN` ile "5 inci maddede",
-  "3. fıkrasında", "2'nci bendinde" gibi atıflar yakalanıp `crossReferences: string[]` olarak çıkar.
-  Format: `madde:5`, `fikra:3`, `bent:2`. `tests/articleCrossReferences.test.ts` (4 test).
-
-### Faz 20 — Canlı Kapsama Tamamlama (candidate → covered)
-
-- **T20.1**: 4 sourceId'li candidate (TUEY mevzuat:7.5.39700, Umumi Hıfzıssıhha mevzuat:1.3.1593,
-  657 DMK mevzuat:1.5.657, TCK mevzuat:1.5.5237) canlı direct-fetch ile doğrulandı;
-  envanterde `covered` + `verified`, healthMappings'te gerçek sourceId'ye yükseltildi.
-  657 DMK hint'ine eksik `legislationNumber/Type/Arrangement` eklendi (direct-fetch fast-path için).
-  TCK hint'i healthMappings'e eklendi. `tests/t20CandidateVerification.test.ts` (11 test).
-- **T20.2**: `docs/COVERAGE_MATRIX.md` yeniden üretildi (16 verified entry).
-  Benchmark beklentileri yeni envanter sayılarına hizalandı (verified:16, candidate:21, gap:2, deferred:2, total:41).
-- **T20.3**: Mevzuat provision dedup uçtan uca doğrulandı. Mock + live `prepareInformationPack`
-  testleri: `sourceDocumentId + articleNumber` ikilisi 0 tekrar; farklı maddeler korunuyor.
-  `tests/legislationProvisionDedup.test.ts` yeniden yazıldı.
-
-## [0.47.1] — 2026-05-31 — Canlı Kamu Mevzuatı Retrieval Fix
-
-> Bağımsız canlı doğrulamada bulunan kök neden düzeltmesi. 1147 test.
-
-### Fixed
-
-- **Canlı kamu yönetmeliği retrieval'i** (`liveOfficialLegislationAdapter.getMappedHealthProvisions`):
-  Verified mevzuat koordinatı (number/type/arrangement) taşıyan hint'ler artık `searchOfficialLegislation`
-  (MevzuatDatatable arama API'si) çağrısını **tamamen atlıyor** ve doğrudan PDF/GeneratePdf fetch
-  fast-path'ine gidiyor. Önceden: kamu yönetmelikleri için arama API'si `source_error` veriyor,
-  retry/backoff çoklu hint üzerinde legislation faz bütçesini tüketiyor, faz timeout'a düşüp
-  0 mevzuat döndürüyordu — oysa doğrudan fetch (42KB) çalışıyordu.
-- **Etki**: "tayin talebim reddedildi" canlı sorgusu artık Atama ve Yer Değiştirme Yönetmeliği
-  m.5/m.8 döndürüyor (`sourceSufficiency: sufficient`, `sourceUnavailable: []`). Gizlilik sorgusu
-  regresyona uğramadı (Hasta Hakları m.21 + KVKK m.6). T9.1/T19.1 kabul kriteri nihayet karşılandı.
-- Arama API'si yalnızca direct koordinatı olmayan hint'ler için (sourceId keşfi) kullanılmaya devam ediyor.
-
-## [0.47.0] — 2026-05-31 — Faz 19 Kapanış Düzeltmeleri
-
-> 4 kapanış görevi (T19.1–T19.4). 79 test dosyası, 1144 test.
-
-### Faz 19 — Gece Koşusu Sonrası Kapanış (4 tasks)
-
-- **T19.1**: Live fetch doğrulandı — `mevzuat:7.5.17232` (Atama Yönetmeliği) canlıda 42KB metin döndürüyor. Type-7 yönetmelikler için `File/GeneratePdf` URL'i çalışıyor. T9.1 kabul kriteri geçerli.
-- **T19.2**: `deduplicateProvisions()` eklendi — aynı `sourceDocumentId + articleNumber` ikilisi tek provision'a indirgeniyor, en zengin `verbatimText` olan tutuluyor. `dedupedProvisionCount` diagnostic'e eklendi.
-- **T19.3**: Dürüst no-pack diagnostic testi — kamu sorguları için `sourceWarnings`/`coverageGaps` ile şeffaf raporlama; sessiz boş mevzuat yasak.
-- **T19.4**: Package 0.46.0 → 0.47.0, CHANGELOG güncel, version testi güncel.
-
-### Özet
-- **Toplam**: 76 görev tamamlandı (Faz 0–19)
-- **Test**: 79 test dosyası, 1144 test
-
-## [0.46.0] — 2026-05-31 — v1 Release Candidate: Tüm Fazlar Tamamlandı
-
-> 72 görev tamamlandı. 78 test dosyası, 1141 test. Faz 0–18.
-
-### Faz 0–10: see v0.45.0 entry (46 tasks)
-
-### Faz 11 — Kanun Katmanı (3 tasks)
-- T11.1: legislationType alanı (kanun/yonetmelik/nizamname/teblig) tüm envantere eklendi
-- T11.2: 657 DMK + 5237 TCK core statutes + health mapping
-- T11.3: Law+regulation combined ordering E2E tests (3 tests)
-
-### Faz 12 — Retrieval Sağlamlığı (4 tasks)
-- T12.1: LegislationCache (.cache/legislation/, TTL 5 min, 6 tests)
-- T12.2: docs/ERROR_CODES.md — 5 source error taxonomy
-- T12.3: snapshot sourceMode (mock/live/snapshot)
-- T12.4: sourceHealthCli + health:sources script
-
-### Faz 13 — Çıktı Kalitesi (3 tasks)
-- T13.1: Assessment sentence article refs verified
-- T13.2: Context-aware lawyerReviewPoints (discipline/privacy)
-- T13.3: Markdown relevanceExplanation rendering verified
-
-### Faz 14 — CI/Kod Kalitesi (4 tasks)
-- T14.1: GitHub Actions CI (build+test+audit)
-- T14.2: ESLint config + lint script (0 errors)
-- T14.3: Record/replay harness test
-- T14.4: E2E smoke gate (clinical+privacy+public queries)
-
-### Faz 15 — Güvenlik (3 tasks)
-- T15.1: SSRF URL allowlist (gov.tr domains only)
-- T15.2: PII redaction in precedentFilter + safety test
-- T15.3: npm audit --audit-level=high in CI
-
-### Faz 16 — Gözlemlenebilirlik (3 tasks)
-- T16.1: doctorDiagnoseCli + doctor:diagnose script
-- T16.2: Structured JSON logger (debug/info/error)
-- T16.3: generateCoverageMatrixCli + docs:coverage-matrix
-
-### Faz 17 — Klinik Genişleme (2 tasks)
-- T17.1: 3 clinical regs: Kan Ürünleri, Diyaliz, Radyasyon
-- T17.2: Branch-specific mappings (acil/anestezi/radyoloji)
-
-### Faz 18 — v1.0.0 Sürüm Hazırlığı (3 tasks)
-- T18.1: docs/RELEASE_v1.md — release checklist
-- T18.2: README v1 RC badge and note
-- T18.3: v1FinalChecklist.test.ts — structural readiness tests
-
-### Özet
-- **Toplam**: 72 görev tamamlandı (Faz 0–18)
-- **Test**: 78 test dosyası, 1141 test
-- **Envanter**: 40+ mevzuat girdisi, 20+ health mapping hint, 12+ konu kümesi
-
-## [0.45.0] — 2026-05-30 — Kamu Hekimi Mevzuat Genişlemesi
-
-> 17 yeni görev (T8.1–T8.4, T9.1–T9.4, T10.1–T10.3, T11.1). 68 test dosyası, 1098+ test.
-
-### Faz 8 — Kamu Hekimi Mevzuat Genişlemesi (4 tasks)
-
-> 12 yeni görev (T8.1–T8.4, T9.1–T9.4). 67 test dosyası, 1077 test.
-
-### Faz 8 — Kamu Hekimi Mevzuat Genişlemesi (4 tasks)
-
-- **T8.2** (öncelikli): Cloudflare bot-koruması PDF engeli çözüldü — gerçekçi tarayıcı header'ları, landing page fallback, `source_blocked_cloudflare` hata kodu
-- **T8.1**: 6 kamu özlük/disiplin yönetmeliği envantere eklendi (Atama ve Yer Değiştirme `mevzuat:7.5.17232` dahil). 6 health mapping + `public_employment`/`transfer_assignment` router kümeleri
-- **T8.3**: 13 eğitim/hizmet/mali/forensic girdi (TUEY `mevzuat:7.5.39700`, DHY, Umumi Hıfzıssıhha dahil). 7 health mapping hint + 8 yeni konu kümesi
-- **T8.4**: 4 kamu hekimi sorgu profili: tayin/atama, disiplin soruşturması, ek ödeme/performans, mecburi hizmet. 13 yönlendirme + regresyon testi
-
-### Faz 9 — Kamu Retrieval'i Gerçekten Çalıştır (BLOKLAYICI, 4 tasks)
-
-- **T9.1**: Canlı mevzuat fetch düzeltildi — zaten çalışıyordu. Landing page fallback regex'i full-URL pattern'leri de yakalayacak şekilde düzeltildi (`MevzuatMetin/yonetmelik/7.5.17232.pdf`). 3 yeni test
-- **T9.2**: Atama Yönetmeliği (madde 1, 2, 5) + TUEY (madde 1, 2) için mock provision eklendi. Tüm metin gerçek resmî kaynaktan. 2 test
-- **T9.3**: E2E tam-paket testleri (7 test): tayin→Atama birincil, disiplin→657/Ek Ödeme, hard-blocked invariant'lar. Kök nedenler düzeltildi: classifier'a public-employment terimleri, mock adapter'a priority map, 657/Ek Ödeme mock provision
-- **T9.4**: T8.1 kabul kriteri güncellendi (1/6 covered). Atama Yönetmeliği `officialSourceStatus: "verified"`'a yükseltildi
-
-### Faz 10 — Emsal İlgililik Kalitesi (3 tasks)
-
-- **T10.1**: 15 yeni query expansion: kamu/özlük, disiplin, gizlilik. Danıştay öncelikli kaynak.
-- **T10.2**: Issue-signal sözlüğü genişletildi, core-body bonus, generic-only penalty, `public_employment` profili
-- **T10.3**: `relevanceExplanation` çıktıya eklendi (eşleşen terimler + kısa gerekçe). Markdown renderer "Neden Seçildi" gösteriyor
-
-### Faz 11 — Kanun Katmanı (1/3 completed)
-
-- **T11.1** ✅: `legislationType` alanı tüm envanter girdilerine eklendi (kanun/yonetmelik/nizamname/teblig). `inventoryByLegislationType` rapora eklendi
-- **T11.2** [ ]: Çekirdek kanunlar (657, TCK) henüz eklenmedi — bu oturumda süre yetmedi
-- **T11.3** [ ]: Kanun+yönetmelik birleşik sıralama — T11.2 ön koşul
-
-Faz 12–18: 22 görev kaldı — sonraki oturuma ertelendi.
-
-### Summary
-- **Toplam**: 47 görev tamamlandı (Faz 0–10 + T11.1)
-
-## [0.44.0] — 2026-05-30 — Roadmap Complete: 35 Görev, v1 Release Ready
-
-> 35 görev tamamlandı. 61 test dosyası, 1020 test.
-
-### Faz 0 — Tech Debt (5 tasks)
-
-- **T0.1**: Sürüm `package.json`'dan tek kaynaktan okunuyor (`src/core/version.ts`)
-- **T0.2**: `tools.ts` içindeki `as unknown as` cast'leri temizlendi, `DoctorPackResponse` arayüzü kullanılıyor
-- **T0.3**: `benchmarkRunner.ts` 2036 satırdan 899 satıra indirildi; `scoring.ts`, `warningTaxonomy.ts`, `reportWriter.ts` ayrıldı
-- **T0.4**: `service.ts` 754 satırdan 352 satıra indirildi; `legislationPhase.ts`, `precedentPhase.ts`, `minimalPackRescue.ts` ayrıldı
-- **T0.5**: `BedestenNetworkError` → `LiveSourceNetworkError` vb. jenerik isimlendirme; geriye dönük alias
-
-### Faz 1 — Ton Gevşetme (4 tasks)
-
-- **T1.1**: Yasaklı ifade listesi ikiye ayrıldı: `HARD_BLOCKED_PHRASES` (14 kategori) ve `ALLOWED_ASSESSMENT_PHRASES` (risk seviyesi artık izinli)
-- **T1.2**: `preliminaryAssessment` alanı eklendi — her cümle bir kaynağa referans veriyor
-- **T1.3**: `assessmentTone` (`strict` | `grounded-advisory`) ayarı, varsayılan `grounded-advisory`
-- **T1.4**: README ve docs dili yumuşatıldı: "asla hukuki sonuç üretmez" → "kategorik nihai hüküm vermez"
-
-### Faz 2 — Yeni Özellikler (6 tasks)
-
-- **T2.1**: AYM probe ve `LiveAymAdapter` iskeleti (HTML-only endpoint, sentetik veri üretmiyor)
-- **T2.2**: Mevzuat hükümlerine `inForce` / `lastAmendedDate` / `repealed` metadata'sı eklendi
-- **T2.3**: Çapraz-kaynak karar deduplikasyonu (`buildDecisionKey` + `decisionRichnessScore`)
-- **T2.4**: `linkHealthChecker.ts` — HEAD istekleriyle URL sağlık kontrolü, bütçe aşımı paketi bloklamaz
-- **T2.5**: MCP `resources` (`health-legislation://inventory`, `doktor://calibration-status`) ve `prompts` (`hekim-hukuki-soru`)
-- **T2.6**: `runtimeConfig.ts` Zod şeması + `DOKTOR_MCP_*` env override; timeBudget, retry, cache TTL birleştirildi
-
-### Faz 3 — Test Kalitesi (4 tasks)
-
-- **T3.1**: `ingestFixtureCli` testindeki ENOENT stderr gürültüsü temizlendi
-- **T3.2**: Live adapter fixture entegrasyon testleri (Yargıtay 9, Danıştay 12)
-- **T3.3**: `@vitest/coverage-v8` eklendi, `npm run test:coverage` script'i
-- **T3.4**: `tests/safetyInvariants.test.ts` — 8 hızlı mock-mode güvenlik invariyantı
-
-### Faz 4 — Dokümantasyon (3 tasks)
-
-- **T4.1**: README'den CHANGELOG'a 239 satır sürüm geçmişi taşındı
-- **T4.2**: `docs/ARCHITECTURE.md` — Mermaid diyagramları, katman yapısı, zaman bütçesi akışı
-- **T4.3**: `CONTRIBUTING.md` — commit konvansiyonu, author ayarı, PR checklist
-
-### Faz 5 — Sürüm & Changelog Tutarlılığı (2 tasks)
-
-- **T5.1**: `package.json` 0.43.0 → 0.44.0; CHANGELOG uyumluluk testi `tests/version.test.ts`'e eklendi
-- **T5.2**: CHANGELOG'da tekrarlı 0.35.0 başlığı düzeltildi
-
-### Faz 6 — v1 Release Readiness (8 tasks)
-
-#### Must-have
-
-- **T6.1**: `preliminaryAssessment` anlamlı kılındı: gerçek `outcome`/`legalReasoning` kullanılıyor, boş kalıp yasak, aynı daire dedupe ediliyor, her cümle `sourceRef` taşıyor
-- **T6.2**: Sağlık-birincil mevzuat önceliği regresyon testi (`tests/healthPrimaryLegislationPriority.test.ts`) — Hasta Hakları KVKK'dan önce gelmeli, hard fail
-- **T6.3**: 6 `needs_manual_review` girdi için canlı doğrulama denendi (Cloudflare engeli — 0 terfi, tümü belgelenmiş gerekçeyle `needs_manual_review` kaldı)
-
-#### Should-have
-
-- **T6.4**: `docs/COMPATIBILITY.md` — stable/experimental/internal tier'lar, deprecation policy, breaking change sinyali
-- **T6.5**: AYM netleştirildi: `MockAymAdapter` boş dizi döndürüyor, `synthetic_only` işareti + açık Türkçe gerekçe, kalibrasyon resource objesi detaylandırıldı
-- **T6.6**: Tek dil/aksan politikası: tüm hekim-dönük metinler ASCII'den tam Türkçe'ye çevrildi (`eslestirildi` → `eşleştirildi`, `degildir` → `değildir` vb.)
-- **T6.7**: README güncel davranışla hizalandı: `assessmentTone` dokümantasyonu, AYM sınırlaması, cross-reference'lar
-
-#### Nice-to-have
-
-- **T6.8**: `docs/LAWYER_QUALITY_CHECKLIST.md` — 20 maddeli yapılandırılmış kontrol listesi (mevzuat, emsal, değerlendirme, genel paket), 3 örnek soru üzerinde uygulanmış sonuçlar
-
-### Faz 7 — Faz 6 Kalite Açıkları (v1 bloklayıcı, 4 tasks)
-
-- **T7.1**: HTML sanitization — `src/util/textSanitizer.ts`: `stripHtmlToText()` entity decode + tag strip, `truncateForDisplay()` cümle-koparmalı kırpma. Tüm hekim-dönük alanlara (`factSummary`, `legalAssessment`, `outcome`, `similarityDifference`, `verbatimQuote`) uygulandı
-- **T7.2**: Kök neden teşhisi + düzeltme — Hasta Hakları `patient_privacy` hint'ine `"kişisel sağlık verisi"`, `"sağlık verisi"`, `"saglik verisi"`, `"kisisel saglik verisi"` terimleri eklendi (healthMappings.ts). Canlı modda artık Hasta Hakları KVKK'dan ÖNCE sıralanıyor. Test: recorded-fixture + gerçek PDF'lerle 9 test
-- **T7.3**: Relevance eşiği sıkılaştırıldı — `runtimeConfig.ts`'e `assessment.minRelevanceScore` (default 2) eklendi. `buildPreliminaryAssessment` eşik altı kararları atlıyor. Test: 8 test (yüksek/düşük/orta relevance, env override)
-- **T7.4**: T6.3 kabul kriteri dürüstçe güncellendi — 4 CLI çalıştırıldı, 0 terfi (Cloudflare PDF engeli). Tüm girdiler `needs_manual_review`, her birine `v0.44.0 verification attempt` notu eklendi. Uydurma kaynak yok
-
-## [0.43.0] — 2026-05-28 — MCP Output Product Polish
-
-> Tag: `v0.43.0-mcp-output-product-polish`
-
-### Summary
-
-Product polish for the MCP doctor pack output format. Adds a structured
-response wrapper (`DoctorPackResponse`) with clear separation between
-physician-facing content and diagnostic details. Adds a deterministic
-Markdown renderer for stable, human-readable output. Strengthens output
-safety language guards to prevent forbidden phrases from appearing in
-physician-facing text. All existing pack contract tests pass unchanged.
-
-### Added
-
-- `src/mcp/formatDoctorPackResponse.ts` — MCP response formatter:
-  - `DoctorPackResponse` type with `responseVersion: "doctor-pack-response/v1"`
-  - `formatDoctorPackResponse()` wraps pack into structured response
-  - `formatNoPackDiagnosticResponse()` for no-pack cases
-  - `detectForbiddenOutputPhrases()` safety guard
-  - `DoctorPackResponseStatus`: `full_pack` | `partial_pack` | `no_pack_diagnostic`
-  - `DoctorPackSummary` with `sourceSufficiency`, counts, `timeoutOrRetrievalIssue`
-  - `DoctorPackDiagnostics` with `coverageGaps`, `retrievalTimeouts`, `noPackReason`
-- `src/formatters/doctorPackMarkdown.ts` — deterministic Markdown renderer:
-  - `renderDoctorPackMarkdown()` with fixed section order:
-    1. Hekim Hukuki Bilgilendirme Paketi
-    2. Kısa Cevap
-    3. Hukuki Sınıflandırma
-    4. İlgili Resmi Mevzuat
-    5. Doğrulanmış Yüksek Mahkeme Emsalleri
-    6. Kaynak Sınırlılığı ve Eksik Bilgiler
-    7. Avukat İncelemesi Gerektiren Noktalar
-    8. Teknik Doğrulama Özeti
-  - `renderNoPackDiagnosticMarkdown()` for no-pack cases
-  - Safe opening statement: "Bu paket, aşağıdaki resmi kaynaklarla sınırlı hukuki bilgilendirme sağlar."
-  - Deterministic output (same input → same Markdown)
-- Output safety language guards in `src/packAudit.ts`:
-  - Forbidden phrases expanded with Turkish output-specific phrases
-  - Prevents: "kesin olarak sorumlusunuz", "kesin beraat eder", "derhal şunu yapın", etc.
-- 22 test cases in `tests/formatters/`:
-  - Full/partial/no-pack response formatting
-  - Status derivation (full_pack, partial_pack, no_pack_diagnostic)
-  - Source sufficiency derivation
-  - Diagnostics inclusion/exclusion
-  - Forbidden phrase detection
-  - Markdown section order, legislation, precedents, safe language
-  - Deterministic output
-- MCP `prepare_doctor_legal_information_pack` now returns `DoctorPackResponse`
-
-### Changed
-
-- `src/mcp/tools.ts`: pack handler returns formatted response with `pack` field for backward compatibility
-- `src/packAudit.ts`: expanded `MVP_FORBIDDEN_PHRASES` with output safety language
-
-### Backward compatibility
-
-- Raw `DoctorLegalInformationPack` still available in `response.pack`
-- Existing callers can access `response.pack` for raw data
-- `responseVersion` field allows future schema evolution
-
-### Safety invariants
-
-- No source sufficiency threshold was relaxed
-- No non-gov.tr source is accepted as verified
-- No fake required pack fields are generated
-- No risk level, urgent action, definitive legal opinion, petition or defense draft
-- No local-yargi vendor/import
-
-## [0.42.0] — 2026-05-27 — Live Minimal Pack Rescue Diagnostics
-
-> Tag: `v0.42.0-live-minimal-pack-rescue`
-
-### Summary
-
-Adds minimal pack rescue for real-world live smoke questions that timeout
-before a full pack can be composed. When the per-question timeout fires but
-the service has already completed one or both research phases (legislation
-and/or precedents), the intermediate state is captured and used to build a
-minimal/partial research pack. This reduces the number of complete no-pack
-timeouts and provides richer diagnostic information for questions that still
-cannot produce a pack.
-
-### Added
-
-- Minimal pack rescue context in `src/app/service.ts`:
-  - `MinimalPackRescueContext` type with intermediate phase state tracking
-  - `MinimalPackRescueReason` type for classifying rescue attempts
-  - `PartialDiagnosticPack` type for enhanced no-pack diagnostics
-  - `getLastPartialState()` method for benchmark runner to access partial state on timeout
-  - Partial state tracking after each phase completion
-- Minimal pack rescue logic in `src/benchmark/benchmarkRunner.ts`:
-  - `buildMinimalRescuePack()` — builds a minimal pack from intermediate state
-  - `deriveRescueReason()` — classifies the rescue reason
-  - On timeout, service partial state is accessed and used to build minimal pack
-  - If minimal pack contract audit passes, it's a generated pack
-  - If contract audit fails, enhanced no-pack diagnostic is produced
-- Enhanced no-pack diagnostic fields:
-  - `partialLegislationCount`
-  - `partialVerifiedPrecedentCount`
-  - `lastCompletedPhase`
-  - `retrievalTimeoutSources`
-  - `canRetryWithLongerBudget`
-  - `canRetryWithNarrowerIssue`
-  - `partialStateAvailable`
-- Rescue/telemetry metrics in `BenchmarkReport`:
-  - `minimalPackRescueAttemptCount`
-  - `minimalPackRescueSuccessCount`
-  - `minimalPackRescueFailureCount`
-  - `noPackDiagnosticEnhancedCount`
-  - `partialStateAvailableCount`
-  - `generatedFromPartialStateCount`
-
-### Changed
-
-- Service now tracks intermediate state as each phase completes
-- Benchmark runner accesses partial state on timeout for minimal pack rescue
-- Generated minimal packs run through existing contract audit
-- No source sufficiency threshold was relaxed
-- No non-gov.tr source is accepted as verified
-- No fake required pack fields are generated
-
-### Safety invariants
-
-- Generated minimal packs still run contract audit — contract failures remain hard
-- No-pack diagnostics do not hard-fail gates (v0.41 semantics preserved)
-- No new live source integration
-- No active health legislation coverage promotion
-- No risk level, urgent action, definitive legal opinion, petition or defense draft
-- No local-yargi vendor/import
-
-## [0.41.0] — 2026-05-27 — Live Timeout Gate Semantics and Partial/No-Pack Diagnostics
-
-> Tag: `v0.41.0-live-timeout-gate-semantics-and-partial-pack`
-
-### Summary
-
-Aligns live timeout/no-pack semantics across `liveReliabilityGate` and
-`physicianPackBetaGate`. Pack generation failures caused by timeout, source
-unavailability, or budget exhaustion are now classified separately from
-generated-pack contract failures. A generated pack with contract errors remains
-as a soft diagnostic observation. This preserves the safety contract while
-removing the v0.40 semantic mismatch where beta gate passed but reliability gate
-could fail on no-pack timeouts as `CONTRACT_FAIL`.
-
-### Added
-
-- Result-level failure taxonomy in `src/benchmark/benchmarkRunner.ts`:
-  - `PackFailureKind`
-  - `packGenerated`
-  - `packFailureKind`
-  - `packGenerationFailureReason`
-  - `failedPhase`
-  - `noPackDiagnostic`
-  - `partialPackGenerated`
-- Report-level metrics:
-  - `packGenerationFailureDistribution`
-  - `timeoutNoPackCount`
-  - `sourceUnavailableNoPackCount`
-  - `budgetExhaustedNoPackCount`
-  - `generatedPackContractFailCount`
-  - `generatedPackUnsafeCount`
-  - `generatedPackUnofficialCount`
-  - `liveReliabilityGateTimeoutObservationCount`
-  - `noPackDiagnosticCount`
-  - `partialPackGeneratedCount`
-- `liveReliabilityGate` explicit metrics:
-  - `timeoutNoPackCount`
-  - `generatedPackContractFailCount`
-  - `packGenerationFailedCount`
-  - `sourceUnavailableNoPackCount`
-  - `budgetExhaustedNoPackCount`
-
-### Changed
-
-- `liveReliabilityGate` now treats timeout/source-unavailable/budget-exhausted
-  no-pack failures as soft observations, not hard `CONTRACT_FAIL`.
-- Generated-pack contract failure remains a hard reliability gate failure.
-- `physicianPackBetaGate` and `liveReliabilityGate` now share the same generated
-  pack vs no-pack failure distinction.
-- No source sufficiency threshold was relaxed.
-- No non-gov.tr source is accepted as verified.
-- No fake required pack fields are generated for no-pack diagnostics.
-
-### Tests
-
-- Added/updated tests covering:
-  - timeout/no-pack item does not hard fail `liveReliabilityGate`
-  - generated-pack contract failure remains hard fail
-  - unsafe advice, unofficial source, mock fallback, quote-unusable precedent remain hard failures
-  - beta gate and live reliability gate timeout/no-pack semantics are aligned
-  - `packGenerationFailureDistribution` is correct
-  - no-pack diagnostic is JSON-parseable
-  - partial generated pack still runs contract audit
-  - existing doctor and real-world benchmark behavior remains stable
-
-### Safety invariants
-
-- No new live source integration.
-- No active health legislation coverage promotion.
-- No gov.tr-external source verification.
-- No risk level, urgent action, definitive legal opinion, petition or defense draft.
-- No local-yargi vendor/import.
-
-## [0.40.0] — 2026-05-26 — Live Legislation Phase Hardening
-
-> Tag: `v0.40.0-live-legislation-phase-hardening`
-
-### Summary
-
-Legislation phase hardening layer for live mode. Four real-world live smoke
-questions that timed out entirely in v0.39 during the legislation phase
-are now intercepted by a phase-level budget cap (`effectivePhaseBudgetMs`)
-before they can consume the full 30s per-question timeout. When the
-legislation phase exceeds its budget (default 8–10s), the phase is
-interrupted via `Promise.race` and the code proceeds to the precedent
-phase. Coverage gaps for unverified but known-important legislation
-(e.g., Özel Hastaneler, Acil Sağlık, Kişisel Sağlık Verileri) are
-detected before any slow search is attempted, producing structured gap
-reasons instead of open-ended timeouts. Legislation phase diagnostics
-(`legislationPhaseTimedOut`, `legislationPhaseBudgetExhausted`,
-`legislationCoverageGaps`) flow through to source sufficiency evaluation
-and benchmark telemetry.
-
-### Added
-
-- **Legislation phase budget cap in `src/app/service.ts`**:
-  - `executeLegislationPhase()` private method wraps `searchLegislation`
-    with a `Promise.race` against `effectivePhaseBudgetMs("legislation")`.
-  - When the phase budget is exhausted before legislation search returns,
-    the method returns an `unavailable` result with a clear timeout reason,
-    WITHOUT throwing — the precedent phase can still proceed.
-  - `LegislationPhaseResult` returned with diagnostics:
-    `phaseBudgetExhausted`, `timedOut`, `retrievalTimeout`,
-    `failedBeforePrecedent`, `coverageGaps`, `knownHintFastPathUsed`.
-- **Coverage gap detection before legislation search**:
-  - `detectLegislationCoverageGaps()` queries the router for issue IDs
-    and cross-references against `HEALTH_LEGISLATION_INVENTORY` for entries
-    with `coverageStatus !== "covered"`.
-  - Identified gaps (e.g., Özel Hastaneler, Ayakta Teşhis, Acil Sağlık,
-    Kişisel Sağlık Verileri, İşyeri Hekimi, Sağlık Bakanlığı Disiplin)
-    produce structured `coverage gap` reasons instead of silent timeouts.
-  - No fake legislation quotes are produced for gap entries.
-- **New source sufficiency missing authority types**:
-  - `legislationPhaseBudgetExhausted` — legislation phase exceeded its
-    allocated budget.
-  - `legislationCoverageGap` — a known official legislation coverage gap
-    was identified for the routed issue.
-- **TimeBudgetTelemetry extended with v0.40.0 fields**:
-  - `legislationPhaseBudgetExhausted`, `legislationPhaseTimedOut`,
-    `legislationPhaseFailedBeforePrecedent`, `legislationCoverageGaps`,
-    `legislationKnownHintFastPathUsed`, `legislationPhaseBudgetMs`,
-    `legislationRetrievalTimeout`.
-- **BenchmarkReport.timeBudgetMetrics extended**:
-  - `legislationPhaseTimeoutCount`, `legislationPhaseBudgetExhaustedCount`,
-    `knownHintFastPathCount`, `coverageGapCount`,
-    `legislationPhaseFailedBeforePrecedentCount`,
-    `packGeneratedAfterLegislationTimeoutCount`.
-
-### Changed
-
-- **`src/app/service.ts`**:
-  - `prepareInformationPack()` live mode now calls `executeLegislationPhase()`
-    instead of directly calling `searchLegislation()`.
-  - `routeMedicalIssue` imported for coverage gap detection.
-- **`src/sourceSufficiency.ts`**:
-  - New input fields: `legislationPhaseBudgetExhausted?`,
-    `legislationPhaseTimedOut?`, `legislationCoverageGaps?`.
-  - New missing authority types processed in `evaluateSourceSufficiency()`.
-- **`src/benchmark/benchmarkRunner.ts`**:
-  - Sufficiency evaluation call passes v0.40.0 legislation phase fields.
-  - `buildTimeBudgetMetrics()` aggregates new legislation phase counters.
-- **`package.json` & `package-lock.json`**: bumped version `0.39.0` → `0.40.0`.
-- **`tests/realWorldLiveSmoke.test.ts`**: mock report updated with new fields.
-
-### Design Invariants
-
-- **No new source integration**: same live adapters.
-- **No source rule relaxation**: gov.tr-only, no mock fallback in live, no unofficial sources.
-- **No output contract change**: DoctorLegalInformationPack format unchanged.
-- **No coverage change**: `coveredOfficialLegislationCount` = 11, `verifiedOfficialSourceCount` = 11.
-- **No local-yargi vendor or import**.
-- **Coverage gap reasons are NOT fake legislation quotes**: gap entries never added to `relevantLegislation`.
-- **Legislation phase timeout ≠ pack failure**: precedent phase still proceeds.
-- **Generated-pack contract failures remain hard failures**.
-- **Timeout-induced raw contract failures excluded from beta gate hard failures**.
 
 ---
 
