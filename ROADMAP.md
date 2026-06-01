@@ -879,7 +879,7 @@ tamamlanmadan sıradakine geçme; önce düzelt.
   topla (`docs/SECURITY_REVIEW.md`); bulunan açıkları kapat veya dürüstçe belgele.
 - **Kabul**: Güvenlik raporu mevcut; kritik açık yok; testler güncel.
 
-### [ ] T26.2 — Bütünsel canlı doğrulama (genişletilmiş)
+### [x] T26.2 — Bütünsel canlı doğrulama (genişletilmiş)
 - **Yapılacak**: 20 soruluk temsili set (klinik + kamu/özlük + gizlilik + adli + acil) üzerinde
   canlı benchmark; her soru için pack ya da dürüst no-pack diagnostic; sonuçlar `exports/` + özet.
 - **Kabul**: 20 sorunun tamamı için sonuç var; unsafe/uydurma yok; rapor yazıldı.

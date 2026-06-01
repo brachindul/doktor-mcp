@@ -65,6 +65,11 @@
   (multi-layer hard-blocking + disclaimer), ve dependency audit (small surface,
   MIT-licensed). Overall: Low risk, no critical findings.
   `tests/securityReview.test.ts` (6 test).
+- **T26.2**: Bütünsel canlı doğrulama — altyapı doğrulandı. `exports/` dizini,
+  27 benchmark sorusu tüm kategorilerde (klinik, kamu/özlük, gizlilik, adli,
+  acil), canlı mod smoke test. `tests/extendedLiveVerification.test.ts` (4 test).
+- **T26.3**: v1.1 sürüm turu — `package.json` bump 0.47.1 → 0.48.0,
+  CHANGELOG `[0.48.0]` eklendi. `npm run build` + 1256 test + version test yeşil.
 
 ### Faz 22 — Emsal Derinleştirme
 
