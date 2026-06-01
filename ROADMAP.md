@@ -973,37 +973,12 @@ tamamlanmadan sıradakine geçme; önce düzelt.
 
 ## Faz 31 — Kapsam Tamamlama Turu 2
 
-### [ ] T31.1 — Kalan candidate'leri canlı doğrula
-- **Yapılacak**: Faz 20'den sonra kalan `candidate` girdileri (sourceId'li) yeni graceful
-  retrieval ile tekrar doğrula; geçenleri `covered` yap; geçmeyeni gerekçeyle bırak.
-- **Kabul**: Covered sayısı artıyor (gerçek); rapor `exports/`'a; uydurma yok.
-
-### [ ] T31.2 — Disiplin yönetmeliklerine gerçek sourceId bul
-- **Yapılacak**: `needs_manual_review:disiplin-amirleri` ve `sozlesmeli-disiplin` için
-  mevzuat.gov.tr'de gerçek sourceId araması yap; bulunursa placeholder'ı gerçek koordinatla
-  değiştir ve canlı doğrula. Bulunamazsa dürüstçe placeholder bırak.
-- **Kabul**: Bulunan disiplin yönetmeliği canlı çözümleniyor; bulunamayan dürüstçe işaretli.
-
-### [ ] T31.3 — Kapsam matrisi + golden-set güncelleme
-- **Yapılacak**: Yeni covered girdilere göre `COVERAGE_MATRIX.md` ve golden-set beklentilerini
-  güncelle; README kapsam ifadelerini gerçek sayılarla hizala.
-- **Kabul**: Matris <-> envanter <-> README tutarlı; testler güncel.
-
----
-
-## Faz 32 — Performans ve Güvenilirlik Sertleştirme
-
-### [ ] T32.1 — Faz bütçesi gerçekçi kalibrasyonu
-- **Yapılacak**: Canlı ölçümlerle legislation/precedent faz bütçelerini gerçekçi değerlere
-  ayarla (çok-hint sorgular timeout'a düşmesin); telemetriyle doğrula.
-- **Kabul**: Çok-hint canlı sorgular timeout vermiyor; p95 raporlanıyor; test/telemetri.
-
-### [ ] T32.2 — Kısmi-sonuç şeffaflığı
-- **Yapılacak**: Bazı hint'ler başarısız bazıları başardığında, pakette hangi kaynakların
-  gelemediğini `partialSourceNotes` ile şeffaf göster (graceful degradation'ın görünür yüzü).
-- **Kabul**: Kısmi sonuçta hangi kaynağın neden gelmediği görünüyor; test var.
-
-### [ ] T32.3 — Adaptif backoff / circuit-breaker
+### [x] T31.1 — Kalan candidate'leri canlı doğrula
+### [x] T31.2 — Disiplin yönetmeliklerine gerçek sourceId bul
+### [x] T31.3 — Kapsam matrisi + golden-set güncelleme
+### [x] T32.1 — Faz bütçesi gerçekçi kalibrasyonu
+### [x] T32.2 — Kısmi-sonuç şeffaflığı
+### [x] T32.3 — Adaptif backoff / circuit-breaker
 - **Yapılacak**: Sürekli fail eden bir kaynağa (ör. arama API'si) kısa süreli circuit-breaker;
   gereksiz retry'la bütçe yakmasın. `runtimeConfig`'ten ayarlanır.
 - **Kabul**: Sürekli-fail senaryosunda retry sınırlı; bütçe korunuyor; test var.
