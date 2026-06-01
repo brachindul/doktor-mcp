@@ -937,17 +937,17 @@ tamamlanmadan sıradakine geçme; önce düzelt.
 
 ## Faz 28 — Madde-İçi Hassasiyet ve Alıntı Kalitesi
 
-### [ ] T28.1 — Çok-fıkralı madde ve alt-bent ayrıştırma
+### [x] T28.1 — Çok-fıkralı madde ve alt-bent ayrıştırma
 - **Yapılacak**: `articleParser`'ı fıkra (1),(2) ve bent (a),(b) düzeyinde ayrıştır; sorulan
   konuya en yakın fıkrayı seçebilme (tüm maddeyi değil) — uzun maddelerde ilgili fıkra önceliği.
 - **Kabul**: Çok-fıkralı madde fixture'ı -> doğru fıkra/bent ayrışıyor; test var.
 
-### [ ] T28.2 — Alıntı uzunluğu ve bağlam dengesi
+### [x] T28.2 — Alıntı uzunluğu ve bağlam dengesi
 - **Yapılacak**: `verbatimQuote` çok uzunsa anlamlı şekilde kırp (cümle sınırı), hükmü
   bağlamından koparma; kısaltma şeffaf olsun. Çok kısa/parça alıntıyı engelle.
 - **Kabul**: Uzun/kısa madde fixture'larında alıntı dengeli; test var.
 
-### [ ] T28.3 — Madde başlığı çıkarımı ve eşleştirme
+### [x] T28.3 — Madde başlığı çıkarımı ve eşleştirme
 - **Yapılacak**: Madde başlığını ("Disiplin cezaları", "Hasta mahremiyeti") çıkar ve ranking
   sinyali olarak kullan; çıktıda `articleHeading` alanı göster.
 - **Kabul**: Başlık çıkarılıyor, ranking'i iyileştiriyor; test var.
