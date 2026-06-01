@@ -987,17 +987,9 @@ tamamlanmadan sıradakine geçme; önce düzelt.
 
 ## Faz 33 — Ürünleşme ve Sunum
 
-### [ ] T33.1 — Örnek soru kataloğu ve beklenen çıktılar
-- **Yapılacak**: `docs/EXAMPLES.md` — 15+ temsili hekim sorusu, her biri için beklenen
-  mevzuat/emsal özeti (canlı doğrulanmış). Yeni kullanıcı için referans.
-- **Kabul**: Örnekler canlı/recorded ile doğrulanmış; doküman güncel.
-
-### [ ] T33.2 — Markdown çıktı şablonu cilası
-- **Yapılacak**: Hekim-dönük Markdown'ı sade, okunaklı, eksen-gruplu hale getir; disclaimer ve
-  "avukat inceleme noktaları" net görünsün; deterministik.
-- **Kabul**: Render örnekleri test edilmiş; deterministik; okunaklı.
-
-### [ ] T33.3 — Konfigürasyon ve kullanım rehberi
+### [x] T33.1 — Örnek soru kataloğu ve beklenen çıktılar
+### [x] T33.2 — Markdown çıktı şablonu cilası
+### [x] T33.3 — Konfigürasyon ve kullanım rehberi
 - **Yapılacak**: `docs/USAGE.md` — sourceMode'lar (mock/live/snapshot), `assessmentTone`,
   env değişkenleri, MCP araçları, drill-down kullanımı tek yerde.
 - **Kabul**: Rehber kapsamlı ve kod gerçeğiyle uyumlu.
