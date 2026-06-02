@@ -429,6 +429,7 @@
 43. Faz 42 (genişletilmiş kamu hekimi kapsamı) → T42.1 → T42.2
 44. Faz 43 (ürünleşme turu 2) → T43.1 → T43.2
 45. Faz 44 (bütünsel doğrulama + v1.3) → T44.1 → T44.2 → T44.3
+46. Faz 45 (Faz 38 kapanışı — malpraktis fixture + eksen kapsamı + mutation) → T45.1 → T45.2 → T45.3 → T45.4
 
 **Her görev sonunda**: build + test yeşil → commit. Bir görev testi kırıyorsa, görev
 tamamlanmadan sıradakine geçme; önce düzelt.
@@ -1134,3 +1135,43 @@ tamamlanmadan sıradakine geçme; önce düzelt.
 - **Yapılacak**: Faz 37–44 birikimini CHANGELOG'un EN ÜSTÜNE ekle (mevcut girdileri SİLME/
   yeniden sıralama YOK); sürümü bump'la; version testi + tüm e2e smoke + lint + CI config yeşil.
 - **Kabul**: Changelog tüm geçmişi koruyor; sürüm/lock/changelog tutarlı; build+test+lint+CI yeşil.
+
+---
+
+## Faz 45 — Faz 38 Kapanışı (Denetim Bulguları)
+
+> Bağımsız denetim: T38.1 cache-fed hard-assert testi 4 yerine 3 ekseni kapsıyor
+> (`CORE_AXES = ["disiplin","tayin","gizlilik"]`); **malpraktis** cache-fed pipeline'da
+> `document_not_found` veriyor çünkü fixture'ının sourceId'si Deontoloji hint koordinatıyla
+> (`mevzuat:2.3.412578`) uyuşmuyor. Model dürüstçe dışlamış ama kapsam eksik. T38.2 mutation
+> kanıtı ~3 (kabul ≥4 idi); `scripts/mutation-check.mjs` yok.
+
+### [ ] T45.1 — malpraktis fixture'ını hint koordinatıyla hizala
+- **Sorun**: `tests/fixtures/axes/malpraktis.json` provision'larının `sourceDocumentId`/`sourceId`'si,
+  malpraktis sorgusunun çözümlendiği hint'in (Tıbbi Deontoloji Nizamnamesi, `mevzuat:2.3.412578`,
+  md.14/2/13) koordinatıyla eşleşmiyor; bu yüzden `buildReplayCache` cache'i adapter'ın
+  aradığı anahtarla dolduramıyor → `document_not_found`.
+- **Yapılacak**: malpraktis fixture'ının provision sourceId'lerini ve madde numaralarını
+  gerçek canlı çıktıyla (Deontoloji m.14/2/13) hizala; metin sanitize-gerçek olsun (uydurma yok).
+  `buildReplayCache` doğru cache anahtarını üretmeli.
+- **Kabul**: Cache-fed probe `malpraktis -> ok` + Deontoloji provision'ları döndürüyor.
+
+### [ ] T45.2 — CORE_AXES'i ≥4 ekseye çıkar (malpraktis dahil)
+- **Yapılacak**: `tests/fixtureReplayLivePipeline.test.ts`'te `CORE_AXES`'i en az
+  `["disiplin","malpraktis","tayin","gizlilik"]` yap; her biri için cache-fed pipeline
+  `status: "ok"` + `expectedPrimaryLegislation` koşulsuz hard-assert. Mümkünse kalan 4
+  fixture ekseni (riza_onam, acil_mudahale, ek_odeme, mecburi_hizmet) için de hizalayıp ekle.
+- **Kabul**: ≥4 eksen hard-assert e2e; biri beklenen mevzuatı döndürmezse hard-fail; CI config yeşil.
+
+### [ ] T45.3 — Mutation-sanity'yi ≥4 invariyanta çıkar + otomatik script
+- **Yapılacak**: `scripts/mutation-check.mjs` yaz: belirtilen invariyantlar için kodu geçici
+  bozar, ilgili testi çalıştırır, kırıldığını doğrular, geri alır. En az 4 invariyant:
+  (a) cache.set kaldır; (b) placeholder hint filtresi kaldır; (c) graceful degradation kapat;
+  (d) malpraktis/disiplin terim eşlemesi kaldır. Sonuçları `docs/TEST_AUDIT.md`'ye kaydet.
+- **Kabul**: Script ≥4 mutasyonun her birinde "test kırılıyor" kanıtlıyor; kalıcı kod bozuk değil;
+  TEST_AUDIT güncel.
+
+### [ ] T45.4 — CHANGELOG + sürüm turu (silme yok)
+- **Yapılacak**: Faz 45 birikimini CHANGELOG'un EN ÜSTÜNE ekle (mevcut girdileri SİLME/yeniden
+  sıralama YOK); sürümü bump'la; version testi + build + lint + CI config yeşil; push.
+- **Kabul**: Changelog tüm geçmişi koruyor; sürüm/lock/changelog tutarlı; her şey yeşil; origin senkron.
