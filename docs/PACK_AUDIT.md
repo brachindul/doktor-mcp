@@ -1,12 +1,12 @@
-# Pack Audit
+# Pack Audit (Paket Denetimi)
 
-The pack audit tool validates a `DoctorLegalInformationPack` JSON for compliance with
-MVP safety constraints before it is sent to lawyer review.
+Paket denetim aracı, bir `DoctorLegalInformationPack` JSON'unu avukat incelemesine
+gönderilmeden önce MVP güvenlik kısıtlarına uygunluk açısından doğrular.
 
-## Usage
+## Kullanım
 
 ```powershell
-# Generate a pack (mock mode)
+# Bir paket üret (mock mod)
 npx tsx -e "
 import { DoktorMcpInformationService } from './src/app/service.js';
 import { writeFile } from 'node:fs/promises';
@@ -15,33 +15,33 @@ const pack = await svc.prepareInformationPack({ question: 'aydınlatılmış rı
 await writeFile('fixtures/sample-pack.json', JSON.stringify(pack, null, 2));
 "
 
-# Audit the pack
+# Paketi denetle
 npm run audit:pack -- fixtures/sample-pack.json
 ```
 
-## Checks
+## Kontroller
 
-### Errors (block lawyer review)
+### Hatalar (avukat incelemesini bloke eder)
 
-| Check | Description |
-|-------|-------------|
-| MVP-out-of-scope fields | `riskLevel`, `immediateActions`, `finalLegalOpinion`, `riskSeviyesi`, `derhalYapilacaklar`, `kesinHukukiKanaat`, `dilekseTaslagi` must not appear |
-| Missing `sourceDocumentId` | Every `relevantLegislation` item must have a `sourceDocumentId` |
-| Excluded status in selectedPrecedents | No entry in `precedentDiagnostics.selectedPrecedents` may have status `metadata_only`, `procedural_only`, or `no_reasoning` |
-| `fullTextAvailable: false` on verified precedent | If a verified precedent has a `decisionSourceTrace`, it must have `fullTextAvailable: true` |
-| Wrong `eligibilityStatus` on verified precedent | If a verified precedent has a `decisionSourceTrace`, its `eligibilityStatus` must be `precedent_usable` |
+| Kontrol | Açıklama |
+|---------|----------|
+| MVP-kapsam-dışı alanlar | `riskLevel`, `immediateActions`, `finalLegalOpinion`, `riskSeviyesi`, `derhalYapilacaklar`, `kesinHukukiKanaat`, `dilekseTaslagi` görünmemeli |
+| Eksik `sourceDocumentId` | Her `relevantLegislation` öğesinin bir `sourceDocumentId`'si olmalı |
+| selectedPrecedents'te dışlanmış durum | `precedentDiagnostics.selectedPrecedents`'teki hiçbir girdi `metadata_only`, `procedural_only` veya `no_reasoning` durumunda olamaz |
+| Doğrulanmış emsalde `fullTextAvailable: false` | Doğrulanmış bir emsalin `decisionSourceTrace`'i varsa, `fullTextAvailable: true` olmalı |
+| Doğrulanmış emsalde yanlış `eligibilityStatus` | Doğrulanmış bir emsalin `decisionSourceTrace`'i varsa, `eligibilityStatus`'u `precedent_usable` olmalı |
 
-### Warnings (should be addressed before review)
+### Uyarılar (incelemeden önce ele alınmalı)
 
-| Warning | Description |
-|---------|-------------|
-| Missing `selectionDiagnostics` | Present only in live legislation mode |
-| Missing `precedentDiagnostics` | Should always be present |
-| Missing `sourceSummaries` | Should be inside `precedentDiagnostics` |
-| Unavailable source in `sourceSummaries` | One or more court adapters failed; 0 live precedents from that source |
-| `sourceWarnings` present | Pack-level source warnings exist |
+| Uyarı | Açıklama |
+|-------|----------|
+| Eksik `selectionDiagnostics` | Yalnızca canlı mevzuat modunda bulunur |
+| Eksik `precedentDiagnostics` | Her zaman bulunmalı |
+| Eksik `sourceSummaries` | `precedentDiagnostics` içinde olmalı |
+| `sourceSummaries`'te erişilemez kaynak | Bir veya daha fazla mahkeme adaptörü başarısız; o kaynaktan 0 canlı emsal |
+| `sourceWarnings` mevcut | Pakete-düzey kaynak uyarıları var |
 
-## Output Format
+## Çıktı Formatı
 
 ```json
 {
@@ -67,27 +67,27 @@ npm run audit:pack -- fixtures/sample-pack.json
 }
 ```
 
-- `ok: true` with warnings = ready for review (address warnings if possible)
-- `ok: false` = must fix errors before sending to lawyer
+- Uyarılarla `ok: true` = inceleme için hazır (mümkünse uyarıları ele al)
+- `ok: false` = avukata göndermeden önce hatalar düzeltilmeli
 
-## Safety Constraints
+## Güvenlik Kısıtları
 
-The audit enforces the permanent project constraints:
+Denetim, kalıcı proje kısıtlarını zorlar:
 
-- No risk level scoring
-- No immediate action instructions
-- No categorical final legal conclusions (source-grounded conditional assessment is permitted)
-- No petition or defense drafts
-- No model-invented court decisions
-- Only `precedent_usable` decisions in `verifiedHighCourtPrecedents`
-- Full text required for all verified precedents
+- Risk seviyesi puanlaması yok
+- Acil eylem talimatı yok
+- Kategorik nihai hukuki sonuç yok (kaynağa dayalı koşullu değerlendirme izinlidir)
+- Dilekçe veya savunma taslağı yok
+- Modelin uydurduğu mahkeme kararı yok
+- `verifiedHighCourtPrecedents`'te yalnızca `precedent_usable` kararlar
+- Tüm doğrulanmış emsaller için tam metin gerekli
 
-## CI Integration
+## CI Entegrasyonu
 
-The audit exits with code 0 when `ok: true`, and with code 1 when `ok: false`.
-It is designed to be deterministic — same input always produces same output.
+Denetim, `ok: true` olduğunda 0 koduyla, `ok: false` olduğunda 1 koduyla çıkar.
+Deterministik olacak şekilde tasarlanmıştır — aynı girdi her zaman aynı çıktıyı üretir.
 
 ```powershell
 npm run audit:pack -- fixtures/sample-pack.json
-# Exit code 0 = ok, Exit code 1 = errors found
+# Çıkış kodu 0 = ok, Çıkış kodu 1 = hata bulundu
 ```

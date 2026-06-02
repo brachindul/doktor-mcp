@@ -1,251 +1,251 @@
-# doktor-mcp Architecture
+# doktor-mcp Mimarisi
 
-## Overview
+## Genel Bakış
 
-doktor-mcp is a Model Context Protocol (MCP) server that provides source-grounded legal
-information packs for physicians. It searches official Turkish legislation and high court
-decisions, assembling them into structured packs with safety guards.
+doktor-mcp, hekimlere kaynak-temelli hukuki bilgilendirme paketleri sağlayan bir Model
+Context Protocol (MCP) sunucusudur. Resmî Türk mevzuatını ve yüksek mahkeme kararlarını
+arar, bunları güvenlik kapılarıyla yapılandırılmış paketler halinde birleştirir.
 
-## Layer Diagram
+## Katman Diyagramı
 
 ```mermaid
 graph TD
-    A[MCP Client / LLM] --> B[MCP Server Layer]
-    B --> C[Service Layer]
-    C --> D[Health Layer]
-    C --> E[Source Adapters]
-    E --> F[Live Sources]
-    E --> G[Mock Data]
-    D --> H[Pack Output]
+    A[MCP İstemcisi / LLM] --> B[MCP Sunucu Katmanı]
+    B --> C[Servis Katmanı]
+    C --> D[Health Katmanı]
+    C --> E[Kaynak Adaptörleri]
+    E --> F[Canlı Kaynaklar]
+    E --> G[Mock Veri]
+    D --> H[Paket Çıktısı]
 
-    subgraph "MCP Layer (src/mcp/)"
+    subgraph "MCP Katmanı (src/mcp/)"
         B1[server.ts — STDIO Transport]
-        B2[tools.ts — Tool Registration]
-        B3[formatDoctorPackResponse.ts — Safety Guards]
+        B2[tools.ts — Araç Kaydı]
+        B3[formatDoctorPackResponse.ts — Güvenlik Kapıları]
     end
 
-    subgraph "Service Layer (src/app/)"
-        C1[service.ts — Coordinator]
-        C2[legislationPhase.ts — Budget-capped]
-        C3[precedentPhase.ts — Multi-source]
-        C4[minimalPackRescue.ts — Degraded Fallback]
+    subgraph "Servis Katmanı (src/app/)"
+        C1[service.ts — Koordinatör]
+        C2[legislationPhase.ts — Bütçe-sınırlı]
+        C3[precedentPhase.ts — Çok-kaynaklı]
+        C4[minimalPackRescue.ts — Düşürülmüş Geri-dönüş]
     end
 
-    subgraph "Health Layer (src/health/)"
-        D1[answerComposer.ts — Pack Assembly]
-        D2[precedentFilter.ts — Eligibility]
-        D3[decisionDedup.ts — Cross-source Dedup]
-        D4[linkHealthChecker.ts — URL Verification]
-        D5[questionClassifier.ts — Dimension Tagging]
-        D6[precedentRelevance.ts — Issue Profiling]
-        D7[precedentRerank.ts — Relevance Rerank]
+    subgraph "Health Katmanı (src/health/)"
+        D1[answerComposer.ts — Paket Birleştirme]
+        D2[precedentFilter.ts — Uygunluk]
+        D3[decisionDedup.ts — Çapraz-kaynak Dedup]
+        D4[linkHealthChecker.ts — URL Doğrulama]
+        D5[questionClassifier.ts — Boyut Etiketleme]
+        D6[precedentRelevance.ts — Konu Profilleme]
+        D7[precedentRerank.ts — İlgililik Yeniden-sıralama]
     end
 
-    subgraph "Source Layer (src/sources/)"
+    subgraph "Kaynak Katmanı (src/sources/)"
         E1[Yargitay — emsal.yargitay.gov.tr]
         E2[Danistay — karararama.danistay.gov.tr]
         E3[Legislation — mevzuat.gov.tr]
         E4[Bedesten — bedesten.adalet.gov.tr]
-        E5[AYM — Synthetic Only]
+        E5[AYM — Yalnızca Sentetik]
     end
 
-    subgraph "Live Layer (src/live/)"
+    subgraph "Live Katmanı (src/live/)"
         F1[timeBudget.ts — 30s Deadline]
-        F2[reliabilityGate.ts — Source Health]
-        F3[requestPolicy.ts — Timeout Control]
-        F4[decisionProvenance.ts — Content Status]
+        F2[reliabilityGate.ts — Kaynak Sağlığı]
+        F3[requestPolicy.ts — Zaman Aşımı Kontrolü]
+        F4[decisionProvenance.ts — İçerik Durumu]
     end
 
     subgraph "Core (src/core/)"
-        G1[runtimeConfig.ts — Env Overrides]
+        G1[runtimeConfig.ts — Env Override'ları]
         G2[httpClient.ts — Retry + Timeout]
         G3[rateLimiter.ts — Bedesten Throttle]
     end
 ```
 
-## Data Flow
+## Veri Akışı
 
 ```mermaid
 sequenceDiagram
-    participant Client as MCP Client
-    participant Server as MCP Server
+    participant Client as MCP İstemcisi
+    participant Server as MCP Sunucusu
     participant Service as DoktorMcpInformationService
-    participant Health as Health Layer
-    participant Sources as Source Adapters
+    participant Health as Health Katmanı
+    participant Sources as Kaynak Adaptörleri
     participant Budget as ResearchTimeBudget
 
     Client->>Server: prepare_doctor_legal_information_pack(question, sourceMode)
     Server->>Service: prepareInformationPack(input)
-    Service->>Budget: new ResearchTimeBudget() (live only)
+    Service->>Budget: new ResearchTimeBudget() (yalnızca canlı)
 
-    alt Live Mode
+    alt Canlı Mod
         Service->>Budget: markPhaseStart("legislation")
         Service->>Sources: executeLegislationPhase(phaseBudget: 8s)
-        Sources-->>Service: Legislation provisions (or timeout)
+        Sources-->>Service: Mevzuat hükümleri (veya timeout)
         Service->>Budget: markPhaseEnd("legislation")
 
         Service->>Budget: markPhaseStart("precedent")
-        Service->>Sources: searchPrecedents(live, prioritized)
-        Sources-->>Service: Court decisions per source
+        Service->>Sources: searchPrecedents(live, önceliklendirilmiş)
+        Sources-->>Service: Kaynak-başına mahkeme kararları
         Service->>Budget: markPhaseEnd("precedent")
 
         Service->>Service: filterReasonedPrecedents + rerankByIssueRelevance
-    else Mock Mode
+    else Mock Mod
         Service->>Sources: searchLegislation(mock) || searchPrecedents(mock)
-        Sources-->>Service: Legislation + Precedents (parallel)
+        Sources-->>Service: Mevzuat + Emsaller (paralel)
     end
 
     Service->>Health: composeDoctorLegalInformationPack(classification, provisions, precedents)
-    Health->>Health: deduplicateDecisions (cross-source)
-    Health->>Health: buildPreliminaryAssessment (if grounded-advisory)
+    Health->>Health: deduplicateDecisions (çapraz-kaynak)
+    Health->>Health: buildPreliminaryAssessment (grounded-advisory ise)
     Health-->>Service: DoctorLegalInformationPack
 
-    Service-->>Server: Pack + diagnostics + telemetry
+    Service-->>Server: Paket + tanılama + telemetri
     Server->>Server: formatDoctorPackResponse + detectForbiddenOutputPhrases
-    Server-->>Client: DoctorPackResponse (structured)
+    Server-->>Client: DoctorPackResponse (yapılandırılmış)
 ```
 
-## Mock vs Live Mode
+## Mock vs Canlı Mod
 
-| Aspect | Mock Mode | Live Mode |
-|--------|-----------|-----------|
-| Legislation | Static `MockLegislationAdapter` | `LiveOfficialLegislationAdapter` → mevzuat.gov.tr |
-| Precedents | Static `MockYargitayAdapter`, `MockDanistayAdapter`, `MockAymAdapter` | `LiveYargitayAdapter`, `LiveDanistayAdapter`, `LiveBedestenAdapter` |
-| AYM | Mock data only | Synthetic only (not reachable via API) |
-| Time Budget | None — parallel, unlimited | 30s deadline, 8s legislation / 15s precedent phase caps |
-| Network | None | Real HTTP calls with retry + rate limiting |
-| Telemetry | Empty `queryTelemetry` | Full per-query telemetry (cache hit/miss, retry, timeout) |
-| Fallback on failure | N/A | Minimal pack rescue (partial data from completed phases) |
-| Precedent dedup | Cross-source dedup same as live | Cross-source dedup (Yargitay + Bedesten overlap) |
+| Açı | Mock Mod | Canlı Mod |
+|-----|----------|-----------|
+| Mevzuat | Statik `MockLegislationAdapter` | `LiveOfficialLegislationAdapter` → mevzuat.gov.tr |
+| Emsaller | Statik `MockYargitayAdapter`, `MockDanistayAdapter`, `MockAymAdapter` | `LiveYargitayAdapter`, `LiveDanistayAdapter`, `LiveBedestenAdapter` |
+| AYM | Yalnızca mock veri | Yalnızca sentetik (API ile erişilemez) |
+| Zaman Bütçesi | Yok — paralel, sınırsız | 30s deadline, 8s mevzuat / 15s emsal faz sınırları |
+| Ağ | Yok | Retry + hız limiti ile gerçek HTTP çağrıları |
+| Telemetri | Boş `queryTelemetry` | Tam sorgu-başına telemetri (cache hit/miss, retry, timeout) |
+| Hatada geri-dönüş | Uygulanamaz | Minimal pack rescue (tamamlanmış fazlardan kısmi veri) |
+| Emsal dedup | Canlıyla aynı çapraz-kaynak dedup | Çapraz-kaynak dedup (Yargitay + Bedesten örtüşmesi) |
 
-## Security Gates
+## Güvenlik Kapıları
 
-### 1. Forbidden Output Phrases — `src/mcp/formatDoctorPackResponse.ts`
+### 1. Yasak Çıktı İfadeleri — `src/mcp/formatDoctorPackResponse.ts`
 
-Hard-blocked phrases that **must not** appear in pack output. These are categorical
-judgments that cross into legal advice territory:
+Paket çıktısında **bulunmaması gereken** hard-blocked ifadeler. Bunlar hukuki tavsiye
+alanına geçen kategorik hükümlerdir:
 
 - `kesin olarak sorumlusunuz`, `kesin beraat eder`, `derhal şunu yapın`
 - `savunma dilekçesi şöyle olmalı`, `şu cezayı alırsınız`, `şunu yapmanız gerekir`
 - `kesin hukuki kanaat`, `dilekçe taslağı`, `savunma taslağı`, `derhal yapılacak`
 
-**Allowed** (since v0.44.0): conditional assessments like `risk seviyesi yüksek` — these
-express source-grounded evaluation, not categorical judgment.
+**İzinli** (v0.44.0'dan beri): `risk seviyesi yüksek` gibi koşullu değerlendirmeler — bunlar
+kategorik hüküm değil, kaynağa dayalı değerlendirme ifade eder.
 
 ### 2. Pack Audit — `src/packAudit.ts`
 
-Comprehensive audit that validates:
+Şunları doğrulayan kapsamlı denetim:
 
-- **MVP-out-of-scope fields** — `riskLevel`, `immediateActions`, `finalLegalOpinion` etc.
-- **Legislation metadata** — `inForce` status, `repealed` flag, `sourceDocumentId` presence
-- **Precedent field completeness** — court, date, fact summary, legal assessment, outcome
-- **Unofficial source detection** — mock accessSource in live packs, non-.gov.tr URLs
-- **Forbidden phrase scanning** — 22+ phrases across all free-text fields
-- **Contract compliance** — required sections (shortAnswer, legalClassification, etc.)
+- **MVP-kapsam-dışı alanlar** — `riskLevel`, `immediateActions`, `finalLegalOpinion` vb.
+- **Mevzuat meta verisi** — `inForce` durumu, `repealed` bayrağı, `sourceDocumentId` varlığı
+- **Emsal alan eksiksizliği** — mahkeme, tarih, olay özeti, hukuki değerlendirme, sonuç
+- **Resmî-olmayan kaynak tespiti** — canlı paketlerde mock accessSource, .gov.tr-olmayan URL'ler
+- **Yasak ifade taraması** — tüm serbest-metin alanlarında 22+ ifade
+- **Sözleşme uyumu** — gerekli bölümler (shortAnswer, legalClassification, vb.)
 
-### 3. Response Format — `src/mcp/formatDoctorPackResponse.ts`
+### 3. Yanıt Formatı — `src/mcp/formatDoctorPackResponse.ts`
 
-`DoctorPackResponse` wraps the raw pack with:
+`DoctorPackResponse`, ham paketi şunlarla sarar:
 
 - `status`: `full_pack` | `partial_pack` | `no_pack_diagnostic`
-- `summary`: source sufficiency, counts, timeout indicators
-- `diagnostics`: coverage gaps, missing authority types, gate observations
-- `_forbiddenPhraseWarning`: array of detected forbidden phrases (non-blocking warning)
+- `summary`: kaynak yeterliliği, sayılar, timeout göstergeleri
+- `diagnostics`: kapsama boşlukları, eksik otorite tipleri, kapı gözlemleri
+- `_forbiddenPhraseWarning`: tespit edilen yasak ifadeler dizisi (bloke etmeyen uyarı)
 
-### 4. Safety Invariants — `tests/safetyInvariants.test.ts`
+### 4. Güvenlik İnvariyantları — `tests/safetyInvariants.test.ts`
 
-Fast mock-mode checks that verify:
+Şunları doğrulayan hızlı mock-mod kontrolleri:
 
-1. KVKK private data must not appear in non-privacy packs
-2. Live mode must not silently fall back to mock data
-3. Hard-blocked phrases must not appear in output
-4. General medical questions must not contain privacy-law content
-5. `shortAnswer` must never be empty
-6. Forbidden field names (`riskLevel`, `immediateActions`, etc.) must be absent
-7. `preliminaryAssessment` must not contain categorical judgment language
-8. Strict mode must not produce `preliminaryAssessment`
+1. KVKK özel verisi mahremiyet-olmayan paketlerde bulunmamalı
+2. Canlı mod sessizce mock veriye geri dönmemeli
+3. Hard-blocked ifadeler çıktıda bulunmamalı
+4. Genel tıbbi sorular mahremiyet-hukuku içeriği barındırmamalı
+5. `shortAnswer` asla boş olmamalı
+6. Yasak alan adları (`riskLevel`, `immediateActions`, vb.) bulunmamalı
+7. `preliminaryAssessment` kategorik hüküm dili içermemeli
+8. Strict mod `preliminaryAssessment` üretmemeli
 
-## Time Budget Flow
+## Zaman Bütçesi Akışı
 
-Live mode enforces a strict time budget to prevent runaway research. Configuration
-lives in `src/core/runtimeConfig.ts` with env overrides via `DOKTOR_MCP_*` variables.
+Canlı mod, kontrolsüz araştırmayı önlemek için katı bir zaman bütçesi uygular. Yapılandırma
+`src/core/runtimeConfig.ts`'te yaşar; `DOKTOR_MCP_*` değişkenleriyle env override'ları yapılabilir.
 
 ```
-Total Budget: 30,000 ms
-Reserve:       3,000 ms (for pack assembly)
-Usable:       27,000 ms
+Toplam Bütçe: 30,000 ms
+Rezerv:        3,000 ms (paket birleştirme için)
+Kullanılabilir: 27,000 ms
 
 ┌─────────────────────────────────────────────────────────────────┐
 │                                                                 │
-│  Legislation Phase              Precedent Phase       Reserve   │
-│  Budget: 8,000 ms (hard cap)   Budget: 15,000 ms     3,000 ms │
+│  Mevzuat Fazı                   Emsal Fazı            Rezerv     │
+│  Bütçe: 8,000 ms (sert sınır)   Bütçe: 15,000 ms     3,000 ms  │
 │  ┌──────────────────┐          ┌──────────────────┐            │
-│  │ Promise.race     │          │ Per-source        │            │
-│  │ search + timeout │          │ parallel search   │            │
+│  │ Promise.race     │          │ Kaynak-başına     │            │
+│  │ arama + timeout  │          │ paralel arama     │            │
 │  │                  │          │                   │            │
-│  │ On timeout:      │          │ Yargitay (1st)    │            │
-│  │ → unavailable    │          │ Danistay (2nd)    │            │
-│  │ → proceed to     │          │ Bedesten (if set) │            │
-│  │   precedent      │          │                   │            │
+│  │ Timeout'ta:      │          │ Yargitay (1.)     │            │
+│  │ → unavailable    │          │ Danistay (2.)     │            │
+│  │ → emsal fazına   │          │ Bedesten (ayarlıysa)│          │
+│  │   geç            │          │                   │            │
 │  └──────────────────┘          └──────────────────┘            │
 │           │                            │                        │
-│           └──────── Budget exhausted ───┘                        │
+│           └──────── Bütçe tükendi ─────┘                        │
 │                          │                                      │
 │                  Minimal Pack Rescue                            │
-│                  (partial legislation only)                     │
+│                  (yalnızca kısmi mevzuat)                       │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-**Key behaviors:**
-- Legislation phase uses `Promise.race` with a timeout — if it exceeds the budget,
-  the phase is marked `timedOut` but precedent search still proceeds
-- Precedent phase runs sources in parallel; if budget exhausts mid-search, partial
-  results are retained via `MinimalPackRescueManager`
-- `effectivePhaseBudgetMs()` caps each phase to `min(phaseBudget, remainingMs)`
-- Phase won't start if effective budget < 500ms (`shouldStartPhase()`)
+**Temel davranışlar:**
+- Mevzuat fazı bir timeout ile `Promise.race` kullanır — bütçeyi aşarsa faz `timedOut`
+  işaretlenir ama emsal araması yine de devam eder
+- Emsal fazı kaynakları paralel çalıştırır; bütçe arama ortasında tükenirse kısmi sonuçlar
+  `MinimalPackRescueManager` aracılığıyla korunur
+- `effectivePhaseBudgetMs()` her fazı `min(phaseBudget, remainingMs)` ile sınırlar
+- Etkin bütçe < 500ms ise faz başlamaz (`shouldStartPhase()`)
 
-## Source Adapters
+## Kaynak Adaptörleri
 
-| Source | Adapter | Search | Full Text | Rate Limit | Calibration |
-|--------|---------|--------|-----------|------------|-------------|
-| mevzuat.gov.tr | `LiveOfficialLegislationAdapter` | Yes | Yes | 30 req/min | stable |
-| emsal.yargitay.gov.tr | `LiveYargitayAdapter` (via Bedesten) | Yes | Yes | 30 req/min, 60s cooldown | via_bedesten |
-| karararama.danistay.gov.tr | `LiveDanistayAdapter` | Yes | Yes | 20 req/min, 30s cooldown | stable |
-| bedesten.adalet.gov.tr | `LiveBedestenAdapter` | Yes | Yes | 30 req/min, 60s cooldown | stable |
-| AYM | `MockAymAdapter` only | No | No | N/A | synthetic_only |
+| Kaynak | Adaptör | Arama | Tam Metin | Hız Limiti | Kalibrasyon |
+|--------|---------|-------|-----------|------------|-------------|
+| mevzuat.gov.tr | `LiveOfficialLegislationAdapter` | Evet | Evet | 30 istek/dk | stable |
+| emsal.yargitay.gov.tr | `LiveYargitayAdapter` (Bedesten üzerinden) | Evet | Evet | 30 istek/dk, 60s soğuma | via_bedesten |
+| karararama.danistay.gov.tr | `LiveDanistayAdapter` | Evet | Evet | 20 istek/dk, 30s soğuma | stable |
+| bedesten.adalet.gov.tr | `LiveBedestenAdapter` | Evet | Evet | 30 istek/dk, 60s soğuma | stable |
+| AYM | Yalnızca `MockAymAdapter` | Hayır | Hayır | Uygulanamaz | synthetic_only |
 
-Source capabilities are registered in `src/sources/sourceRegistry.ts` for tooling and
-MCP capability reporting. Adapters do NOT branch on the registry — it is informational.
+Kaynak yetenekleri, araç ve MCP yetenek raporlaması için `src/sources/sourceRegistry.ts`'te
+kaydedilir. Adaptörler registry'ye göre dallanmaz — o yalnızca bilgilendiricidir.
 
-## Key Files
+## Anahtar Dosyalar
 
-| File | Purpose | Lines |
-|------|---------|-------|
-| `src/mcp/server.ts` | MCP STDIO server, resources, prompts | 87 |
-| `src/mcp/tools.ts` | Tool registration and handlers | 136 |
-| `src/mcp/formatDoctorPackResponse.ts` | Safety guards, response formatting | 205 |
-| `src/app/service.ts` | Service coordinator (live + mock paths) | 403 |
-| `src/app/legislationPhase.ts` | Budget-capped legislation executor | 162 |
-| `src/app/precedentPhase.ts` | Multi-source precedent orchestrator | 252 |
-| `src/app/minimalPackRescue.ts` | Partial state rescue on timeout | 121 |
-| `src/health/answerComposer.ts` | Pack assembly + preliminary assessment | 222 |
-| `src/health/precedentFilter.ts` | Precedent eligibility + diagnostics | 108 |
-| `src/health/decisionDedup.ts` | Cross-source decision deduplication | 74 |
-| `src/health/linkHealthChecker.ts` | URL reachability verification | 174 |
-| `src/health/precedentRelevance.ts` | Issue profile + relevance scoring | 175 |
-| `src/health/precedentRerank.ts` | Relevance-based reranking | 69 |
-| `src/sources/yargitay/liveYargitayAdapter.ts` | Live Yargitay adapter (Bedesten) | 303 |
-| `src/live/timeBudget.ts` | Research time budget (30s deadline) | 112 |
-| `src/packAudit.ts` | Comprehensive pack compliance audit | 489 |
-| `src/core/runtimeConfig.ts` | Config schema + env overrides | 179 |
-| `src/core/httpClient.ts` | HTTP client with retry + timeout | 273 |
-| `src/benchmark/benchmarkRunner.ts` | Benchmark runner (mock + live) | 899 |
-| `tests/safetyInvariants.test.ts` | Safety invariant checks | 111 |
+| Dosya | Amaç | Satır |
+|-------|------|-------|
+| `src/mcp/server.ts` | MCP STDIO sunucusu, resources, prompts | 87 |
+| `src/mcp/tools.ts` | Araç kaydı ve işleyiciler | 136 |
+| `src/mcp/formatDoctorPackResponse.ts` | Güvenlik kapıları, yanıt formatlama | 205 |
+| `src/app/service.ts` | Servis koordinatörü (canlı + mock yollar) | 403 |
+| `src/app/legislationPhase.ts` | Bütçe-sınırlı mevzuat yürütücüsü | 162 |
+| `src/app/precedentPhase.ts` | Çok-kaynaklı emsal orkestratörü | 252 |
+| `src/app/minimalPackRescue.ts` | Timeout'ta kısmi durum kurtarma | 121 |
+| `src/health/answerComposer.ts` | Paket birleştirme + ön değerlendirme | 222 |
+| `src/health/precedentFilter.ts` | Emsal uygunluğu + tanılama | 108 |
+| `src/health/decisionDedup.ts` | Çapraz-kaynak karar deduplikasyonu | 74 |
+| `src/health/linkHealthChecker.ts` | URL erişilebilirlik doğrulaması | 174 |
+| `src/health/precedentRelevance.ts` | Konu profili + ilgililik puanlaması | 175 |
+| `src/health/precedentRerank.ts` | İlgililik-tabanlı yeniden sıralama | 69 |
+| `src/sources/yargitay/liveYargitayAdapter.ts` | Canlı Yargitay adaptörü (Bedesten) | 303 |
+| `src/live/timeBudget.ts` | Araştırma zaman bütçesi (30s deadline) | 112 |
+| `src/packAudit.ts` | Kapsamlı paket uyum denetimi | 489 |
+| `src/core/runtimeConfig.ts` | Config şeması + env override'ları | 179 |
+| `src/core/httpClient.ts` | Retry + timeout ile HTTP istemcisi | 273 |
+| `src/benchmark/benchmarkRunner.ts` | Benchmark runner (mock + canlı) | 899 |
+| `tests/safetyInvariants.test.ts` | Güvenlik invariyant kontrolleri | 111 |
 
-## Testing
+## Test
 
-- **Unit tests**: `tests/*.test.ts` — across 55+ files
-- **Coverage**: `npm run test:coverage` (v8 provider, HTML + text-summary)
+- **Birim testleri**: `tests/*.test.ts` — 55+ dosyada
+- **Kapsam (coverage)**: `npm run test:coverage` (v8 sağlayıcı, HTML + text-summary)
 - **Benchmark**: `npm run benchmark:doctor-questions` (mock) / `npm run benchmark:doctor-questions:live`
-- **Safety invariants**: `tests/safetyInvariants.test.ts` — fast mock-mode safety checks
-- **Pack audit**: `npm run pack:audit` — validates pack compliance against MVP constraints
+- **Güvenlik invariyantları**: `tests/safetyInvariants.test.ts` — hızlı mock-mod güvenlik kontrolleri
+- **Pack audit**: `npm run pack:audit` — paketi MVP kısıtlarına karşı doğrular

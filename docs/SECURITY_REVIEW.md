@@ -1,107 +1,107 @@
-# Security Review — doktor-mcp v0.47.1 (Faz 26)
+# Güvenlik İncelemesi — doktor-mcp v0.47.1 (Faz 26)
 
-> Last updated: 2026-06-01
-> Scope: SSRF, PII, output safety, dependency audit
+> Son güncelleme: 2026-06-01
+> Kapsam: SSRF, PII (kişisel veri), çıktı güvenliği, bağımlılık denetimi
 
-## 1. SSRF (Server-Side Request Forgery)
+## 1. SSRF (Sunucu-Taraflı İstek Sahteciliği)
 
-### External Calls
-- `LiveOfficialLegislationAdapter` → `mevzuat.gov.tr` (HTTPS only, official Turkish legislation portal)
-- `LiveYargitayAdapter` → `yargitay.gov.tr` (HTTPS only)
-- `LiveDanistayAdapter` → `danistay.gov.tr` (HTTPS only)
-- `LiveBedestenAdapter` → `bedesten.adalet.gov.tr` (HTTPS only)
+### Dış Çağrılar
+- `LiveOfficialLegislationAdapter` → `mevzuat.gov.tr` (yalnızca HTTPS, resmî Türk mevzuat portalı)
+- `LiveYargitayAdapter` → `yargitay.gov.tr` (yalnızca HTTPS)
+- `LiveDanistayAdapter` → `danistay.gov.tr` (yalnızca HTTPS)
+- `LiveBedestenAdapter` → `bedesten.adalet.gov.tr` (yalnızca HTTPS)
 
-### Mitigations
-- All URLs are hardcoded constants (`BEDESTEN_BASE_URL`, `YARGITAY_BASE_URL`, etc.) — no user-controlled URL injection.
-- `HttpClient` uses fixed `baseUrl` with path append only; no open redirects.
-- Cloudflare fallback uses browser-like headers for PDF requests.
-- `requestPolicy.ts` enforces per-source timeouts (e.g., `legislation-direct` 25s, `bedesten-search` 10s).
+### Önlemler
+- Tüm URL'ler sabit (hardcoded) constant'lardır (`BEDESTEN_BASE_URL`, `YARGITAY_BASE_URL`, vb.) — kullanıcı-kontrollü URL enjeksiyonu yok.
+- `HttpClient` sabit bir `baseUrl` kullanır, yalnızca path ekler; açık yönlendirme (open redirect) yok.
+- Cloudflare geri-dönüşü, PDF istekleri için tarayıcı-benzeri header'lar kullanır.
+- `requestPolicy.ts`, kaynak-başına zaman aşımlarını zorlar (ör. `legislation-direct` 25s, `bedesten-search` 10s).
 
-### Status: ✅ Low risk — no user-controlled URLs, all hardcoded trusted endpoints.
-
----
-
-## 2. PII (Personally Identifiable Information)
-
-### Data in Pack
-- `DoctorLegalInformationPack` structure: legislation provisions, verified precedents, legal classification.
-- No personal data fields exist in any pack contract.
-- `shortAnswer` is source-grounded, never contains patient-specific data.
-
-### KVKK Coverage
-- `privacy_kvkk` classification dimension applied only when questions mention privacy (KVKK 6698, personal data, patient privacy).
-- Tests verify KVKK content does not leak into non-KVKK packs (`safetyInvariants.test.ts`).
-
-### Logging
-- No PII logged to console or files.
-- Cache files (`.cache/`) store legislation queries and precedent responses — no user data.
-
-### Status: ✅ Low risk — no PII collection, storage, or transmission.
+### Durum: ✅ Düşük risk — kullanıcı-kontrollü URL yok, tümü sabit güvenilir uç noktalar.
 
 ---
 
-## 3. Output Safety
+## 2. PII (Kişisel Tanımlanabilir Bilgi)
 
-### Hard-Blocked Phrases
-Defined in `src/mcp/formatDoctorPackResponse.ts`:
+### Paketteki Veri
+- `DoctorLegalInformationPack` yapısı: mevzuat hükümleri, doğrulanmış emsaller, hukuki sınıflandırma.
+- Hiçbir paket sözleşmesinde kişisel veri alanı yoktur.
+- `shortAnswer` kaynağa dayalıdır, asla hastaya-özel veri içermez.
+
+### KVKK Kapsamı
+- `privacy_kvkk` sınıflandırma boyutu yalnızca sorular mahremiyetten bahsettiğinde uygulanır (KVKK 6698, kişisel veri, hasta mahremiyeti).
+- Testler, KVKK içeriğinin KVKK-olmayan paketlere sızmadığını doğrular (`safetyInvariants.test.ts`).
+
+### Loglama
+- Konsola veya dosyalara hiç PII loglanmaz.
+- Önbellek dosyaları (`.cache/`) mevzuat sorgularını ve emsal yanıtlarını saklar — kullanıcı verisi yok.
+
+### Durum: ✅ Düşük risk — PII toplama, saklama veya iletim yok.
+
+---
+
+## 3. Çıktı Güvenliği
+
+### Hard-Blocked İfadeler
+`src/mcp/formatDoctorPackResponse.ts`'te tanımlı:
 - `kesin olarak sorumlusunuz`, `kesin beraat eder`, `kesin hukuki kanaat`
 - `derhal şunu yapın`, `şu cezayı alırsınız`, `dilekçe taslağı`
-- Plus 7 more categorical legal advice patterns
+- Ek olarak 7 kategorik hukuki tavsiye deseni daha
 
-### Forbidden Fields
-Defined in `src/benchmark/doctorQuestions.ts`:
+### Yasak Alanlar
+`src/benchmark/doctorQuestions.ts`'te tanımlı:
 - `riskLevel`, `immediateActions`, `finalLegalOpinion`, `riskSeviyesi`
 - `derhalYapilacaklar`, `kesinHukukiKanaat`, `dilekseTaslagi`
 
-### Tests
-- `tests/forbiddenPhraseCalibration.test.ts` (13 tests) — unit-level phrase detection
-- `tests/safetyInvariants.test.ts` (9 tests) — pack-level safety invariants
-- `tests/adversarialSafety.test.ts` (17 tests) — adversarial pressure questions
-- `tests/packContractAudit.test.ts` (57 tests) — contract field validation
-- `tests/mvpSafety.test.ts` (5 tests) — MVP safety checks
-- `tests/v1FinalChecklist.test.ts` (5 tests) — final checklist verification
+### Testler
+- `tests/forbiddenPhraseCalibration.test.ts` (13 test) — birim-düzeyi ifade tespiti
+- `tests/safetyInvariants.test.ts` (9 test) — pakete-düzey güvenlik invariyantları
+- `tests/adversarialSafety.test.ts` (17 test) — adversarial baskı soruları
+- `tests/packContractAudit.test.ts` (57 test) — sözleşme alanı doğrulaması
+- `tests/mvpSafety.test.ts` (5 test) — MVP güvenlik kontrolleri
+- `tests/v1FinalChecklist.test.ts` (5 test) — nihai kontrol listesi doğrulaması
 
-### Disclaimer
-- Every pack includes: `"Bu paket nihai hukuki kanaat değildir"`
+### Sorumluluk Reddi (Disclaimer)
+- Her paket şunu içerir: `"Bu paket nihai hukuki kanaat değildir"`
 
-### Status: ✅ Strong — multiple layers of phrase/field blocking with adversarial testing.
-
----
-
-## 4. Dependency Audit
-
-### Runtime Dependencies
-- `@modelcontextprotocol/sdk` — MCP protocol implementation (MIT license)
-- `zod` — Schema validation (MIT license)
-- `commander` — CLI framework (MIT license)
-
-### Dev Dependencies
-- `vitest` — Test runner
-- `typescript` — Type compiler
-- `tsx` — TypeScript executor
-
-### Notes
-- No deprecated/abandoned packages.
-- No packages with known critical CVEs at time of review.
-- Regular `npm audit` recommended as CI step.
-
-### Status: ✅ Low risk — small dependency surface, all maintained.
+### Durum: ✅ Güçlü — adversarial testle birlikte çok-katmanlı ifade/alan blokajı.
 
 ---
 
-## 5. Summary
+## 4. Bağımlılık Denetimi
 
-| Area | Risk | Status |
-|------|------|--------|
-| SSRF | Low | ✅ Hardcoded trusted endpoints |
-| PII | Low | ✅ No PII collection |
-| Output Safety | Low | ✅ Multi-layer blocking + disclaimer |
-| Dependencies | Low | ✅ Small surface, maintained |
-| **Overall** | **Low** | **✅ No critical findings** |
+### Çalışma-Zamanı Bağımlılıkları
+- `@modelcontextprotocol/sdk` — MCP protokol uygulaması (MIT lisansı)
+- `zod` — Şema doğrulaması (MIT lisansı)
+- `commander` — CLI çerçevesi (MIT lisansı)
 
-## 6. Recommendations
+### Geliştirme Bağımlılıkları
+- `vitest` — Test koşucusu
+- `typescript` — Tip derleyici
+- `tsx` — TypeScript yürütücü
 
-1. **CI**: Add `npm audit --audit-level=moderate` to CI pipeline.
-2. **Rate Limiting**: Danıştay occasionally returns 429; implement exponential backoff (already partially done via `requestPolicy.ts`).
-3. **Dependency Update**: Periodically update `@modelcontextprotocol/sdk` for protocol changes.
-4. **Live Mode**: Consider adding mock response validation in live mode to catch unexpected response shapes.
+### Notlar
+- Kullanımdan kaldırılmış/terk edilmiş paket yok.
+- İnceleme anında bilinen kritik CVE'ye sahip paket yok.
+- CI adımı olarak düzenli `npm audit` önerilir.
+
+### Durum: ✅ Düşük risk — küçük bağımlılık yüzeyi, tümü bakımlı.
+
+---
+
+## 5. Özet
+
+| Alan | Risk | Durum |
+|------|------|-------|
+| SSRF | Düşük | ✅ Sabit güvenilir uç noktalar |
+| PII | Düşük | ✅ PII toplama yok |
+| Çıktı Güvenliği | Düşük | ✅ Çok-katmanlı blokaj + disclaimer |
+| Bağımlılıklar | Düşük | ✅ Küçük yüzey, bakımlı |
+| **Genel** | **Düşük** | **✅ Kritik bulgu yok** |
+
+## 6. Öneriler
+
+1. **CI**: CI hattına `npm audit --audit-level=moderate` ekle.
+2. **Hız Limiti**: Danıştay ara sıra 429 döndürür; üstel backoff uygula (`requestPolicy.ts` ile kısmen yapıldı).
+3. **Bağımlılık Güncellemesi**: Protokol değişiklikleri için `@modelcontextprotocol/sdk`'yı periyodik güncelle.
+4. **Canlı Mod**: Beklenmeyen yanıt şekillerini yakalamak için canlı modda mock yanıt doğrulaması eklemeyi değerlendir.

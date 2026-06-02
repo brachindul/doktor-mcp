@@ -1,81 +1,81 @@
-# Live Source Calibration
+# Canlı Kaynak Kalibrasyonu
 
-This document describes the calibration status of each court decision source and how to
-advance a source from `synthetic_only` to `verified_live`.
+Bu doküman, her mahkeme kararı kaynağının kalibrasyon durumunu ve bir kaynağın
+`synthetic_only`'den `verified_live`'a nasıl ilerletileceğini açıklar.
 
-## Calibration Status Values
+## Kalibrasyon Durum Değerleri
 
-| Status | Meaning |
-|--------|---------|
-| `verified_live` | Confirmed working with real endpoint in a network-capable environment |
-| `fixture_verified` | Tested against a saved real fixture (raw body in `fixtures/raw/`) |
-| `synthetic_only` | Only tested with synthetic (hand-crafted) data |
-| `unavailable_in_environment` | DNS resolution fails in this environment |
-| `fetch_error` | Network-level failure (not DNS); endpoint may be blocked by firewall |
-| `html_shell_response` | HTTP 200 but non-JSON HTML shell (SPA); real API endpoint unknown |
-| `needs_browser_capture` | Endpoint returns SOAP/XML or requires browser session; real JSON API must be discovered |
-| `captcha_or_block` | CAPTCHA or bot-detection response |
-| `reachable_json` | Endpoint returns JSON; field mapping may still need calibration |
+| Durum | Anlam |
+|-------|-------|
+| `verified_live` | Ağ erişimi olan bir ortamda gerçek uç noktayla çalıştığı doğrulandı |
+| `fixture_verified` | Kaydedilmiş gerçek bir fixture'a karşı test edildi (ham gövde `fixtures/raw/`'da) |
+| `synthetic_only` | Yalnızca sentetik (elle hazırlanmış) veriyle test edildi |
+| `unavailable_in_environment` | Bu ortamda DNS çözümlemesi başarısız |
+| `fetch_error` | Ağ-düzeyi hata (DNS değil); uç nokta güvenlik duvarınca bloke olabilir |
+| `html_shell_response` | HTTP 200 ama JSON-olmayan HTML kabuğu (SPA); gerçek API uç noktası bilinmiyor |
+| `needs_browser_capture` | Uç nokta SOAP/XML döndürüyor veya tarayıcı oturumu gerektiriyor; gerçek JSON API keşfedilmeli |
+| `captcha_or_block` | CAPTCHA veya bot-tespit yanıtı |
+| `reachable_json` | Uç nokta JSON döndürüyor; alan eşlemesi hâlâ kalibrasyon gerektirebilir |
 
-## Current Status (v0.12, confirmed 2026-05-22)
+## Mevcut Durum (v0.12, 2026-05-22'de doğrulandı)
 
-| Source | Calibration Status | Endpoint | Notes |
-|--------|--------------------|----------|-------|
-| **Yargıtay** | `reachable_json` | `bedesten.adalet.gov.tr/emsal-karar/searchDocuments` | Active unified Bedesten API. |
-| **Danıştay** | `reachable_json` | `karararama.danistay.gov.tr/aramalist` | Active Aramalist API. |
-| **AYM** | `synthetic_only` | N/A | Mock adapter only. No live endpoint. |
+| Kaynak | Kalibrasyon Durumu | Uç nokta | Notlar |
+|--------|--------------------|----------|--------|
+| **Yargıtay** | `reachable_json` | `bedesten.adalet.gov.tr/emsal-karar/searchDocuments` | Aktif birleşik Bedesten API. |
+| **Danıştay** | `reachable_json` | `karararama.danistay.gov.tr/aramalist` | Aktif Aramalist API. |
+| **AYM** | `synthetic_only` | Yok | Yalnızca mock adaptör. Canlı uç nokta yok. |
 
-## How to Advance Calibration
+## Kalibrasyon Nasıl İlerletilir
 
-### Step 1: Probe
+### Adım 1: Probe
 ```powershell
 npm run probe:precedents -- "aydınlatılmış rıza" -- --source yargitay --save-fixture
 npm run probe:precedents -- "hizmet kusuru tıbbi müdahale" -- --source danistay --save-fixture
 ```
 
-This saves a sanitized shape fixture (no raw body) to `fixtures/live-samples/`.
+Bu, `fixtures/live-samples/`'a sanitize edilmiş bir şekil fixture'ı (ham gövde olmadan) kaydeder.
 
-### Step 2: Browser DevTools capture (for SOAP/HTML endpoints)
+### Adım 2: Tarayıcı DevTools yakalama (SOAP/HTML uç noktaları için)
 
-For Danıştay:
-1. Open `https://karararama.danistay.gov.tr` in a browser.
-2. Open DevTools → Network tab → Fetch/XHR.
-3. Type a search query (e.g., `hizmet kusuru tıbbi müdahale`) and click Search.
-4. Find the actual search request returning JSON decisions.
-   - Look for request URL, method, headers, payload, response content-type, and response preview.
-5. Save raw response body to `fixtures/raw/danistay-raw.json` (gitignored). Do not commit this file.
-6. The raw body is saved ONLY in `fixtures/raw/`.
+Danıştay için:
+1. Tarayıcıda `https://karararama.danistay.gov.tr`'yi açın.
+2. DevTools → Network sekmesi → Fetch/XHR.
+3. Bir arama sorgusu yazın (ör. `hizmet kusuru tıbbi müdahale`) ve Ara'ya tıklayın.
+4. JSON karar döndüren gerçek arama isteğini bulun.
+   - İstek URL'i, yöntemi, header'ları, payload'ı, yanıt content-type'ı ve yanıt önizlemesine bakın.
+5. Ham yanıt gövdesini `fixtures/raw/danistay-raw.json`'a (gitignore'da) kaydedin. Bu dosyayı commit etmeyin.
+6. Ham gövde YALNIZCA `fixtures/raw/`'da saklanır.
 
-### Step 3: Update fixture
-After capturing:
-1. Update `fixtures/live-samples/danistay-synthetic.json`:
-   - Set `_calibrationStatus` to `fixture_verified`
-   - Update `_probeFindings` with real endpoint URL and field names
-   - Update `data[]` with sanitized (IDs redacted) sample rows
+### Adım 3: Fixture'ı güncelle
+Yakaladıktan sonra:
+1. `fixtures/live-samples/danistay-synthetic.json`'u güncelleyin:
+   - `_calibrationStatus`'u `fixture_verified` yapın
+   - `_probeFindings`'i gerçek uç nokta URL'i ve alan adlarıyla güncelleyin
+   - `data[]`'i sanitize edilmiş (ID'ler redakte) örnek satırlarla güncelleyin
 
-### Step 4: Update calibrationStatus constant
-In `src/sources/calibrationStatus.ts`, update:
+### Adım 4: calibrationStatus sabitini güncelle
+`src/sources/calibrationStatus.ts`'te güncelleyin:
 ```typescript
 danistay: "fixture_verified"
 ```
 
-## Raw Fixture Policy
+## Ham Fixture Politikası
 
-- **Never commit `fixtures/raw/`** — it may contain real court decision data.
-- `fixtures/raw/` is in `.gitignore`.
-- Sanitize before committing: replace real IDs, redact personal references, keep only field names and shape.
-- Sanitized fixtures in `fixtures/live-samples/` are safe to commit.
+- **`fixtures/raw/`'ı asla commit etmeyin** — gerçek mahkeme kararı verisi içerebilir.
+- `fixtures/raw/`, `.gitignore`'dadır.
+- Commit etmeden önce sanitize edin: gerçek ID'leri değiştirin, kişisel referansları redakte edin, yalnızca alan adlarını ve şekli tutun.
+- `fixtures/live-samples/`'taki sanitize edilmiş fixture'lar commit etmek için güvenlidir.
 
-## Error Code Reference
+## Hata Kodu Referansı
 
-When a live adapter fails to parse a response, `DecisionSourceTrace.error` contains:
+Bir canlı adaptör bir yanıtı ayrıştıramadığında, `DecisionSourceTrace.error` şunu içerir:
 
-| Code | Meaning |
-|------|---------|
-| `non_json_response:html_shell_response` | HTTP 200 + HTML SPA shell |
-| `non_json_response:unexpected_html_response` | Login/large HTML requiring browser |
-| `non_json_response:captcha_or_block` | CAPTCHA detected |
-| `non_json_response:xml_soap_response` | SOAP/XML response |
-| `non_json_response:empty_response` | Empty body |
-| `response_read_failed` | Could not read response body at all |
-| `fetch failed` | Network-level fetch failure |
+| Kod | Anlam |
+|------|-------|
+| `non_json_response:html_shell_response` | HTTP 200 + HTML SPA kabuğu |
+| `non_json_response:unexpected_html_response` | Tarayıcı gerektiren login/büyük HTML |
+| `non_json_response:captcha_or_block` | CAPTCHA tespit edildi |
+| `non_json_response:xml_soap_response` | SOAP/XML yanıtı |
+| `non_json_response:empty_response` | Boş gövde |
+| `response_read_failed` | Yanıt gövdesi hiç okunamadı |
+| `fetch failed` | Ağ-düzeyi getirme hatası |
