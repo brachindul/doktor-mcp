@@ -18,24 +18,24 @@ describe("T26.1 — Tam güvenlik denetim turu", () => {
   it("SECURITY_REVIEW.md covers PII section", () => {
     const content = readFileSync(reviewPath, "utf-8");
     expect(content).toContain("PII");
-    expect(content).toContain("no PII");
+    expect(content).toContain("PII toplama yok");
   });
 
   it("SECURITY_REVIEW.md covers output safety section", () => {
     const content = readFileSync(reviewPath, "utf-8");
-    expect(content).toContain("Output Safety");
+    expect(content).toContain("Çıktı Güvenliği");
     expect(content).toContain("Hard-Blocked");
   });
 
   it("SECURITY_REVIEW.md covers dependency audit section", () => {
     const content = readFileSync(reviewPath, "utf-8");
-    expect(content).toContain("Dependency");
-    expect(content).toContain("MIT license");
+    expect(content).toContain("Bağımlılık");
+    expect(content).toContain("MIT lisansı");
   });
 
   it("SECURITY_REVIEW.md has overall low-risk status", () => {
     const content = readFileSync(reviewPath, "utf-8");
-    expect(content).toContain("No critical findings");
-    expect(content).toMatch(/Overall.*Low/);
+    expect(content).toContain("Kritik bulgu yok");
+    expect(content).toMatch(/Genel.*Düşük/);
   });
 });
