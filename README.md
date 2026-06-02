@@ -1,62 +1,61 @@
 # Doktor MCP
 
-> **v1 Release Candidate** — `doktor-mcp v0.45.0` is the v1.0.0 release candidate.
-> See [docs/RELEASE_v1.md](docs/RELEASE_v1.md) for checklist.
+> **v1 Sürüm Adayı** — `doktor-mcp v0.45.0`, v1.0.0 sürüm adayıdır.
+> Kontrol listesi için [docs/RELEASE_v1.md](docs/RELEASE_v1.md) dosyasına bakın.
 
-`doktor-mcp` is a standalone TypeScript/Node.js MCP skeleton for source-grounded
-legal information packs aimed at physicians. It does not provide categorical final legal
-opinions or tell a physician what to do. It matches questions to official legislation text
-and reasoned high court decision text, and may offer source-grounded conditional
-assessments (e.g., "kaynaklar bu yönde eğilim göstermektedir") without ever issuing
-definitive judgments.
+`doktor-mcp`, hekimlere yönelik **kaynak-temelli hukuki bilgilendirme paketleri** üreten,
+bağımsız bir TypeScript/Node.js MCP iskeletidir. Kategorik nihai hukuki görüş vermez ve
+hekime ne yapacağını söylemez. Soruları resmî mevzuat metniyle ve gerekçeli yüksek mahkeme
+karar metniyle eşleştirir; kesin hüküm vermeden, kaynağa dayalı koşullu değerlendirmeler
+(ör. "kaynaklar bu yönde eğilim göstermektedir") sunabilir.
 
-The adapter boundaries are prepared for:
+Adaptör sınırları şunlar için hazırlanmıştır:
 
-- `legislation`
+- `legislation` (mevzuat)
 - `yargitay`
 - `danistay`
 - `aym`
 
-General internet articles, blogs, news, law firm marketing pages, and forums are not source
-inputs for this project.
+Genel internet makaleleri, bloglar, haberler, hukuk bürosu tanıtım sayfaları ve forumlar
+bu projenin kaynak girdileri **değildir**.
 
-## Source Engine Port
+## Kaynak Motoru Aktarımı (Source Engine Port)
 
-The source-engine layer provides the hardening needed by the live adapters:
+Kaynak-motoru katmanı, canlı adaptörlerin ihtiyaç duyduğu sağlamlaştırmayı sağlar:
 
-- Bedesten requests use a shared `HttpClient` and `RateLimiter` path with bounded retry,
-  `Retry-After` handling, exponential fallback backoff, jitter, and request telemetry.
-- Live source failures stay structured and JSON-only. Source diagnostics can carry retry
-  count, backoff time, status, and content type without writing logs into CLI JSON output.
-- `src/sources/sourceRegistry.ts` exposes trimmed source capability, rate-limit, and cache
-  policy metadata for legislation and precedent sources.
-- Bedesten/Yargitay adapters keep metadata-only decisions out of verified precedent output;
-  official legislation still returns structured unavailable results when official search,
-  document retrieval, or article extraction cannot support a quote.
+- Bedesten istekleri; sınırlı yeniden deneme, `Retry-After` işleme, üstel geri-çekilme
+  (backoff), titreşim (jitter) ve istek telemetrisi içeren paylaşılan bir `HttpClient` ve
+  `RateLimiter` yolu kullanır.
+- Canlı kaynak hataları yapılandırılmış ve yalnızca-JSON kalır. Kaynak tanılaması; CLI JSON
+  çıktısına log yazmadan yeniden deneme sayısı, backoff süresi, durum ve içerik tipini taşıyabilir.
+- `src/sources/sourceRegistry.ts`, mevzuat ve emsal kaynakları için sadeleştirilmiş kaynak
+  yeteneği, hız limiti ve önbellek politikası meta verisini sunar.
+- Bedesten/Yargıtay adaptörleri yalnızca-meta veri içeren kararları doğrulanmış emsal
+  çıktısından uzak tutar; resmî mevzuat ise resmî arama, doküman getirme veya madde çıkarımı
+  bir alıntıyı destekleyemediğinde yapılandırılmış `unavailable` sonuç döndürür.
 
-## Live Legislation Status
+## Canlı Mevzuat Durumu
 
-The live official legislation adapter is wired into optional MCP tool flows:
+Canlı resmî mevzuat adaptörü, opsiyonel MCP araç akışlarına bağlanmıştır:
 
-- adapter: `LiveOfficialLegislationAdapter`
-- official source: T.C. Cumhurbaşkanlığı Mevzuat Bilgi Sistemi at `mevzuat.gov.tr`
-- search capability: official `MevzuatDatatable` search request parser
-- full-text capability: official `MevzuatMetin` document retrieval
-- current extraction proof: PDF text extraction and article splitting for mapped legislation
+- adaptör: `LiveOfficialLegislationAdapter`
+- resmî kaynak: T.C. Cumhurbaşkanlığı Mevzuat Bilgi Sistemi — `mevzuat.gov.tr`
+- arama yeteneği: resmî `MevzuatDatatable` arama isteği ayrıştırıcısı
+- tam-metin yeteneği: resmî `MevzuatMetin` doküman getirme
+- mevcut çıkarım kanıtı: eşlenmiş mevzuat için PDF metin çıkarımı ve madde ayrıştırma
 
-Health legislation is the first live mapping path. Patient-rights and
-informed-consent questions use the official generated PDF path for Hasta Haklari
-Yonetmeligi `4847`, including mapped articles `24` and `26`. Health-law mappings also
-cover Tibbi Deontoloji Nizamnamesi, Tababet ve Suabati Sanatlarinin Tarzi Icrasina Dair
-Kanun, and Saglik Hizmetleri Temel Kanunu. KVKK article `6` remains available for
-personal-health-data and privacy questions as supporting general legislation after
-health-specific sources.
+Sağlık mevzuatı ilk canlı eşleme yoludur. Hasta hakları ve aydınlatılmış onam soruları,
+Hasta Hakları Yönetmeliği `4847` için resmî üretilmiş PDF yolunu kullanır (eşlenmiş madde
+`24` ve `26` dahil). Sağlık hukuku eşlemeleri ayrıca Tıbbi Deontoloji Nizamnamesi, Tababet
+ve Şuabatı San'atlarının Tarzı İcrasına Dair Kanun ve Sağlık Hizmetleri Temel Kanunu'nu da
+kapsar. KVKK madde `6`, kişisel-sağlık-verisi ve mahremiyet soruları için, sağlığa özel
+kaynaklardan sonra destekleyici genel mevzuat olarak kullanılabilir.
 
-When an official document does not arrive in an extractable format or a mapped article
-cannot be extracted, the live adapter returns structured `unavailable` output instead of
-creating a provision.
+Resmî bir doküman çıkarılabilir bir formatta gelmediğinde veya eşlenmiş bir madde
+çıkarılamadığında, canlı adaptör bir hüküm üretmek yerine yapılandırılmış `unavailable`
+çıktısı döndürür.
 
-Live source failures use this contract:
+Canlı kaynak hataları şu sözleşmeyi kullanır:
 
 ```json
 {
@@ -69,38 +68,38 @@ Live source failures use this contract:
 }
 ```
 
-## MVP Scope
+## MVP Kapsamı
 
-The skeleton includes:
+İskelet şunları içerir:
 
-- MCP server registration and tool handler scaffolding
-- type contracts for official legislation evidence, court decision evidence, classification,
-  precedent status, and the legal information pack
-- mock legislation and high court adapters
-- live official legislation adapter for official source verification
-- MCP `sourceMode` routing for live legislation
-- health-prioritized legislation mappings and source trace metadata
-- health-law pipeline pieces:
-  - question classifier
-  - legislation mapper
-  - precedent filter
-  - answer composer
-- local JSON smoke command
-- Vitest coverage for the initial source-safety rules
+- MCP sunucu kaydı ve araç işleyici iskelesi
+- resmî mevzuat delili, mahkeme kararı delili, sınıflandırma, emsal durumu ve hukuki
+  bilgilendirme paketi için tip sözleşmeleri
+- mock mevzuat ve yüksek mahkeme adaptörleri
+- resmî kaynak doğrulaması için canlı resmî mevzuat adaptörü
+- canlı mevzuat için MCP `sourceMode` yönlendirmesi
+- sağlık-öncelikli mevzuat eşlemeleri ve kaynak izleme (source trace) meta verisi
+- sağlık hukuku boru hattı parçaları:
+  - soru sınıflandırıcı
+  - mevzuat eşleyici
+  - emsal filtresi
+  - cevap derleyici
+- yerel JSON smoke komutu
+- ilk kaynak-güvenliği kuralları için Vitest kapsamı
 
-The precedent filter currently exposes these statuses:
+Emsal filtresi şu an şu durumları sunar:
 
-- `precedent_usable`: full text, legal reasoning, and event relevance are present
-- `limited_value`: full text exists but relevance is weak
-- `procedural_only`: no merits reasoning, procedural text, bare affirmance, or bare reversal
-- `metadata_only`: citation metadata without full text
-- `no_reasoning`: full text record without legal reasoning
+- `precedent_usable`: tam metin, hukuki gerekçe ve olay ilgililiği mevcut
+- `limited_value`: tam metin var ama ilgililik zayıf
+- `procedural_only`: esasa ilişkin gerekçe yok; usuli metin, salt onama veya salt bozma
+- `metadata_only`: tam metin olmadan künye meta verisi
+- `no_reasoning`: tam metin var ama hukuki gerekçe yok
 
-Only `precedent_usable` records reach the verified precedent section in the composed pack.
+Derlenen pakette doğrulanmış emsal bölümüne yalnızca `precedent_usable` kayıtları girer.
 
-## Response Contract
+## Yanıt Sözleşmesi (Response Contract)
 
-The structured pack is shaped around the requested physician-facing sections:
+Yapılandırılmış paket, istenen hekime-dönük bölümler etrafında şekillenir:
 
 1. `shortAnswer`
 2. `legalClassification`
@@ -111,47 +110,47 @@ The structured pack is shaped around the requested physician-facing sections:
    - `privacyKvkk`
    - `professionalEthics`
 3. `relevantLegislation`
-   - legislation name
-   - article number
-   - verbatim quote copied from the source provision
-   - event connection
+   - mevzuat adı
+   - madde numarası
+   - kaynak hükümden birebir kopyalanmış alıntı
+   - olay bağlantısı
 4. `verifiedHighCourtPrecedents`
-   - court/chamber, date, merits/decision numbers
-   - fact summary, legal assessment, outcome
-   - similarity/difference note
+   - mahkeme/daire, tarih, esas/karar numaraları
+   - olay özeti, hukuki değerlendirme, sonuç
+   - benzerlik/farklılık notu
 5. `missingInformation`
 6. `lawyerReviewPoints`
 
-Every legislation entry carries a source document id and a verbatim source quote. Every
-verified precedent entry must survive the reasoned-precedent filter.
+Her mevzuat girdisi bir kaynak doküman id'si ve birebir kaynak alıntısı taşır. Her
+doğrulanmış emsal girdisi, gerekçeli-emsal filtresinden geçmek zorundadır.
 
-## Intentionally Out Of Scope
+## Bilinçli Olarak Kapsam Dışı
 
-The MVP does not include:
+MVP şunları içermez:
 
-- a live AYM high court client (AYM kararlar bilgi bankası HTML-only arayüzdür; JSON API yoktur — `synthetic_only` işaretlidir)
-- categorical risk level scoring ("risk seviyesi yüksek/düşük") without source reference or conditional language
-- immediate action instructions
-- petition or defense drafting
-- final legal conclusions
-- categorical statements such as "liability exists" or "liability does not exist"
-- The tool may provide source-grounded conditional assessments (e.g., "kaynaklar şu yönde eğilim gösteriyor") but never categorical final judgments
-- model-only legal propositions that are not confirmed by MCP source records
+- canlı AYM yüksek mahkeme istemcisi (AYM kararlar bilgi bankası HTML-only arayüzdür; JSON API yoktur — `synthetic_only` işaretlidir)
+- kaynak referansı veya koşullu dil olmaksızın kategorik risk seviyesi puanlaması ("risk seviyesi yüksek/düşük")
+- acil eylem talimatları
+- dilekçe veya savunma yazımı
+- nihai hukuki sonuçlar
+- "sorumluluk vardır" veya "sorumluluk yoktur" gibi kategorik ifadeler
+- Araç, kaynağa dayalı koşullu değerlendirmeler (ör. "kaynaklar şu yönde eğilim gösteriyor") sunabilir; ama asla kategorik nihai hüküm vermez
+- MCP kaynak kayıtlarıyla doğrulanmamış, yalnızca-modele dayalı hukuki önermeler
 
-## New in v0.44.0
+## v0.44.0'da Yeni
 
-- **`assessmentTone`**: Optional parameter (`"strict"` | `"grounded-advisory"`, default: `"grounded-advisory"`). In `strict` mode, only source lists are returned (no assessment). In `grounded-advisory` mode, a `preliminaryAssessment` is included with source-grounded conditional evaluation.
-- **`preliminaryAssessment`**: Optional response field containing `summary` and `sentences[]`. Each sentence has `text`, `sourceRef`, and `sourceLabel`. Sentences use real outcome/reasoning from precedents and verbatim quote snippets from legislation — never boilerplate.
-- **Legislation force metadata**: Provisions carry `inForce`, `lastAmendedDate`, and `repealed` fields (never assumes "in force" by default).
-- **Decision deduplication**: Cross-source duplicates (e.g., same case from Yargıtay and Bedesten) are deduplicated, keeping the richest version.
-- **Full Turkish diacritic policy**: All physician-facing text uses proper Turkish characters (no ASCII substitutions).
-- See [CHANGELOG.md](./CHANGELOG.md) for complete version history. See [COMPATIBILITY.md](./docs/COMPATIBILITY.md) for stability tiers.
+- **`assessmentTone`**: Opsiyonel parametre (`"strict"` | `"grounded-advisory"`, varsayılan: `"grounded-advisory"`). `strict` modda yalnızca kaynak listeleri döner (değerlendirme yok). `grounded-advisory` modda, kaynağa dayalı koşullu değerlendirme içeren bir `preliminaryAssessment` eklenir.
+- **`preliminaryAssessment`**: `summary` ve `sentences[]` içeren opsiyonel yanıt alanı. Her cümlede `text`, `sourceRef` ve `sourceLabel` bulunur. Cümleler emsallerden gerçek sonuç/gerekçeyi ve mevzuattan birebir alıntı parçalarını kullanır — asla kalıp (boilerplate) değil.
+- **Mevzuat yürürlük meta verisi**: Hükümler `inForce`, `lastAmendedDate` ve `repealed` alanları taşır (varsayılan olarak asla "yürürlükte" varsaymaz).
+- **Karar deduplikasyonu**: Çapraz-kaynak tekrarları (ör. aynı kararın Yargıtay ve Bedesten'den gelmesi) deduplike edilir; en zengin sürüm tutulur.
+- **Tam Türkçe diakritik politikası**: Tüm hekime-dönük metinler doğru Türkçe karakterleri kullanır (ASCII ikamesi yok).
+- Tam sürüm geçmişi için [CHANGELOG.md](./CHANGELOG.md). Kararlılık katmanları için [COMPATIBILITY.md](./docs/COMPATIBILITY.md).
 
-Rate limiting is reserved for live clients: the intended behavior is practical public-source
-traffic with adaptive backoff after a real block or source error, not an aggressive throttle
-before evidence of pressure.
+Hız limiti canlı istemciler için ayrılmıştır: amaçlanan davranış, gerçek bir blok veya
+kaynak hatasından sonra adaptif backoff ile pratik kamu-kaynağı trafiğidir; baskı kanıtı
+olmadan agresif bir kısıtlama değildir.
 
-## MCP Tools
+## MCP Araçları
 
 - `classify_medical_legal_question`
 - `search_health_legislation`
@@ -160,7 +159,7 @@ before evidence of pressure.
 - `filter_reasoned_precedents`
 - `prepare_doctor_legal_information_pack`
 
-Legislation-facing MCP inputs accept optional `sourceMode`:
+Mevzuata-dönük MCP girdileri opsiyonel `sourceMode` kabul eder:
 
 ```json
 {
@@ -169,57 +168,56 @@ Legislation-facing MCP inputs accept optional `sourceMode`:
 }
 ```
 
-`sourceMode` is `"mock"` by default, so mock behavior is the default.
-`search_health_legislation`, `get_legislation_provisions`, and
-`prepare_doctor_legal_information_pack` can use `"live"`. A live information pack keeps
-the same MVP shape and adds `sourceUnavailable` only when the official legislation source
-cannot return a verified provision.
+`sourceMode` varsayılan olarak `"mock"`'tur; yani mock davranışı varsayılandır.
+`search_health_legislation`, `get_legislation_provisions` ve
+`prepare_doctor_legal_information_pack` `"live"` kullanabilir. Canlı bilgilendirme paketi
+aynı MVP şeklini korur ve `sourceUnavailable`'ı yalnızca resmî mevzuat kaynağı doğrulanmış
+bir hüküm döndüremediğinde ekler.
 
-Mock mode uses local fixture provisions. Live mode uses official legislation text from
-`mevzuat.gov.tr` plus live Yargitay and Danistay precedent adapters. AYM is mock-only and
-is disabled in live mode rather than used as a fallback.
+Mock mod yerel fixture hükümlerini kullanır. Canlı mod, `mevzuat.gov.tr`'den resmî mevzuat
+metnini, ayrıca canlı Yargıtay ve Danıştay emsal adaptörlerini kullanır. AYM yalnızca-mock'tur
+ve canlı modda bir geri-dönüş (fallback) olarak kullanılmak yerine devre dışı bırakılır.
 
-## Health Legislation Priority
+## Sağlık Mevzuatı Önceliği
 
-The live mapping layer groups physician questions into health-law topic clusters:
+Canlı eşleme katmanı hekim sorularını sağlık-hukuku konu kümelerine ayırır:
 
-- informed consent / onam
-- medical intervention
-- patient rights
-- patient privacy
-- personal health data
-- records, file, and epicrisis
-- emergency intervention
-- referral and consultation
-- physician duty of care
-- professional ethics
+- aydınlatılmış onam / onam
+- tıbbi müdahale
+- hasta hakları
+- hasta mahremiyeti
+- kişisel sağlık verisi
+- kayıt, dosya ve epikriz
+- acil müdahale
+- sevk ve konsültasyon
+- hekimin özen yükümlülüğü
+- meslek etiği
 
-Each mapping carries the target legislation, target article numbers, search terms, a
-selection reason, and a health-law priority. When more than one mapping matches, the
-pack orders primary health legislation before supporting general legislation. For example,
-a personal-health-data privacy question may return Hasta Haklari Yonetmeligi before KVKK;
-KVKK is not used as a broad fallback for unrelated physician questions.
+Her eşleme; hedef mevzuatı, hedef madde numaralarını, arama terimlerini, bir seçim
+gerekçesini ve bir sağlık-hukuku önceliğini taşır. Birden çok eşleme uyduğunda, paket
+birincil sağlık mevzuatını destekleyici genel mevzuattan önce sıralar. Örneğin bir
+kişisel-sağlık-verisi mahremiyet sorusu, KVKK'dan önce Hasta Hakları Yönetmeliği'ni
+döndürebilir; KVKK, ilgisiz hekim soruları için geniş bir geri-dönüş olarak kullanılmaz.
 
-## Source Trace
+## Kaynak İzleme (Source Trace)
 
-`sourceTrace` audits live legislation output rather than supplying legal reasoning.
-Each trace shows how a provision moved from a health-law mapping to an official document and
-article extraction step:
+`sourceTrace`, hukuki gerekçe sağlamak yerine canlı mevzuat çıktısını denetler. Her iz, bir
+hükmün sağlık-hukuku eşlemesinden resmî dokümana ve madde çıkarım adımına nasıl geçtiğini gösterir:
 
-- original `query`
-- `matchedHealthMapping` and mapping candidates tried when no mapping matches
-- `officialSearchRequest`, official search result count, and compact official results
-- `selectedSearchResult` and `selectedResultReason`
-- landing/detail URL and direct or generated PDF URL
-- `contentType`, extraction method, extracted article numbers, and retrieval time
+- orijinal `query`
+- `matchedHealthMapping` ve eşleme olmadığında denenen eşleme adayları
+- `officialSearchRequest`, resmî arama sonuç sayısı ve kompakt resmî sonuçlar
+- `selectedSearchResult` ve `selectedResultReason`
+- landing/detay URL'i ve doğrudan ya da üretilmiş PDF URL'i
+- `contentType`, çıkarım yöntemi, çıkarılan madde numaraları ve getirme süresi
 
-Live `search_health_legislation` includes the trace alongside selected provisions. Live
-`get_legislation_provisions` carries trace on each returned provision. Live
-`prepare_doctor_legal_information_pack` keeps trace both on relevant legislation entries
-and the pack-level `sourceTrace` array, so the composed quote can be checked against the
-same extracted provision.
+Canlı `search_health_legislation`, seçilen hükümlerin yanında izi de içerir. Canlı
+`get_legislation_provisions`, dönen her hükümde iz taşır. Canlı
+`prepare_doctor_legal_information_pack`, izi hem ilgili mevzuat girdilerinde hem de
+pakete-düzey `sourceTrace` dizisinde tutar; böylece derlenen alıntı, aynı çıkarılmış
+hükme karşı kontrol edilebilir.
 
-An unavailable live pack also preserves audit context:
+Bir `unavailable` canlı paket de denetim bağlamını korur:
 
 ```json
 {
@@ -240,57 +238,55 @@ An unavailable live pack also preserves audit context:
 }
 ```
 
-`matchedHealthMapping` and `selectedResultReason` show the topic cluster, health-law
-priority, and whether the selected mapping is primary health legislation or supporting
-general legislation. Trace fields explain source selection and extraction only. They do
-not create legal propositions and never replace the verbatim official provision text.
+`matchedHealthMapping` ve `selectedResultReason`; konu kümesini, sağlık-hukuku önceliğini ve
+seçilen eşlemenin birincil sağlık mevzuatı mı yoksa destekleyici genel mevzuat mı olduğunu
+gösterir. İz alanları yalnızca kaynak seçimini ve çıkarımı açıklar. Hukuki önerme üretmezler
+ve birebir resmî hüküm metninin yerini asla almazlar.
 
-## Provision Ranking
+## Hüküm Sıralaması (Provision Ranking)
 
-Live provision ranking runs deterministic scoring after official article extraction. It
-selects a compact set of source articles for the pack; it does not create article text,
-legal advice, or categorical legal conclusions.
+Canlı hüküm sıralaması, resmî madde çıkarımından sonra deterministik puanlama çalıştırır.
+Paket için kompakt bir kaynak-madde kümesi seçer; madde metni, hukuki tavsiye veya kategorik
+hukuki sonuç üretmez.
 
-Ranking signals include:
+Sıralama sinyalleri:
 
-- physician query terms
-- the matched health-law topic cluster
-- mapping search terms
-- article heading text when the extracted article starts with a usable heading
-- keyword matches inside the extracted article text
-- a mapped article-list bonus
-- health-law priority and primary/supporting role ordering
+- hekim sorgu terimleri
+- eşlenen sağlık-hukuku konu kümesi
+- eşleme arama terimleri
+- çıkarılan madde kullanılabilir bir başlıkla başladığında madde başlığı metni
+- çıkarılan madde metni içindeki anahtar kelime eşleşmeleri
+- eşlenmiş madde-listesi bonusu
+- sağlık-hukuku önceliği ve birincil/destekleyici rol sıralaması
 
-Live trace shows `candidateArticleNumbers`, `rankedArticleNumbers`,
-`rejectedArticleNumbers`, and `rankingMethod`. Each returned live provision also carries
-its deterministic score, matched terms, ranking reasons, and whether it came from the
-manual mapped article list. The live adapter limits a single legislation document to a
-small ranked article set, currently at most three provisions. Extracted mapped articles
-stay first; high-signal ranked fallback articles are considered only when the mapped
-articles are absent from the extraction. Trace preserves both the selected and rejected
-candidate trail.
+Canlı iz; `candidateArticleNumbers`, `rankedArticleNumbers`, `rejectedArticleNumbers` ve
+`rankingMethod`'u gösterir. Dönen her canlı hüküm ayrıca kendi deterministik skorunu, eşleşen
+terimleri, sıralama gerekçelerini ve manuel eşlenmiş madde listesinden gelip gelmediğini
+taşır. Canlı adaptör tek bir mevzuat dokümanını küçük bir sıralanmış madde kümesiyle
+sınırlar — şu an en fazla üç hüküm. Çıkarılan eşlenmiş maddeler önce gelir; yüksek-sinyalli
+sıralanmış yedek maddeler yalnızca eşlenmiş maddeler çıkarımda yoksa değerlendirilir. İz hem
+seçilen hem reddedilen aday izini korur.
 
-KVKK remains `supporting_general` for personal-health-data and privacy questions. It does
-not replace primary health legislation in ranking or pack ordering. Yargitay, Danistay,
-and AYM adapters remain mock adapters.
+KVKK, kişisel-sağlık-verisi ve mahremiyet soruları için `supporting_general` kalır.
+Sıralamada veya paket sıralamasında birincil sağlık mevzuatının yerini almaz. Yargıtay,
+Danıştay ve AYM adaptörleri mock adaptör olarak kalır.
 
-## Selection Diagnostics
+## Seçim Tanılaması (Selection Diagnostics)
 
-Selection diagnostics provide a short audit view for source selection:
-`sourceTrace` still contains the official request, document,
-extraction, candidate, ranking, and unavailable detail, while diagnostics summarize what
-was selected without requiring a full trace read.
+Seçim tanılaması, kaynak seçimi için kısa bir denetim görünümü sağlar: `sourceTrace` hâlâ
+resmî isteği, dokümanı, çıkarımı, adayı, sıralamayı ve `unavailable` detayını içerirken,
+tanılama tam bir iz okuması gerektirmeden neyin seçildiğini özetler.
 
-The compact diagnostic includes:
+Kompakt tanılama şunları içerir:
 
-- query and `sourceMode`
-- selected legislation and provision counts
-- each selected legislation role, topic cluster, priority, article numbers, rejected
-  article-number summary, and selection reason
-- each selected provision score, matched terms, top ranking reasons, and mapped-article flag
-- unavailable and warning counts
+- query ve `sourceMode`
+- seçilen mevzuat ve hüküm sayıları
+- her seçilen mevzuatın rolü, konu kümesi, önceliği, madde numaraları, reddedilen
+  madde-numarası özeti ve seçim gerekçesi
+- her seçilen hükmün skoru, eşleşen terimleri, en iyi sıralama gerekçeleri ve eşlenmiş-madde bayrağı
+- `unavailable` ve uyarı sayıları
 
-Example live summary:
+Örnek canlı özet:
 
 ```json
 {
@@ -318,89 +314,87 @@ Example live summary:
 }
 ```
 
-Diagnostics are audit metadata only. They do not replace official provision quotes, do not
-create legal propositions, and keep KVKK in its supporting-general role. Yargitay,
-Danistay, and AYM adapters remain mock adapters.
+Tanılama yalnızca denetim meta verisidir. Resmî hüküm alıntılarının yerini almaz, hukuki
+önerme üretmez ve KVKK'yı destekleyici-genel rolünde tutar. Yargıtay, Danıştay ve AYM
+adaptörleri mock adaptör olarak kalır.
 
-## Decision Source Trace
+## Karar Kaynak İzi (Decision Source Trace)
 
-`DecisionSourceTrace` audits the decision pipeline for each court decision candidate.
-It is the precedent-side analogue of `LegislationSourceTrace`. Each trace carries:
+`DecisionSourceTrace`, her mahkeme kararı adayı için karar boru hattını denetler.
+`LegislationSourceTrace`'in emsal-tarafı karşılığıdır. Her iz şunları taşır:
 
-- original `query`
-- `source` and `court` (yargitay / danistay / aym)
-- `searchRequest` (null for mock adapters)
-- `searchResultsCount` and `selectedResult`
+- orijinal `query`
+- `source` ve `court` (yargitay / danistay / aym)
+- `searchRequest` (mock adaptörler için null)
+- `searchResultsCount` ve `selectedResult`
 - `documentId` / `sourceId`
-- `fullTextAvailable` and `fullTextRetrievalMethod`
+- `fullTextAvailable` ve `fullTextRetrievalMethod`
 - `retrievedAt`
-- `eligibilityStatus` — the precedent filter outcome
-- `eligibilityReasons` — positive criteria that the decision met
-- `exclusionReasons` — the specific reason(s) it was excluded, if any
-- `error` if retrieval failed
+- `eligibilityStatus` — emsal filtresi sonucu
+- `eligibilityReasons` — kararın karşıladığı olumlu kriterler
+- `exclusionReasons` — varsa, dışlanmasının belirli neden(ler)i
+- getirme başarısız olduysa `error`
 
-Decision source traces are audit metadata only. They do not produce legal reasoning and
-never add a court decision to the pack unless the decision passes all eligibility criteria.
+Karar kaynak izleri yalnızca denetim meta verisidir. Hukuki gerekçe üretmezler ve karar tüm
+uygunluk kriterlerini geçmedikçe pakete asla bir mahkeme kararı eklemezler.
 
-## Reasoned-Decision Eligibility
+## Gerekçeli-Karar Uygunluğu
 
-`assessDecisionEligibility` (in `src/health/decisionEligibility.ts`) applies the
-precedent filter rules and returns a structured `EligibilityResult` with status,
-positive eligibility reasons, and exclusion reasons.
+`assessDecisionEligibility` (`src/health/decisionEligibility.ts` içinde) emsal filtresi
+kurallarını uygular ve durum, olumlu uygunluk gerekçeleri ve dışlama gerekçeleriyle
+yapılandırılmış bir `EligibilityResult` döndürür.
 
-A decision is **excluded** from the verified-precedents section when any of the following
-apply:
+Bir karar, aşağıdakilerden herhangi biri geçerliyse doğrulanmış-emsaller bölümünden **dışlanır**:
 
-- `fullTextAvailable: false` — full decision text is not available (→ `metadata_only`)
-- `legalReasoning` is empty or missing (→ `no_reasoning`)
-- Decision text contains a bare procedural marker: `salt onama`, `salt bozma`, `usul karar`
+- `fullTextAvailable: false` — tam karar metni mevcut değil (→ `metadata_only`)
+- `legalReasoning` boş veya eksik (→ `no_reasoning`)
+- Karar metni salt usuli işaret içeriyor: `salt onama`, `salt bozma`, `usul karar`
   (→ `procedural_only`)
-- Legal reasoning is only `onama` or `bozma` without substantive content
+- Hukuki gerekçe, esasa ilişkin içerik olmadan yalnızca `onama` veya `bozma`
   (→ `procedural_only`)
-- No `relevanceNote` connecting the decision to the health-law event (→ `limited_value`)
+- Kararı sağlık-hukuku olayına bağlayan `relevanceNote` yok (→ `limited_value`)
 
-Only `precedent_usable` decisions enter the `verifiedHighCourtPrecedents` section of the
-pack. `limited_value`, `procedural_only`, `no_reasoning`, and `metadata_only` decisions
-are excluded.
+Paketin `verifiedHighCourtPrecedents` bölümüne yalnızca `precedent_usable` kararları girer.
+`limited_value`, `procedural_only`, `no_reasoning` ve `metadata_only` kararları dışlanır.
 
-## Precedent Diagnostics
+## Emsal Tanılaması (Precedent Diagnostics)
 
-`PrecedentSelectionDiagnostics` is the compact audit view for decision selection,
-analogous to `LegislationSelectionDiagnostics` on the legislation side. It appears as
-`precedentDiagnostics` on every `prepare_doctor_legal_information_pack` response and in
-the `filter_reasoned_precedents` tool response.
+`PrecedentSelectionDiagnostics`, karar seçimi için kompakt denetim görünümüdür; mevzuat
+tarafındaki `LegislationSelectionDiagnostics`'in karşılığıdır. Her
+`prepare_doctor_legal_information_pack` yanıtında ve `filter_reasoned_precedents` araç
+yanıtında `precedentDiagnostics` olarak görünür.
 
-The diagnostic includes:
+Tanılama şunları içerir:
 
-- `query` — the original question
+- `query` — orijinal soru
 - `selectedPrecedentCount` / `excludedDecisionCount`
-- `selectedPrecedents[]` — court, chamber, date, docket/decision numbers, status,
-  matched health topics, and eligibility reasons
-- `excludedDecisions[]` — court, date, status, and exclusion reasons
+- `selectedPrecedents[]` — mahkeme, daire, tarih, esas/karar numaraları, durum, eşleşen
+  sağlık konuları ve uygunluk gerekçeleri
+- `excludedDecisions[]` — mahkeme, tarih, durum ve dışlama gerekçeleri
 
-Diagnostics summarize selection and exclusion only. They do not provide legal
-interpretation and do not add any decision to the pack.
+Tanılama yalnızca seçimi ve dışlamayı özetler. Hukuki yorum sağlamaz ve pakete hiçbir karar
+eklemez.
 
-## Live Yargıtay Adapter
+## Canlı Yargıtay Adaptörü
 
-The first live court decision adapter: `LiveYargitayAdapter`
-(`src/sources/yargitay/liveYargitayAdapter.ts`). Danıştay and AYM remain mock adapters.
+İlk canlı mahkeme kararı adaptörü: `LiveYargitayAdapter`
+(`src/sources/yargitay/liveYargitayAdapter.ts`). Danıştay ve AYM mock adaptör olarak kalır.
 
-**Source and endpoint:** Targets `https://bedesten.adalet.gov.tr/emsal-karar/searchDocuments` with a filtering by `YARGITAYKARARI`.
-JSON POST body containing the health law search term. Retries up to three times with
-adaptive back-off for 429 and 5xx errors.
+**Kaynak ve uç nokta:** `https://bedesten.adalet.gov.tr/emsal-karar/searchDocuments` adresini
+`YARGITAYKARARI` filtresiyle hedefler. Sağlık hukuku arama terimini içeren JSON POST gövdesi.
+429 ve 5xx hataları için adaptif backoff ile üç kez yeniden dener.
 
-**`sourceMode: "live"` precedent behavior:**
+**`sourceMode: "live"` emsal davranışı:**
 
-- `search_health_precedents` uses the live Yargıtay adapter; Danıştay and AYM remain mock.
-- `prepare_doctor_legal_information_pack` with `sourceMode: "live"` searches live Yargıtay
-  decisions in addition to live legislation.
-- Health law search terms are mapped from the classified question: `riza/rıza/onam` →
-  `"aydınlatılmış rıza"`, `tibbi/müdahale` → `"tıbbi müdahale"`, etc.
-- Only `precedent_usable` decisions enter `verifiedHighCourtPrecedents`. All others are
-  logged in `precedentDiagnostics.excludedDecisions` with their exclusion reasons.
+- `search_health_precedents` canlı Yargıtay adaptörünü kullanır; Danıştay ve AYM mock kalır.
+- `sourceMode: "live"` ile `prepare_doctor_legal_information_pack`, canlı mevzuata ek olarak
+  canlı Yargıtay kararlarını arar.
+- Sağlık hukuku arama terimleri sınıflandırılmış sorudan eşlenir: `riza/rıza/onam` →
+  `"aydınlatılmış rıza"`, `tibbi/müdahale` → `"tıbbi müdahale"`, vb.
+- `verifiedHighCourtPrecedents`'e yalnızca `precedent_usable` kararları girer. Diğerlerinin
+  hepsi dışlama gerekçeleriyle `precedentDiagnostics.excludedDecisions`'a kaydedilir.
 
-**`DecisionSourceTrace` live example:**
+**`DecisionSourceTrace` canlı örneği:**
 
 ```json
 {
@@ -429,8 +423,8 @@ adaptive back-off for 429 and 5xx errors.
 }
 ```
 
-**Live source failure behavior:** If `bedesten.adalet.gov.tr` is unreachable or returns a
-non-parseable response, the adapter returns a structured unavailable result:
+**Canlı kaynak hatası davranışı:** `bedesten.adalet.gov.tr` erişilemezse veya ayrıştırılamayan
+bir yanıt dönerse, adaptör yapılandırılmış bir `unavailable` sonucu döndürür:
 
 ```json
 {
@@ -444,30 +438,30 @@ non-parseable response, the adapter returns a structured unavailable result:
 }
 ```
 
-No decisions are invented. The pack continues to run with mock Danıştay and AYM results
-and shows 0 selected precedents in `precedentDiagnostics` for the Yargıtay source.
+Hiçbir karar uydurulmaz. Paket, mock Danıştay ve AYM sonuçlarıyla çalışmaya devam eder ve
+Yargıtay kaynağı için `precedentDiagnostics`'te 0 seçilmiş emsal gösterir.
 
-Danıştay and AYM adapters remain mock adapters.
+Danıştay ve AYM adaptörleri mock adaptör olarak kalır.
 
-## Multi-Source Live Precedent Pipeline
+## Çok-Kaynaklı Canlı Emsal Boru Hattı
 
-The live Danıştay adapter, centralized health law query expansion module,
-per-source diagnostics (`sourceSummaries`), and a file-based result cache.
+Canlı Danıştay adaptörü, merkezi sağlık hukuku sorgu genişletme modülü, kaynak-başına
+tanılama (`sourceSummaries`) ve dosya-tabanlı sonuç önbelleği.
 
-### Live Danıştay Adapter
+### Canlı Danıştay Adaptörü
 
-`LiveDanistayAdapter` (`src/sources/danistay/liveDanistayAdapter.ts`) targets
-`https://karararama.danistay.gov.tr/aramalist`. It follows the
-same retry, HTML full-text extraction, and eligibility assessment pattern as the Yargıtay
-adapter. `court` is set to `"danistay"` and document IDs are prefixed `danistay:`.
+`LiveDanistayAdapter` (`src/sources/danistay/liveDanistayAdapter.ts`)
+`https://karararama.danistay.gov.tr/aramalist` adresini hedefler. Yargıtay adaptörüyle aynı
+yeniden deneme, HTML tam-metin çıkarımı ve uygunluk değerlendirme desenini izler. `court`
+`"danistay"` olarak ayarlanır ve doküman id'leri `danistay:` ön ekiyle başlar.
 
-The adapter uses `pickHealthLawQuery` from the centralized query expansion module instead
-of maintaining its own term map.
+Adaptör, kendi terim haritasını tutmak yerine merkezi sorgu genişletme modülünden
+`pickHealthLawQuery` kullanır.
 
-### `precedentSources` Parameter
+### `precedentSources` Parametresi
 
-`prepare_doctor_legal_information_pack` and `search_health_precedents` now accept an
-optional `precedentSources` array to select which courts are queried in live mode:
+`prepare_doctor_legal_information_pack` ve `search_health_precedents` artık canlı modda hangi
+mahkemelerin sorgulanacağını seçmek için opsiyonel bir `precedentSources` dizisi kabul eder:
 
 ```json
 {
@@ -477,15 +471,15 @@ optional `precedentSources` array to select which courts are queried in live mod
 }
 ```
 
-Valid values: `"yargitay"`, `"danistay"`, `"aym"`. Default when omitted is all three.
-AYM remains a mock adapter.
+Geçerli değerler: `"yargitay"`, `"danistay"`, `"aym"`. Belirtilmezse varsayılan üçü birden.
+AYM bir mock adaptör olarak kalır.
 
-When one source is unavailable, the others continue. The pack is never blocked on a single
-adapter failure.
+Bir kaynak erişilemez olduğunda, diğerleri devam eder. Paket asla tek bir adaptör hatasına
+takılıp bloke olmaz.
 
-### `assessmentTone` Parameter (v0.44.0)
+### `assessmentTone` Parametresi (v0.44.0)
 
-`prepare_doctor_legal_information_pack` also accepts an optional `assessmentTone` parameter:
+`prepare_doctor_legal_information_pack` ayrıca opsiyonel bir `assessmentTone` parametresi kabul eder:
 
 ```json
 {
@@ -495,21 +489,20 @@ adapter failure.
 }
 ```
 
-| Value | Behavior |
+| Değer | Davranış |
 |-------|----------|
-| `"grounded-advisory"` (default) | Pack includes `preliminaryAssessment` with source-grounded conditional sentences. Every sentence carries a `sourceRef`. |
-| `"strict"` | Old behavior: only source lists are returned. No assessment text is produced. |
+| `"grounded-advisory"` (varsayılan) | Paket, kaynağa dayalı koşullu cümleler içeren `preliminaryAssessment`'i içerir. Her cümle bir `sourceRef` taşır. |
+| `"strict"` | Eski davranış: yalnızca kaynak listeleri döner. Değerlendirme metni üretilmez. |
 
-The `preliminaryAssessment` field contains `summary` (overview) and `sentences[]` (individual
-assessment items). Each sentence has `text`, `sourceRef`, and `sourceLabel`.
-Sentences use real outcome/reasoning from precedents and verbatim quote snippets from
-legislation — never boilerplate. See [COMPATIBILITY.md](./docs/COMPATIBILITY.md) for
-stability guarantees.
+`preliminaryAssessment` alanı `summary` (genel bakış) ve `sentences[]` (tekil değerlendirme
+maddeleri) içerir. Her cümlede `text`, `sourceRef` ve `sourceLabel` bulunur. Cümleler
+emsallerden gerçek sonuç/gerekçeyi ve mevzuattan birebir alıntı parçalarını kullanır — asla
+kalıp değil. Kararlılık garantileri için [COMPATIBILITY.md](./docs/COMPATIBILITY.md).
 
-### Health Law Query Expansion
+### Sağlık Hukuku Sorgu Genişletme
 
-`src/health/healthLawQueryExpansion.ts` provides deterministic term mapping shared by
-both the Yargıtay and Danıştay adapters:
+`src/health/healthLawQueryExpansion.ts`, hem Yargıtay hem Danıştay adaptörleri tarafından
+paylaşılan deterministik terim eşlemesi sağlar:
 
 - `riza` / `onam` / `aydinlat` → `"aydınlatılmış rıza"`
 - `komplikasyon` → `"komplikasyon tıbbi müdahale"`
@@ -520,13 +513,12 @@ both the Yargıtay and Danıştay adapters:
 - `kusur` → `"hizmet kusuru tıbbi müdahale"`
 - `acil` → `"acil müdahale hekim yükümlülüğü"`
 
-`pickHealthLawQuery` returns the highest-priority mapped term for a classified question.
-`pickHealthLawQueries` returns up to N distinct terms for multi-term searches.
+`pickHealthLawQuery`, sınıflandırılmış bir soru için en yüksek öncelikli eşlenmiş terimi
+döndürür. `pickHealthLawQueries`, çok-terimli aramalar için en fazla N adet farklı terim döndürür.
 
-### `sourceSummaries` in `precedentDiagnostics`
+### `precedentDiagnostics` içinde `sourceSummaries`
 
-`PrecedentSelectionDiagnostics` now includes `sourceSummaries[]` with a per-source
-breakdown:
+`PrecedentSelectionDiagnostics` artık kaynak-başına dökümle `sourceSummaries[]` içerir:
 
 ```json
 {
@@ -562,84 +554,85 @@ breakdown:
 }
 ```
 
-`selectedPrecedents[]` and `excludedDecisions[]` entries also now include a `source` field
-(same value as `court`) to identify which adapter produced each decision.
+`selectedPrecedents[]` ve `excludedDecisions[]` girdileri artık her kararı hangi adaptörün
+ürettiğini belirtmek için bir `source` alanı (`court` ile aynı değer) da içerir.
 
-### File-Based Cache
+### Dosya-Tabanlı Önbellek
 
-`PrecedentCache` (`src/sources/precedentCache.ts`) caches live adapter results to
-`.cache/precedents/` with a one-hour TTL. Cache files are keyed by source, query, and
-page size. Cache write failures are non-fatal.
+`PrecedentCache` (`src/sources/precedentCache.ts`), canlı adaptör sonuçlarını bir saatlik TTL
+ile `.cache/precedents/`'e önbelleğe alır. Önbellek dosyaları kaynak, sorgu ve sayfa boyutuna
+göre anahtarlanır. Önbellek yazma hataları ölümcül değildir.
 
-`smoke:precedents` supports three cache flags:
+`smoke:precedents` üç önbellek bayrağını destekler:
 
 ```powershell
-# Use cache (default)
+# Önbelleği kullan (varsayılan)
 npm run smoke:precedents -- "aydınlatılmış rıza"
 
-# Skip cache reads and writes
+# Önbellek okuma ve yazmalarını atla
 npm run smoke:precedents -- "aydınlatılmış rıza" --no-cache
 
-# Force a fresh fetch and overwrite the cache entry
+# Taze getirmeyi zorla ve önbellek girdisinin üzerine yaz
 npm run smoke:precedents -- "aydınlatılmış rıza" --refresh
 ```
 
-`.cache/` is in `.gitignore` and is never committed.
+`.cache/`, `.gitignore`'dadır ve asla commit edilmez.
 
-## Precedent Source Calibration
+## Emsal Kaynak Kalibrasyonu
 
-Deep probe analysis and normalizer hardening. See `docs/LIVE_SOURCE_CALIBRATION.md`
-for the full calibration workflow.
+Derin probe analizi ve normalleştirici sağlamlaştırma. Tam kalibrasyon iş akışı için
+`docs/LIVE_SOURCE_CALIBRATION.md`.
 
-### Confirmed endpoint behavior (2026-05-22)
+### Doğrulanmış uç nokta davranışı (2026-05-22)
 
-| Source | Status | Endpoint |
-|--------|--------|----------|
-| **Yargitay** | `reachable_json` | `bedesten.adalet.gov.tr/emsal-karar/searchDocuments` - active integration via Bedesten proxy. |
-| **Danistay** | `reachable_json` | `karararama.danistay.gov.tr/aramalist` - active integration. |
-| **Bedesten** | `reachable_json` | `bedesten.adalet.gov.tr/emsal-karar/searchDocuments` - active unified integration. |
-| **AYM** | `synthetic_only` | No live endpoint. Mock adapter only. |
+| Kaynak | Durum | Uç nokta |
+|--------|-------|----------|
+| **Yargitay** | `reachable_json` | `bedesten.adalet.gov.tr/emsal-karar/searchDocuments` - Bedesten proxy üzerinden aktif entegrasyon. |
+| **Danistay** | `reachable_json` | `karararama.danistay.gov.tr/aramalist` - aktif entegrasyon. |
+| **Bedesten** | `reachable_json` | `bedesten.adalet.gov.tr/emsal-karar/searchDocuments` - aktif birleşik entegrasyon. |
+| **AYM** | `synthetic_only` | Canlı uç nokta yok. Yalnızca mock adaptör. |
 
 ### Probe CLI
 
 ```powershell
-# Deep probe with HTML/SOAP analysis and fixture save
+# HTML/SOAP analizi ve fixture kaydıyla derin probe
 npm run probe:precedents -- "aydınlatılmış rıza" -- --source yargitay --save-fixture
 npm run probe:precedents -- "hizmet kusuru tıbbi müdahale" -- --source danistay --save-fixture
 ```
 
-Probe output includes: HTTP status, content-type, HTML/SOAP analysis (title, form actions,
-endpoint hints, body length, captcha/login detection), `calibrationStatus`, and `recommendedNextStep`.
+Probe çıktısı şunları içerir: HTTP durumu, content-type, HTML/SOAP analizi (başlık, form
+aksiyonları, uç nokta ipuçları, gövde uzunluğu, captcha/login tespiti), `calibrationStatus`
+ve `recommendedNextStep`.
 
-### Non-JSON response classification
+### JSON-olmayan yanıt sınıflandırması
 
-When a live adapter receives a non-JSON response, `DecisionSourceTrace.error` contains:
+Bir canlı adaptör JSON-olmayan bir yanıt aldığında, `DecisionSourceTrace.error` şunu içerir:
 
-| Code | Meaning |
-|------|---------|
-| `non_json_response:html_shell_response` | HTTP 200 + small HTML SPA shell |
-| `non_json_response:unexpected_html_response` | Login/large HTML |
-| `non_json_response:xml_soap_response` | SOAP/XML service response |
-| `non_json_response:captcha_or_block` | CAPTCHA detected |
-| `non_json_response:empty_response` | Empty body |
+| Kod | Anlamı |
+|------|--------|
+| `non_json_response:html_shell_response` | HTTP 200 + küçük HTML SPA kabuğu |
+| `non_json_response:unexpected_html_response` | Login/büyük HTML |
+| `non_json_response:xml_soap_response` | SOAP/XML servis yanıtı |
+| `non_json_response:captcha_or_block` | CAPTCHA tespit edildi |
+| `non_json_response:empty_response` | Boş gövde |
 
-### Raw fixture policy
+### Ham fixture politikası
 
-- `fixtures/raw/` is gitignored — never commit raw response bodies.
-- `fixtures/live-samples/` holds sanitized/synthetic fixtures — safe to commit.
-- See `fixtures/live-samples/README.md` for the sanitized fixture format.
+- `fixtures/raw/` gitignore'dadır — ham yanıt gövdelerini asla commit etme.
+- `fixtures/live-samples/` sanitize edilmiş/sentetik fixture'ları tutar — commit etmek güvenli.
+- Sanitize edilmiş fixture formatı için `fixtures/live-samples/README.md`.
 
-### Pack audit extended checks
+### Pack audit genişletilmiş kontrolleri
 
-`audit:pack` now also checks:
+`audit:pack` artık şunları da kontrol eder:
 
-- Unavailable sources in `sourceSummaries` → warning with error codes
-- `decisionSourceTrace.fullTextAvailable === false` on a verified precedent → error
-- `decisionSourceTrace.eligibilityStatus !== "precedent_usable"` on a verified precedent → error
+- `sourceSummaries`'te erişilemez kaynaklar → hata kodlarıyla uyarı
+- Doğrulanmış bir emsalde `decisionSourceTrace.fullTextAvailable === false` → hata
+- Doğrulanmış bir emsalde `decisionSourceTrace.eligibilityStatus !== "precedent_usable"` → hata
 
-See `docs/PACK_AUDIT.md` for the full check reference.
+Tam kontrol referansı için `docs/PACK_AUDIT.md`.
 
-## Development
+## Geliştirme
 
 ```powershell
 npm install
@@ -649,13 +642,13 @@ npm run smoke -- "Aydinlatilmis riza kaydi eksikse hangi resmi kaynaklar eslesir
 npm run smoke:legislation -- "kisisel saglik verisi mahremiyet"
 npm run smoke:legislation -- "aydınlatılmış rıza"
 
-# Smoke both Yargıtay and Danıştay (default)
+# Hem Yargıtay hem Danıştay smoke (varsayılan)
 npm run smoke:precedents -- "aydınlatılmış rıza"
 
-# Smoke specific sources
+# Belirli kaynaklar
 npm run smoke:precedents -- "hizmet kusuru" --precedentSources yargitay,danistay
 
-# Cache control
+# Önbellek kontrolü
 npm run smoke:precedents -- "aydınlatılmış rıza" --no-cache
 npm run smoke:precedents -- "aydınlatılmış rıza" --refresh
 
@@ -665,170 +658,172 @@ npm run smoke:mcp -- "riza belgesi" -- --sourceMode mock
 npm run dev:mcp
 ```
 
-`smoke:precedents` queries live Yargıtay and Danıştay adapters in parallel, caches results,
-and prints JSON including per-source `results` with `sourceTraces` and `eligibilityStatus`
-for each candidate decision. If a source is unreachable, its structured `unavailable` result
-is printed alongside the other source's output. JSON parse-ability is always preserved.
+`smoke:precedents`, canlı Yargıtay ve Danıştay adaptörlerini paralel sorgular, sonuçları
+önbelleğe alır ve her aday karar için `sourceTraces` ve `eligibilityStatus` içeren
+kaynak-başına `results` ile JSON yazdırır. Bir kaynak erişilemezse, onun yapılandırılmış
+`unavailable` sonucu diğer kaynağın çıktısının yanında yazdırılır. JSON ayrıştırılabilirliği
+her zaman korunur.
 
-`smoke:mcp` calls the full `prepare_doctor_legal_information_pack` handler. With
-`sourceMode: "live"` it uses both live legislation and live Yargıtay + Danıştay adapters.
-The optional `precedentSources` parameter selects which adapters are used. AYM remains
-mock-only and is disabled in live mode.
+`smoke:mcp`, tam `prepare_doctor_legal_information_pack` işleyicisini çağırır.
+`sourceMode: "live"` ile hem canlı mevzuatı hem canlı Yargıtay + Danıştay adaptörlerini
+kullanır. Opsiyonel `precedentSources` parametresi hangi adaptörlerin kullanılacağını seçer.
+AYM yalnızca-mock'tur ve canlı modda devre dışıdır.
 
-After `npm run build`, run the compiled stdio MCP server with:
+`npm run build` sonrası, derlenmiş stdio MCP sunucusunu şununla çalıştırın:
 
 ```powershell
 npm run mcp
 ```
 
-## Physician Question Benchmark Suite
+## Hekim Sorusu Benchmark Paketi
 
-A comprehensive quality evaluation and regression-testing benchmark
-suite focused on typical physician-centric legal questions, with live-source
-evaluation metrics.
+Tipik hekim-merkezli hukuki sorulara odaklanan, canlı-kaynak değerlendirme metrikleri içeren
+kapsamlı bir kalite değerlendirme ve regresyon-test benchmark paketi.
 
-### Purpose
-- **Quality Measurement**: Systematically evaluate the performance, legislation mapping, precedent count, and schema conformity of 15-20 target questions across 15 separate medical-legal categories.
-- **Regression Prevention**: Enforce strict safety constraints, such as ensuring `Kisisel Verilerin Korunmasi Kanunu (KVKK)` is not present in non-privacy packs, ensuring physician-centric deontology codes take precedence over general patient-rights in refusal situations, and ensuring live mode contains no mock-precedents fallback.
+### Amaç
+- **Kalite Ölçümü**: 15 ayrı tıbbi-hukuki kategoride 15-20 hedef sorunun performansını, mevzuat eşlemesini, emsal sayısını ve şema uyumunu sistematik olarak değerlendirir.
+- **Regresyon Önleme**: Şu gibi katı güvenlik kısıtlarını zorlar: `Kisisel Verilerin Korunmasi Kanunu (KVKK)`'nın mahremiyet-dışı paketlerde bulunmaması, ret durumlarında hekim-merkezli deontoloji kurallarının genel hasta-haklarına önceliği, ve canlı modda mock-emsal geri-dönüşü olmaması.
 
-### How to Run
+### Nasıl Çalıştırılır
 
-Use the benchmark runner script to execute tests and view report outputs:
+Testleri çalıştırmak ve rapor çıktılarını görmek için benchmark runner script'ini kullanın:
 
 ```powershell
-# Run the complete benchmark in mock mode (default)
+# Tam benchmark'ı mock modda çalıştır (varsayılan)
 npm run benchmark:doctor-questions
 
-# Run in live mode (queries live legislation and precedents, reports live-source metrics)
+# Canlı modda çalıştır (canlı mevzuat ve emsalleri sorgular, canlı-kaynak metriklerini raporlar)
 npm run benchmark:doctor-questions -- --sourceMode live
 
-# Equivalent live shortcut
+# Eşdeğer canlı kısayol
 npm run benchmark:doctor-questions:live
 
-# Limit the run to first N questions
+# Çalıştırmayı ilk N soruyla sınırla
 npm run benchmark:doctor-questions -- --limit 5
 
-# Specify a custom report directory (default is exports/doctor-benchmark)
+# Özel bir rapor dizini belirt (varsayılan exports/doctor-benchmark)
 npm run benchmark:doctor-questions -- --out exports/my-custom-report
 ```
 
 > [!WARNING]
-> Running the benchmark in `--sourceMode live` makes actual HTTP requests to Cumhurbaşkanlığı Mevzuat (`mevzuat.gov.tr`) and high court services (`bedesten.adalet.gov.tr` and `karararama.danistay.gov.tr`). Ensure you have stable internet and keep request volume sensible to avoid rate limiting (HTTP 429) or IP throttling by these servers.
+> Benchmark'ı `--sourceMode live` ile çalıştırmak, Cumhurbaşkanlığı Mevzuat (`mevzuat.gov.tr`) ve yüksek mahkeme servislerine (`bedesten.adalet.gov.tr` ve `karararama.danistay.gov.tr`) gerçek HTTP istekleri yapar. Bu sunucuların hız limiti (HTTP 429) veya IP kısıtlamasından kaçınmak için stabil bir internet bağlantınız olduğundan ve istek hacmini makul tuttuğunuzdan emin olun.
 
-### Mock vs Live Benchmark
+### Mock vs Canlı Benchmark
 
-Mock mode is a deterministic regression guard. It can fail the command when expected
-legislation, priority, audit, or safety invariants regress.
+Mock mod deterministik bir regresyon koruyucusudur. Beklenen mevzuat, öncelik, audit veya
+güvenlik invariyantları regresyona uğradığında komutu başarısız kılabilir.
 
-Live mode is an evaluation run. It keeps the same safety invariants, but source outages,
-empty results, rate limits, and `sourceUnavailable` entries are reported as metrics and
-warnings instead of automatic failures. Unsafe precedent use, forbidden MVP fields, mock
-fallback in live mode, or audit errors remain hard regression failures.
+Canlı mod bir değerlendirme çalıştırmasıdır. Aynı güvenlik invariyantlarını korur, ancak
+kaynak kesintileri, boş sonuçlar, hız limitleri ve `sourceUnavailable` girdileri otomatik
+başarısızlık yerine metrik ve uyarı olarak raporlanır. Güvensiz emsal kullanımı, yasak MVP
+alanları, canlı modda mock geri-dönüşü veya audit hataları sert regresyon başarısızlığı
+olarak kalır.
 
-### Benchmark Reports & Exports
-Execution runs generate parseable JSON and Markdown reports in `exports/doctor-benchmark/`
-(git-ignored):
+### Benchmark Raporları ve Dışa Aktarımlar
+Çalıştırmalar `exports/doctor-benchmark/`'ta (gitignore'da) ayrıştırılabilir JSON ve Markdown
+raporları üretir:
 
-- Mock mode:
+- Mock mod:
   - `doctor-benchmark-report.json`
   - `doctor-benchmark-report.md`
-- Live mode:
+- Canlı mod:
   - `live-benchmark-report.json`
   - `live-benchmark-report.md`
 
-Reports include `startedAt`, `completedAt`, `durationMs`, `passedRegressionCount`,
-`failedRegressionCount`, `liveSourceUnavailableCount`, audit counts, legislation/precent
-coverage counts, and per-question scoring.
+Raporlar şunları içerir: `startedAt`, `completedAt`, `durationMs`, `passedRegressionCount`,
+`failedRegressionCount`, `liveSourceUnavailableCount`, audit sayıları, mevzuat/emsal kapsama
+sayıları ve soru-başına puanlama.
 
-Reports include live benchmark quality audit fields for every selected verified precedent:
-court, chamber, decision date, docket/decision numbers, access source, document id/source
-id, source URL when available, full-text availability, reasoning detection, eligibility
-status/reasons, health-law relevance score, matched terms, and decision source trace
-presence. The report does not print full decision text.
+Raporlar, seçilen her doğrulanmış emsal için canlı benchmark kalite audit alanlarını içerir:
+mahkeme, daire, karar tarihi, esas/karar numaraları, erişim kaynağı, doküman id/kaynak id,
+varsa kaynak URL'i, tam-metin erişilebilirliği, gerekçe tespiti, uygunluk durumu/gerekçeleri,
+sağlık-hukuku ilgililik skoru, eşleşen terimler ve karar kaynak izi varlığı. Rapor tam karar
+metnini yazdırmaz.
 
-In live mode, mock fallback is a hard regression. AYM remains disabled/mock-only and cannot
-silently supply live verified precedents. `sourceUnavailable`, empty live search results,
-and transient upstream failures remain quality metrics and warnings unless they cause an
-unsafe precedent or schema/audit violation.
+Canlı modda mock geri-dönüşü sert bir regresyondur. AYM devre dışı/yalnızca-mock kalır ve
+sessizce canlı doğrulanmış emsal sağlayamaz. `sourceUnavailable`, boş canlı arama sonuçları
+ve geçici üst-kaynak hataları; bir güvensiz emsal veya şema/audit ihlaline yol açmadıkça
+kalite metriği ve uyarı olarak kalır.
 
-### Scoring
+### Puanlama
 
-Each question receives:
+Her soru şunları alır:
 
-- `legislationMatchScore` from 0 to 2
-- `priorityScore` from 0 to 2
-- `precedentSafetyScore` from 0 to 2
-- `sourceAvailabilityScore` from 0 to 2
-- `auditScore` from 0 to 2
-- `forbiddenFieldsScore` as 0 or 2
-- `totalScore`, `maxScore`, `scorePercent`, and `qualityBand`
+- `legislationMatchScore` 0 ile 2 arası
+- `priorityScore` 0 ile 2 arası
+- `precedentSafetyScore` 0 ile 2 arası
+- `sourceAvailabilityScore` 0 ile 2 arası
+- `auditScore` 0 ile 2 arası
+- `forbiddenFieldsScore` 0 veya 2
+- `totalScore`, `maxScore`, `scorePercent` ve `qualityBand`
 
-`qualityBand` is `good`, `acceptable`, `needs_tuning`, or `unsafe`. Live source
-unavailability can lower quality, but only safety violations or audit errors make an item
-`unsafe`.
+`qualityBand`: `good`, `acceptable`, `needs_tuning` veya `unsafe`. Canlı kaynak
+erişilemezliği kaliteyi düşürebilir, ama bir maddeyi `unsafe` yapan yalnızca güvenlik
+ihlalleri veya audit hatalarıdır.
 
-Verified precedent scoring is intentionally strict. A selected verified
-precedent must be `precedent_usable`, have confirmed full text, have detected legal
-reasoning, and retain a decision source trace. Metadata-only, procedural-only,
-no-reasoning, full-text-unavailable, or mock-access records cannot receive verified
-precedent credit in live mode. Weak health-law relevance caps precedent safety credit and
-is reported as a tuning warning rather than being hidden behind a high aggregate score.
+Doğrulanmış emsal puanlaması bilinçli olarak katıdır. Seçilen bir doğrulanmış emsal
+`precedent_usable` olmalı, doğrulanmış tam metne, tespit edilmiş hukuki gerekçeye sahip
+olmalı ve bir karar kaynak izini korumalıdır. Yalnızca-meta veri, yalnızca-usuli,
+gerekçesiz, tam-metni-yok veya mock-erişim kayıtları canlı modda doğrulanmış emsal kredisi
+alamaz. Zayıf sağlık-hukuku ilgililiği, emsal güvenlik kredisini sınırlar ve yüksek bir
+toplam skorun arkasına gizlenmek yerine bir tuning uyarısı olarak raporlanır.
 
-The benchmark includes precedent relevance tuning on top of that audit layer. It
-reports weak relevance by question and source, sample decision ids, matched issue terms,
-missing expected issue terms, a `whyWeak` explanation, and suggested follow-up query terms.
-It also separates `goodCleanCount` from `goodWithWarningsCount` and reports average/median
-health-law relevance scores.
+Benchmark, bu audit katmanının üzerine emsal ilgililik tuning'i içerir. Soru ve kaynağa göre
+zayıf ilgililiği, örnek karar id'lerini, eşleşen konu terimlerini, eksik beklenen konu
+terimlerini, bir `whyWeak` açıklamasını ve önerilen takip sorgu terimlerini raporlar. Ayrıca
+`goodCleanCount`'ı `goodWithWarningsCount`'tan ayırır ve ortalama/medyan sağlık-hukuku
+ilgililik skorlarını raporlar.
 
-Weak relevance means the decision passed the hard precedent safety gates, but the decision
-text matched only broad health words or did not overlap strongly with the question's issue
-profile. Issue profiles include informed consent, malpractice/complication, emergency care,
-treatment refusal, privacy/records, psychiatric privacy, violence/threat, referral,
-private-hospital fee disputes, public discipline, intensive care, and pregnancy emergency.
-Live source unavailability remains a metric/warning; unsafe remains reserved for safety
-violations such as mock fallback, missing full text/reasoning/trace, or unusable precedent
-statuses leaking into verified output.
+Zayıf ilgililik, kararın sert emsal güvenlik kapılarını geçtiği ama karar metninin yalnızca
+geniş sağlık kelimeleriyle eşleştiği veya sorunun konu profiliyle güçlü örtüşmediği anlamına
+gelir. Konu profilleri şunları içerir: aydınlatılmış onam, malpraktis/komplikasyon, acil
+bakım, tedavi reddi, mahremiyet/kayıtlar, psikiyatrik mahremiyet, şiddet/tehdit, sevk, özel
+hastane ücret uyuşmazlıkları, kamu disiplini, yoğun bakım ve gebelik acili. Canlı kaynak
+erişilemezliği bir metrik/uyarı olarak kalır; `unsafe` ise mock geri-dönüşü, eksik tam
+metin/gerekçe/iz veya kullanılamaz emsal durumlarının doğrulanmış çıktıya sızması gibi
+güvenlik ihlalleri için ayrılmıştır.
 
-### Performance Benchmark Command
+### Performans Benchmark Komutu
 
 ```sh
 npm run benchmark:doctor-questions:performance
-# or with limit:
+# veya limitle:
 npm run benchmark:doctor-questions:performance -- --limit 5
 ```
 
-The benchmark runs all 15 doctor questions twice. The cold run hits the live network and
-populates the local file cache (`.cache/precedents-perf/`). The warm run immediately
-replays the same queries from cache. The report shows:
+Benchmark, 15 hekim sorusunun tamamını iki kez çalıştırır. Soğuk (cold) çalıştırma canlı ağa
+gider ve yerel dosya önbelleğini (`.cache/precedents-perf/`) doldurur. Sıcak (warm)
+çalıştırma aynı sorguları hemen önbellekten yeniden oynatır. Rapor şunları gösterir:
 
-- Cold vs warm total duration and improvement %
-- Per-source cold/warm avg ms, p95, cache hits, network requests
-- Cache effectiveness: hit rate %, servedFromCache count, avg cache age
-- Retry/backoff summary: total retries, backoff time, rate-limit events, timeout count
-- Top 10 slowest query attempts (combined cold + warm)
-- Performance warnings (non-blocking; hard failures remain test/build/audit)
+- Soğuk vs sıcak toplam süre ve iyileşme %
+- Kaynak-başına soğuk/sıcak ortalama ms, p95, önbellek isabetleri, ağ istekleri
+- Önbellek etkinliği: isabet oranı %, önbellekten-sunulan sayısı, ortalama önbellek yaşı
+- Yeniden deneme/backoff özeti: toplam yeniden deneme, backoff süresi, hız-limiti olayları, timeout sayısı
+- En yavaş 10 sorgu denemesi (soğuk + sıcak birleşik)
+- Performans uyarıları (bloke etmez; sert başarısızlıklar test/build/audit olarak kalır)
 
-### Interpreting p50/p95/p99
+### p50/p95/p99 Yorumlama
 
-| Value | Meaning |
+| Değer | Anlamı |
 |---|---|
-| p50 | Median query duration — half of queries complete in this time or less |
-| p95 | 95th percentile — tail latency; most queries are faster than this |
-| p99 | 99th percentile — outlier latency; occasional slow queries |
+| p50 | Medyan sorgu süresi — sorguların yarısı bu sürede veya daha kısa sürede tamamlanır |
+| p95 | 95. yüzdelik — kuyruk gecikmesi; çoğu sorgu bundan hızlıdır |
+| p99 | 99. yüzdelik — aykırı gecikme; ara sıra yavaş sorgular |
 
-Cold p95 > 60s indicates a slow source (typically Yargıtay/Bedesten PDF fetch). Warm p95 > 10s
-indicates the cache is not effective for the slowest queries (possible TTL expiry or cache
-miss for full-text fetches inside the adapter).
+Soğuk p95 > 60s yavaş bir kaynağa işaret eder (genellikle Yargıtay/Bedesten PDF getirme).
+Sıcak p95 > 10s, en yavaş sorgular için önbelleğin etkili olmadığını gösterir (olası TTL
+süre dolması veya adaptör içindeki tam-metin getirmeler için önbellek ıskası).
 
-### Cache Integration
+### Önbellek Entegrasyonu
 
-The cache is disabled by default in normal live benchmark and smoke CLI runs. For the
-performance benchmark, a shared `PrecedentCache` (TTL 2h, dir `.cache/precedents-perf/`)
-is injected. The cache stores the complete `searchAndNormalize` result per (source, query,
-pageSize) key. The warm run replay is complete — no network calls are made for cached queries.
+Önbellek normal canlı benchmark ve smoke CLI çalıştırmalarında varsayılan olarak devre
+dışıdır. Performans benchmark'ı için paylaşılan bir `PrecedentCache` (TTL 2s, dizin
+`.cache/precedents-perf/`) enjekte edilir. Önbellek, (source, query, pageSize) anahtarı
+başına tüm `searchAndNormalize` sonucunu saklar. Sıcak çalıştırma yeniden oynatması
+eksiksizdir — önbelleğe alınmış sorgular için hiç ağ çağrısı yapılmaz.
 
-`.cache/` is gitignored. Cache entries are not committed.
+`.cache/` gitignore'dadır. Önbellek girdileri commit edilmez.
 
 ---
 
-For version history, see [CHANGELOG.md](./CHANGELOG.md).
+Sürüm geçmişi için bkz. [CHANGELOG.md](./CHANGELOG.md).
