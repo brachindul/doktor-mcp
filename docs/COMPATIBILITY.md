@@ -1,17 +1,17 @@
-# Compatibility & Stability Policy
+# Uyumluluk ve Kararlılık Politikası
 
-## Version 0.44.0 → 1.0 Transition
+## Sürüm 0.44.0 → 1.0 Geçişi
 
-doktor-mcp is currently at **v0.44.0** (pre-1.0). The `responseVersion` field
-(`"doctor-pack-response/v1"`) will be used to signal breaking changes.
+doktor-mcp şu an **v0.44.0**'da (1.0 öncesi). `responseVersion` alanı
+(`"doctor-pack-response/v1"`), kırıcı (breaking) değişiklikleri sinyallemek için kullanılacaktır.
 
-## Stability Tiers
+## Kararlılık Katmanları
 
-### 🔒 Stable (SemVer patch-level)
-These fields are guaranteed stable. Changes are backward-compatible additions only:
+### 🔒 Stabil (SemVer patch düzeyi)
+Bu alanların stabil olduğu garanti edilir. Değişiklikler yalnızca geriye-dönük-uyumlu eklemelerdir:
 
-| Field | Type | Since |
-|-------|------|-------|
+| Alan | Tip | Beri |
+|------|-----|------|
 | `responseVersion` | `"doctor-pack-response/v1"` | v0.42.0 |
 | `ok` | `boolean` | v0.42.0 |
 | `status` | `"full_pack" \| "partial_pack" \| "no_pack_diagnostic"` | v0.42.0 |
@@ -27,51 +27,51 @@ These fields are guaranteed stable. Changes are backward-compatible additions on
 | `diagnostics.noPackReason` | `string?` | v0.42.0 |
 | `diagnostics.gateObservations` | `string[]?` | v0.43.0 |
 
-### 🧪 Experimental
-These fields provide additional value but may change in minor releases:
+### 🧪 Deneysel
+Bu alanlar ek değer sağlar ama minor sürümlerde değişebilir:
 
-| Field | Type | Status |
-|-------|------|--------|
-| `pack.relevantLegislation[].preliminaryAssessment` | object? | Experimental — structure may evolve; currently includes `summary` + `sentences[]` with `text`, `sourceRef`, `sourceLabel` |
-| `pack.relevantLegislation[].inForce` | `boolean \| "unknown"` | Experimental — added v0.44.0 |
-| `pack.relevantLegislation[].lastAmendedDate` | `string?` | Experimental — ISO date when available |
-| `pack.relevantLegislation[].repealed` | `boolean?` | Experimental |
-| `pack.precedentDiagnostics.dedupedCount` | `number?` | Experimental — added v0.44.0 |
+| Alan | Tip | Durum |
+|------|-----|-------|
+| `pack.relevantLegislation[].preliminaryAssessment` | object? | Deneysel — yapı evrilebilir; şu an `summary` + `sentences[]` içerir (`text`, `sourceRef`, `sourceLabel`) |
+| `pack.relevantLegislation[].inForce` | `boolean \| "unknown"` | Deneysel — v0.44.0'da eklendi |
+| `pack.relevantLegislation[].lastAmendedDate` | `string?` | Deneysel — mevcut olduğunda ISO tarih |
+| `pack.relevantLegislation[].repealed` | `boolean?` | Deneysel |
+| `pack.precedentDiagnostics.dedupedCount` | `number?` | Deneysel — v0.44.0'da eklendi |
 
-### ⚠️ Internal / Diagnostic
-These fields are for debugging. They may change without notice:
+### ⚠️ Dahili / Tanılama
+Bu alanlar hata ayıklama içindir. Önceden haber verilmeden değişebilir:
 
-| Field | Notes |
-|-------|-------|
-| `pack.selectionDiagnostics` | Internal ranking diagnostics |
-| `pack.precedentDiagnostics` (except `dedupedCount`) | Internal precedent selection data |
-| `pack.sourceTrace` | Internal adapter trace data |
-| `pack.sourceWarnings` | Warning messages — format not guaranteed |
-| `diagnostics.gateObservations` | Observation strings — format not guaranteed |
+| Alan | Notlar |
+|------|--------|
+| `pack.selectionDiagnostics` | Dahili sıralama tanılaması |
+| `pack.precedentDiagnostics` (`dedupedCount` hariç) | Dahili emsal seçim verisi |
+| `pack.sourceTrace` | Dahili adaptör iz verisi |
+| `pack.sourceWarnings` | Uyarı mesajları — format garanti edilmez |
+| `diagnostics.gateObservations` | Gözlem dizeleri — format garanti edilmez |
 
-## Deprecation Policy
+## Kullanımdan Kaldırma (Deprecation) Politikası
 
-1. **Announcement**: Deprecated fields are documented in `CHANGELOG.md` at least one
-   minor version before removal.
-2. **Grace period**: Minimum one minor version with both old and new fields available.
-3. **Removal**: Deprecated fields are removed in the NEXT minor version after
-   announcement with a `CHANGELOG.md` note.
+1. **Duyuru**: Kullanımdan kaldırılan alanlar, kaldırılmadan en az bir minor sürüm önce
+   `CHANGELOG.md`'de belgelenir.
+2. **Geçiş süresi**: Hem eski hem yeni alanların mevcut olduğu en az bir minor sürüm.
+3. **Kaldırma**: Kullanımdan kaldırılan alanlar, duyurudan SONRAKİ minor sürümde bir
+   `CHANGELOG.md` notuyla kaldırılır.
 
-## Breaking Changes
+## Kırıcı Değişiklikler
 
-Breaking changes are signaled by bumping `responseVersion` (e.g., from
-`"doctor-pack-response/v1"` to `"doctor-pack-response/v2"`). The MCP
-`serverInfo.version` follows `package.json` version (currently 0.44.0).
+Kırıcı değişiklikler `responseVersion` artırılarak sinyallenir (ör.
+`"doctor-pack-response/v1"`'den `"doctor-pack-response/v2"`'ye). MCP
+`serverInfo.version`, `package.json` sürümünü izler (şu an 0.44.0).
 
-A 1.0 release will:
-- Freeze the stable tier
-- Require a `responseVersion` bump for any breaking stable-tier change
-- Follow strict SemVer (major.minor.patch)
+Bir 1.0 sürümü:
+- Stabil katmanı dondurur
+- Herhangi bir kırıcı stabil-katman değişikliği için `responseVersion` artışı gerektirir
+- Katı SemVer'i izler (major.minor.patch)
 
-## MCP Tool Compatibility
+## MCP Araç Uyumluluğu
 
-### Stable Tools
-These tool names, input schemas, and output contracts are stable:
+### Stabil Araçlar
+Bu araç adları, girdi şemaları ve çıktı sözleşmeleri stabildir:
 - `classify_medical_legal_question`
 - `search_health_legislation`
 - `get_legislation_provisions`
@@ -79,17 +79,17 @@ These tool names, input schemas, and output contracts are stable:
 - `filter_reasoned_precedents`
 - `prepare_doctor_legal_information_pack`
 
-### Experimental Parameters
-These input parameters may change:
-- `assessmentTone` — added v0.44.0, values: `"strict"` | `"grounded-advisory"` (default)
+### Deneysel Parametreler
+Bu girdi parametreleri değişebilir:
+- `assessmentTone` — v0.44.0'da eklendi, değerler: `"strict"` | `"grounded-advisory"` (varsayılan)
 
-## Resource URIs
+## Kaynak (Resource) URI'leri
 
-These MCP resource URIs are stable:
+Bu MCP kaynak URI'leri stabildir:
 - `health-legislation://inventory`
 - `doktor://calibration-status`
 
-## Reporting Issues
+## Sorun Bildirimi
 
-Report compatibility issues or unexpected breaking changes via the project's
-issue tracker.
+Uyumluluk sorunlarını veya beklenmeyen kırıcı değişiklikleri projenin sorun (issue)
+takipçisi üzerinden bildirin.
