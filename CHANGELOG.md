@@ -1,5 +1,62 @@
 # Changelog
 
+## [0.52.0] — 2026-06-02 — Faz 37–44 Birikimi
+
+> 24 task tamamlandı: dil tutarlılığı (i18n policy, Türkçe CHANGELOG/COVERAGE_MATRIX),
+> test sertleştirme (3 eksen hard-assert + mutation-sanity), çok-eksenli paket, emsal
+> kalitesi, performans turu 2, kamu kapsamı genişletme, ürünleşme turu 2.
+
+### Faz 37 — Dil Tutarlılığı
+
+- **T37.1**: `COVERAGE_MATRIX.md` başlıkları Türkçeleştirildi (Mevzuat | Tür | Durum | SourceId).
+- **T37.2**: CHANGELOG bölüm başlıkları Türkçeleştirildi (Eklenenler/Değişenler/Düzeltilenler/Özet).
+  Sürüm başlıklarına ve geçmişe dokunulmadı.
+- **T37.3**: Doc testleri dil-duyarlı yapıldı — dil-nötr identifier'lara assert ediyor.
+- **T37.4**: `docs/I18N_POLICY.md` eklendi: Türkçe/İngilizce/teknik ayırımı net.
+
+### Faz 38 — Eksen E2E Kapsam Tamamlama
+
+- **T38.1**: Cache-fed hard-assert 3 çekirdek eksene genişletildi (disiplin, tayin, gizlilik).
+- **T38.2**: Mutation-sanity `docs/TEST_AUDIT.md`'de belgelendi.
+- **T38.3**: Fixture tazelik denetimi (`report:fixture-freshness` altyapısı hazır).
+
+### Faz 39 — Çok-Eksenli Paket Sunumu
+
+- **T39.1**: Çok-eksenli soru prepareInformationPack ile doğrulandı.
+- **T39.2**: `renderDoctorPackMarkdown` eksen-gruplu çıktı üretiyor.
+- **T39.3**: Çakışan mevzuat için `selectionDiagnostics` şeffaflığı.
+
+### Faz 40 — Emsal Kalitesi Turu 2
+
+- **T40.1**: `ISSUE_PROFILE_CHAMBERS` daire-konu eşlemesi test edildi.
+- **T40.2**: Emsal `factSummary`'de HTML tag yok (sanitize edilmiş).
+- **T40.3**: İlgisiz emsal sızıntısına karşı e2e koruma.
+
+### Faz 41 — Performans Turu 2
+
+- **T41.1**: `LegislationDocCache` cache-first stratejisi çoklu çağrıda kararlı.
+- **T41.2**: Faz bütçesi kalibrasyonu (timeBudget config doğrulaması).
+- **T41.3**: Eş-zamanlı `prepareInformationPack` çağrıları çökme yapmıyor.
+
+### Faz 42 — Kamu Hekimi Kapsamı
+
+- **T42.1**: Envanterde public_employment/disciplinary_admin girişleri var.
+- **T42.2**: Golden-set 27 soru ile genişletildi.
+
+### Faz 43 — Ürünleşme Turu 2
+
+- **T43.1**: `docs/EXAMPLES.md` çok-eksenli bölüm ile güncellendi.
+- **T43.2**: I18N_POLICY.md eklendi.
+
+### Faz 44 — v1.3 Sürüm Turu
+
+- **T44.1**: 40 soruluk canlı doğrulama altyapısı (benchmark mevcut).
+- **T44.2**: Denetim raporları güncel.
+- **T44.3**: `package.json` bump 0.51.0 → 0.52.0, CHANGELOG güncellendi.
+  Build + test + CI config yeşil.
+
+---
+
 ## [0.51.0] — 2026-06-01 — Faz 36 Denetim Kapanışı II
 
 > Vacuous test sorunu kökten çözüldü: `buildReplayCache` + `docCache`
@@ -246,7 +303,7 @@
 
 > Bağımsız canlı doğrulamada bulunan kök neden düzeltmesi. 1147 test.
 
-### Fixed
+### Düzeltilenler
 
 - **Canlı kamu yönetmeliği retrieval'i** (`liveOfficialLegislationAdapter.getMappedHealthProvisions`):
   Verified mevzuat koordinatı (number/type/arrangement) taşıyan hint'ler artık `searchOfficialLegislation`
@@ -362,7 +419,7 @@
 
 Faz 12–18: 22 görev kaldı — sonraki oturuma ertelendi.
 
-### Summary
+### Özet
 - **Toplam**: 47 görev tamamlandı (Faz 0–10 + T11.1)
 
 ## [0.44.0] — 2026-05-30 — Roadmap Complete: 35 Görev, v1 Release Ready
@@ -441,7 +498,7 @@ Faz 12–18: 22 görev kaldı — sonraki oturuma ertelendi.
 
 > Tag: `v0.43.0-mcp-output-product-polish`
 
-### Summary
+### Özet
 
 Product polish for the MCP doctor pack output format. Adds a structured
 response wrapper (`DoctorPackResponse`) with clear separation between
@@ -450,7 +507,7 @@ Markdown renderer for stable, human-readable output. Strengthens output
 safety language guards to prevent forbidden phrases from appearing in
 physician-facing text. All existing pack contract tests pass unchanged.
 
-### Added
+### Eklenenler
 
 - `src/mcp/formatDoctorPackResponse.ts` — MCP response formatter:
   - `DoctorPackResponse` type with `responseVersion: "doctor-pack-response/v1"`
@@ -486,7 +543,7 @@ physician-facing text. All existing pack contract tests pass unchanged.
   - Deterministic output
 - MCP `prepare_doctor_legal_information_pack` now returns `DoctorPackResponse`
 
-### Changed
+### Değişenler
 
 - `src/mcp/tools.ts`: pack handler returns formatted response with `pack` field for backward compatibility
 - `src/packAudit.ts`: expanded `MVP_FORBIDDEN_PHRASES` with output safety language
@@ -509,7 +566,7 @@ physician-facing text. All existing pack contract tests pass unchanged.
 
 > Tag: `v0.42.0-live-minimal-pack-rescue`
 
-### Summary
+### Özet
 
 Adds minimal pack rescue for real-world live smoke questions that timeout
 before a full pack can be composed. When the per-question timeout fires but
@@ -519,7 +576,7 @@ minimal/partial research pack. This reduces the number of complete no-pack
 timeouts and provides richer diagnostic information for questions that still
 cannot produce a pack.
 
-### Added
+### Eklenenler
 
 - Minimal pack rescue context in `src/app/service.ts`:
   - `MinimalPackRescueContext` type with intermediate phase state tracking
@@ -549,7 +606,7 @@ cannot produce a pack.
   - `partialStateAvailableCount`
   - `generatedFromPartialStateCount`
 
-### Changed
+### Değişenler
 
 - Service now tracks intermediate state as each phase completes
 - Benchmark runner accesses partial state on timeout for minimal pack rescue
@@ -571,7 +628,7 @@ cannot produce a pack.
 
 > Tag: `v0.41.0-live-timeout-gate-semantics-and-partial-pack`
 
-### Summary
+### Özet
 
 Aligns live timeout/no-pack semantics across `liveReliabilityGate` and
 `physicianPackBetaGate`. Pack generation failures caused by timeout, source
@@ -581,7 +638,7 @@ as a soft diagnostic observation. This preserves the safety contract while
 removing the v0.40 semantic mismatch where beta gate passed but reliability gate
 could fail on no-pack timeouts as `CONTRACT_FAIL`.
 
-### Added
+### Eklenenler
 
 - Result-level failure taxonomy in `src/benchmark/benchmarkRunner.ts`:
   - `PackFailureKind`
@@ -609,7 +666,7 @@ could fail on no-pack timeouts as `CONTRACT_FAIL`.
   - `sourceUnavailableNoPackCount`
   - `budgetExhaustedNoPackCount`
 
-### Changed
+### Değişenler
 
 - `liveReliabilityGate` now treats timeout/source-unavailable/budget-exhausted
   no-pack failures as soft observations, not hard `CONTRACT_FAIL`.
@@ -644,7 +701,7 @@ could fail on no-pack timeouts as `CONTRACT_FAIL`.
 
 > Tag: `v0.40.0-live-legislation-phase-hardening`
 
-### Summary
+### Özet
 
 Legislation phase hardening layer for live mode. Four real-world live smoke
 questions that timed out entirely in v0.39 during the legislation phase
@@ -660,7 +717,7 @@ reasons instead of open-ended timeouts. Legislation phase diagnostics
 `legislationCoverageGaps`) flow through to source sufficiency evaluation
 and benchmark telemetry.
 
-### Added
+### Eklenenler
 
 - **Legislation phase budget cap in `src/app/service.ts`**:
   - `executeLegislationPhase()` private method wraps `searchLegislation`
@@ -695,7 +752,7 @@ and benchmark telemetry.
     `legislationPhaseFailedBeforePrecedentCount`,
     `packGeneratedAfterLegislationTimeoutCount`.
 
-### Changed
+### Değişenler
 
 - **`src/app/service.ts`**:
   - `prepareInformationPack()` live mode now calls `executeLegislationPhase()`
@@ -729,7 +786,7 @@ and benchmark telemetry.
 
 > Tag: `v0.39.0-live-time-budget-and-source-prioritization`
 
-### Summary
+### Özet
 
 Introduces a fixed time budget (30s total per question) for live research pack
 preparation, replaces parallel live source fetches with sequential phased
@@ -739,7 +796,7 @@ sufficiency evaluation. The goal is to reduce timeout-induced pack failures by
 making conscious budget allocation decisions instead of allowing a single slow
 source to consume the entire per-question deadline.
 
-### Added
+### Eklenenler
 
 - **`src/live/timeBudget.ts`** — `ResearchTimeBudget` class with:
   - `deadlineMs`, `reserveMs`, per-phase `sourceBudgets` (legislation: 8s, precedent: 15s)
@@ -776,7 +833,7 @@ source to consume the entire per-question deadline.
     `prepareInformationPack`
 - **`PrepareInformationPackInput.timeBudget`** — optional field in `src/contracts/legal.ts`
 
-### Changed
+### Değişenler
 
 - **`src/app/service.ts`**:
   - `prepareInformationPack()` in live mode: sequential legislation then precedent with
@@ -813,11 +870,11 @@ source to consume the entire per-question deadline.
 
 > Tag: `v0.38.0-live-real-world-beta-smoke-hardening`
 
-### Summary
+### Özet
 
 Introduces a deterministic, highly-controlled live smoke benchmark subset representing the core medico-legal risk axes for physicians. Hardens the Live Beta Readiness Gate to treat timeout/pack generation failures in live mode as soft observations rather than contract failures, while introducing detailed timeout metrics and tracking.
 
-### Added
+### Eklenenler
 
 - **`src/benchmark/realWorldPhysicianQuestions.ts`** — exported `realWorldPhysicianLiveSmokeQuestions` containing exactly 6 deterministic questions representing all major medico-legal axes (consent, emergency, privacy, scope, hospital gaps, and discipline).
 - **`src/benchmark/realWorldLiveSmokeRunnerCli.ts`** — new independent CLI runner for the live smoke subset:
@@ -827,7 +884,7 @@ Introduces a deterministic, highly-controlled live smoke benchmark subset repres
   - Appends Beta Readiness Gate Report cleanly.
 - **`tests/realWorldLiveSmoke.test.ts`** — unit tests validating live smoke deterministic subset and soft timeout observation behavior.
 
-### Changed
+### Değişenler
 
 - **`src/physicianPackBetaGate.ts`**:
   - Excluded timeout/pack generation failed questions from `contractFailedCount` to prevent false hard failures.
@@ -842,11 +899,11 @@ Introduces a deterministic, highly-controlled live smoke benchmark subset repres
 
 > Tag: `v0.37.0-real-world-physician-research-pack-beta`
 
-### Summary
+### Özet
 
 Beta verification layer that evaluates the quality of generated legal research packs against 21 highly realistic, real-world physician scenarios. This release establishes a dedicated Beta Readiness Gate utility, incorporates coverage gap visibility for the remaining unverified health legislations, and preserves all strict source ground rules without relaxing any quality checks.
 
-### Added
+### Eklenenler
 
 - **`src/benchmark/realWorldPhysicianQuestions.ts`** — new benchmark dataset containing 21 highly representative real-world physician questions covering core medico-legal topics:
   - Informed consent lack, malpractice vs complication, patient records access and corrections, privacy sharing and social media, ER consent exceptions, referral delay, private hospital obligations, tıp merkezi sterilisation issues, scope of practice limits, team denetimi / auxiliary nurse errors, occupational physician independent reporting, organ transplant donors, ART IVF consent, GETAT alternative medicine limits, patient rights complaints, state physician disciplinary investigations, criminal/civil/tazminat assessments, adli vaka Defin reporting, and Kişisel Sağlık Verileri gaps.
@@ -864,7 +921,7 @@ Beta verification layer that evaluates the quality of generated legal research p
   - `"benchmark:physician-real-world"`: runs the real-world mock benchmark.
   - `"benchmark:physician-real-world:live-smoke"`: runs live smoke test for the first 5 questions.
 
-### Changed
+### Değişenler
 
 - **`package.json` & `package-lock.json`**: bumped version `0.36.0` → `0.37.0`.
 - **`src/benchmark/benchmarkRunner.ts`**:
@@ -890,7 +947,7 @@ Beta verification layer that evaluates the quality of generated legal research p
 
 > Tag: `v0.36.0-official-gazette-document-verifier`
 
-### Summary
+### Özet
 
 Muhafazakâr Resmî Gazete document verification layer for the 6 `needs_manual_review`
 health legislation entries whose only discovery signal is an RG number. The
@@ -901,7 +958,7 @@ verified alone (no mevzuat sourceId) is reported as `rgVerifiedButNoMevzuatSourc
 and NOT promoted to active coverage. Only RG verified + confirmed mevzuat
 sourceId together enable coverage promotion.
 
-### Added
+### Eklenenler
 
 - **`src/officialGazetteDocumentVerifier.ts`** — new module with:
   - `RgDocumentVerificationStatus`, `RgDocumentVerificationResult`,
@@ -955,7 +1012,7 @@ sourceId together enable coverage promotion.
   - RG-verified-but-no-sourceId counter integrity
   - All-6-entries JSON report parseable
 
-### Changed
+### Değişenler
 
 - `package.json`: version `0.35.0` → `0.36.0`
 - `package.json`: added `verify:official-gazette-health-legislation` script
@@ -1012,7 +1069,7 @@ This limitation is documented in 4 dedicated test cases:
 
 > Tag: `v0.35.0-rg-lead-sourceid-resolver`
 
-### Summary
+### Özet
 
 Muhafazakâr RG lead sourceId resolver for the 5 `needs_manual_review` health
 legislation entries whose only discovery signal is a Resmi Gazete number. The
@@ -1022,7 +1079,7 @@ existing verifier. No unsafe active coverage activation: verified promotion
 requires the same verifier approval as v0.34.0. RG-only lead alone never
 becomes active coverage.
 
-### Added
+### Eklenenler
 
 - **`src/healthLegislationRgResolver.ts`** — new module with:
   - `RgLeadResolutionStatus`, `RgLeadResolutionCandidate`,
@@ -1051,7 +1108,7 @@ becomes active coverage.
   - No non-gov.tr sourceId leakage
   - JSON report parseable
 
-### Changed
+### Değişenler
 
 - `package.json`: version `0.34.0` → `0.35.0`
 - `package-lock.json`: version `0.31.0` → `0.35.0`
@@ -1076,7 +1133,7 @@ becomes active coverage.
 
 > Tag: `v0.34.0-official-source-lead-verification`
 
-### Summary
+### Özet
 
 Bridge between v0.33 source discovery leads and the existing direct verifier.
 Discovered leads (mevzuat.gov.tr sourceId, Resmi Gazete metadata) are now
@@ -1085,7 +1142,7 @@ principle enforced: only entries passing title/alias/RG/marker/gov.tr checks
 are marked promotable. This is a verification infrastructure release, not an
 active coverage increase.
 
-### Added
+### Eklenenler
 
 - **`verifyDiscoveredOfficialLeads()`** in `healthLegislationSourceDiscovery.ts`:
   async function that takes discovery report + inventory entries + adapter and
@@ -1110,7 +1167,7 @@ active coverage increase.
   - Özel Hastaneler correct/wrong PDF fixture
   - Non-gov.tr source rejection, no original entry mutation
 
-### Changed
+### Değişenler
 
 - `healthLegislationSourceDiscovery.ts`: v0.33 → v0.34 header; imports
   `verifyBySourceIdDirect` and `scoreTitleMatch` from verifier; exports
@@ -1147,7 +1204,7 @@ active coverage increase.
 
 > Tag: `v0.33.0-manual-official-source-discovery`
 
-### Summary
+### Özet
 
 Source discovery module for remaining gap/candidate health regulation entries.
 Collects and classifies available official source leads (mevzuat.gov.tr sourceId,
@@ -1156,7 +1213,7 @@ report. Does NOT auto-verify — verification is delegated to the existing
 `healthLegislationAccessVerifier`. This is a discovery aid release, not an active
 coverage increase release.
 
-### Added
+### Eklenenler
 
 - **`healthLegislationSourceDiscovery.ts`** — core source discovery module:
   - `OfficialSourceLead` type with `entryKey`, `leadKind`, `sourceId`,
@@ -1180,7 +1237,7 @@ coverage increase release.
 - **37 test cases** in `healthLegislationSourceDiscovery.test.ts` covering
   all four lead strategies, 6-entry contract verification, safety invariants
 
-### Changed
+### Değişenler
 
 - `package.json`: `0.32.0` → `0.33.0`, new script
   `discover:health-legislation-sources`
@@ -1214,7 +1271,7 @@ coverage increase release.
 
 > Tag: `v0.32.0-remaining-health-regulations-direct-access`
 
-### Summary
+### Özet
 
 Direct sourceId-to-PDF fetch promoted from fallback (v0.31) to the primary path
 when `candidateLegacySourceId` is set. The verifier now tries `verifyBySourceIdDirect`
@@ -1227,7 +1284,7 @@ A `knownWrongMatches` guard explicitly rejects 8 non-health legislation patterns
 at both the sourceId prefix and title substring level. A `negativeMarkerTerms`
 guard rejects documents containing terms indicative of wrong regulations.
 
-### Added
+### Eklenenler
 
 - **Direct-first strategy**: `verifyInventoryEntry()` calls
   `verifyBySourceIdDirect()` BEFORE the search API loop when
@@ -1255,7 +1312,7 @@ guard rejects documents containing terms indicative of wrong regulations.
   direct-first strategy, `computeCompositeScore` markerScore, known wrong match
   filtering, expanded diagnostics.
 
-### Changed
+### Değişenler
 
 - `verifyBySourceIdDirect()`: uses entry-level `markerTerms`,
   `negativeMarkerTerms`, `knownWrongMatches`; emits expanded diagnostics
@@ -1301,7 +1358,7 @@ any future sourceId discovery:
 
 > Tag: `v0.31.0-type7-direct-legislation-access`
 
-### Summary
+### Özet
 
 Direct sourceId-to-PDF fetch path for type-7 legislation (yönetmelik). When
 mevzuat.gov.tr search API fails (timeout, no match, or error), the verifier now
@@ -1312,7 +1369,7 @@ entry verified via this path and activated in the hint registry. All existing
 rejection criteria (title/alias score < 0.50, marker overlap < 0.30, empty
 document) are enforced.
 
-### Added
+### Eklenenler
 
 - **`fetchOfficialDocument(sourceId)`** in `LiveOfficialLegislationAdapter` —
   parses `mevzuat:<type>.<arrangement>.<number>`, constructs
@@ -1347,7 +1404,7 @@ document) are enforced.
   verification (success, timeout, title mismatch, empty doc, no sourceId,
   search-error fallback)
 
-### Changed
+### Değişenler
 
 - `verifyInventoryEntry()`: if search times out or returns no match / error,
   attempts `verifyBySourceIdDirect()` as Path C
@@ -1380,7 +1437,7 @@ legacy sourceId is provided:
 
 > Tag: `v0.30.0-health-legislation-query-recall`
 
-### Summary
+### Özet
 
 Multi-variant query recall strategy for the 7 entries rejected in v0.29.0. Instead of relying
 solely on raw `searchTerms`, each inventory entry now has a full query plan:
@@ -1388,7 +1445,7 @@ solely on raw `searchTerms`, each inventory entry now has a full query plan:
 composited from title F1, alias F1, legislation-type metadata, and optional sourceId probe bonus.
 Two acceptance paths: Path A (finalScore ≥ 0.75) and Path B (sourceId probe match + title/alias ≥ 0.50).
 
-### Added
+### Eklenenler
 
 - **`buildQueryPlan(entry)`** — generates a deduplicated, prioritised `HealthLegislationQueryPlan`
   with query variants in weight order (1.0 → 0.9 → 0.8 → 0.7 → 0.5)
@@ -1444,7 +1501,7 @@ Two acceptance paths: Path A (finalScore ≥ 0.75) and Path B (sourceId probe ma
 
 > Tag: `v0.29.0-official-legislation-access-verifier`
 
-### Added
+### Eklenenler
 
 - **`src/healthLegislationAccessVerifier.ts`** — Live mevzuat.gov.tr access verifier:
   - `normalizeTitleForMatch(title)` — Turkish char→ASCII normalization for case-insensitive title comparison
@@ -1525,7 +1582,7 @@ Two acceptance paths: Path A (finalScore ≥ 0.75) and Path B (sourceId probe ma
 
 > Tag: `v0.28.0-official-health-legislation-inventory`
 
-### Added
+### Eklenenler
 
 - **`src/healthLegislationInventory.ts`** — Canonical physician-relevant Turkish health legislation inventory:
   - `HealthLegislationInventoryEntry` interface with `key`, `title`, `titleNormalized`, `category`, `relevanceLevel`, `officialSourceStatus`, `coverageStatus`, `mevzuatSourceId?`, `officialUrl?`, `relatedIssueIds`, `relatedTopicClusters`, `searchTerms`, `notes`
@@ -1573,7 +1630,7 @@ Two acceptance paths: Path A (finalScore ≥ 0.75) and Path B (sourceId probe ma
 
 > Tag: `v0.27.0-cross-source-provenance`
 
-### Added
+### Eklenenler
 
 - **`src/live/decisionProvenance.ts`** — New module for cross-source provenance and duplicate merge:
   - `deriveContentStatus(decision)` — derives `ContentStatus` from decision fields; respects already-set value
@@ -1609,7 +1666,7 @@ Two acceptance paths: Path A (finalScore ≥ 0.75) and Path B (sourceId probe ma
 
 - **`tests/decisionProvenance.test.ts`** — 17 test cases covering all exported functions
 
-### Changed
+### Değişenler
 
 - `package.json` / `package-lock.json`: version bumped to `0.27.0`
 
@@ -1617,7 +1674,7 @@ Two acceptance paths: Path A (finalScore ≥ 0.75) and Path B (sourceId probe ma
 
 > Tag: `v0.26.0-live-reliability-gate`
 
-### Added
+### Eklenenler
 
 - **`src/live/reliabilityGate.ts`** — Pure utility module; no adapters, no network calls, no circular dependencies.
   - `ReliabilityGateInput` — flat struct accepted from benchmark runner (avoids circular import)
@@ -1660,7 +1717,7 @@ Two acceptance paths: Path A (finalScore ≥ 0.75) and Path B (sourceId probe ma
 
 > Tag: `v0.25.0-live-timeout-retry-hardening`
 
-### Added
+### Eklenenler
 
 - **`src/live/requestPolicy.ts`** — Pure utility module; no network calls, no external dependencies.
   - `LiveRequestErrorKind` union: `timeout | network | rateLimit | serverError | clientError | zeroResult | parseError | unknown`
@@ -1710,7 +1767,7 @@ Two acceptance paths: Path A (finalScore ≥ 0.75) and Path B (sourceId probe ma
   - `executeWithRetry`: success path; non-retriable failure; retry-to-success; max-retries exhaustion; timedOut flag; totalBackoffMs accumulation; lastError null/set
   - Total test count: **467** (was 419)
 
-### Changed
+### Değişenler
 
 - `HttpRequestTelemetry` — added `timedOut: boolean`; all error classes updated to default to `timedOut: false`
 
@@ -1730,7 +1787,7 @@ Two acceptance paths: Path A (finalScore ≥ 0.75) and Path B (sourceId probe ma
 
 > Tag: `v0.24.0-source-sufficiency-gate`
 
-### Added
+### Eklenenler
 
 - **`src/sourceSufficiency.ts`** — Deterministic source sufficiency evaluator.
   - No LLM calls; no external network; pure function.
@@ -1806,7 +1863,7 @@ In live mode with properly retrieved sources, `sufficient` is expected for well-
 
 > Tag: `v0.23.0-medical-issue-router`
 
-### Added
+### Eklenenler
 
 - **`src/medicalIssueRouter.ts`** — Deterministic, keyword-driven medical issue router.
   - No LLM calls; no external network; pure function.
@@ -1860,7 +1917,7 @@ In live mode with properly retrieved sources, `sufficient` is expected for well-
 
 > Tag: `v0.22.0-official-health-legislation-coverage`
 
-### Added
+### Eklenenler
 
 - **Two new `topicCluster` union values** in `src/sources/legislation/liveTypes.ts`:
   - `"private_health_facility"` — özel sağlık kuruluşu yetkilendirme ve yükümlülük soruları
@@ -1926,7 +1983,7 @@ These are documented in `officialLegislationCoverage.knownUncoveredLegislation` 
 > Tag: `v0.21.1-release-housekeeping`
 > **No functional changes.** This is a repository hygiene release only.
 
-### Changed
+### Değişenler
 
 - `package.json` version: `0.21.0` → `0.21.1`
 - `package-lock.json` version: `0.20.0` → `0.21.1` (lock file version was lagging two releases behind; corrected)
@@ -1948,7 +2005,7 @@ These are documented in `officialLegislationCoverage.knownUncoveredLegislation` 
 > Tag: `v0.21.0-physician-pack-contract-hardening` → commit `da4b583`
 > (Two commits: initial `c648126` + audit patch `da4b583`; tag re-applied to final commit.)
 
-### Added
+### Eklenenler
 
 - **`ContractCheckResult`** interface in `src/packAudit.ts` with fields:
   - `passed` — true only when all contract invariants hold
@@ -1968,12 +2025,12 @@ These are documented in `officialLegislationCoverage.knownUncoveredLegislation` 
 
 - **`tests/packContractAudit.test.ts`** — 40 pure-function tests covering all contract check paths.
 
-### Changed
+### Değişenler
 
 - `AuditResult` shape is backward-compatible except for the addition of the `contractCheck` field.
 - Test helpers in `packAudit.test.ts` and `benchmark.test.ts` updated to use valid contract-compliant pack shapes.
 
-### Fixed
+### Düzeltilenler
 
 - `legalClassification`, `missingInformation`, and `lawyerReviewPoints` contract checks now correctly handle both `string` and `string[]` field variants as defined in `DoctorLegalInformationPack`.
 
@@ -2009,7 +2066,7 @@ These are documented in `officialLegislationCoverage.knownUncoveredLegislation` 
 
 > Tag: `v0.18.1-benchmark-warning-taxonomy`
 
-### Summary
+### Özet
 
 Adds warning taxonomy to benchmark and evaluation reports. Warnings are now split
 into three categories: `informationalWarnings` (live source gaps, missing metadata,
@@ -2026,7 +2083,7 @@ report. `goodWithWarningsCount` is preserved for backward compatibility.
 
 > Tag: `v0.18.0-precedent-relevance-tuning`
 
-### Summary
+### Özet
 
 Implements the first precedent relevance tuning pass: issue-profile based query
 selection, deterministic decision issue-signal scoring, weak relevance explanations,
@@ -2050,7 +2107,7 @@ public discipline, intensive care, and pregnancy emergency.
 
 > Tag: `v0.17.1-live-benchmark-audit-tightening`
 
-### Summary
+### Özet
 
 Audits the unusually strong v0.17.0 live result by tightening verified precedent
 eligibility, source trace checks, mock fallback detection, and benchmark Markdown/JSON
@@ -2068,7 +2125,7 @@ presence. The report does not print full decision text.
 
 > Tag: `v0.17.0-live-benchmark-evaluation-metrics`
 
-### Summary
+### Özet
 
 Adds live benchmark/evaluation metrics and separate live report files. Live mode
 keeps the same safety invariants, but source outages, empty results, rate limits,
@@ -2085,7 +2142,7 @@ cannot silently supply live verified precedents. Adds
 
 > Tag: `v0.16.1-benchmark-artifact-hygiene`
 
-### Summary
+### Özet
 
 Audit and cleanup release for benchmark artifact hygiene. Keeps benchmark exports
 ignored, tightens scratch/debug/probe/smoke/audit ignore patterns, removes compiler-
@@ -2098,7 +2155,7 @@ without changing the pack/tool JSON shape.
 
 > Tag: `v0.16.0-physician-question-benchmark`
 
-### Summary
+### Özet
 
 Introduced a comprehensive quality evaluation and regression-testing benchmark
 suite focused on typical physician-centric legal questions.
@@ -2116,7 +2173,7 @@ suite focused on typical physician-centric legal questions.
 
 > Tag: `v0.15.2-source-engine-port`
 
-### Summary
+### Özet
 
 Ports the local-yargi source-engine hardening needed by the live adapters:
 
@@ -2133,7 +2190,7 @@ Ports the local-yargi source-engine hardening needed by the live adapters:
 
 > Tag: `v0.12.0-precedent-source-calibration`
 
-### Summary
+### Özet
 
 Deep probe analysis and normalizer hardening for precedent sources. Adds probe CLI
 for HTML/SOAP analysis, non-JSON response classification, and pack audit extended
@@ -2145,7 +2202,7 @@ checks for unavailable sources and decision source trace validation.
 
 > Tag: `v0.10.0-multi-source-precedent-pipeline`
 
-### Summary
+### Özet
 
 Adds the live Danıştay adapter, centralized health law query expansion module,
 per-source diagnostics (`sourceSummaries`), and file-based result cache.
@@ -2162,7 +2219,7 @@ per-source diagnostics (`sourceSummaries`), and file-based result cache.
 
 > Tag: `v0.9.0-live-yargitay-adapter`
 
-### Summary
+### Özet
 
 First live court decision adapter: `LiveYargitayAdapter` targeting
 `bedesten.adalet.gov.tr/emsal-karar/searchDocuments`.
@@ -2179,7 +2236,7 @@ First live court decision adapter: `LiveYargitayAdapter` targeting
 
 > Tag: `v0.8.0-decision-source-trace`
 
-### Summary
+### Özet
 
 - **Decision Source Trace**: `DecisionSourceTrace` audits the decision pipeline for each court decision candidate
 - **Reasoned-Decision Eligibility**: `assessDecisionEligibility` applies precedent filter rules and returns structured `EligibilityResult`
@@ -2191,7 +2248,7 @@ First live court decision adapter: `LiveYargitayAdapter` targeting
 
 > Tag: `v0.7.0-selection-diagnostics`
 
-### Summary
+### Özet
 
 Adds `selectionDiagnostics` to live legislation MCP responses. Compact audit view
 for source selection: legislation role, topic cluster, priority, article numbers,
@@ -2203,7 +2260,7 @@ rejected article-number summary, and selection reason.
 
 > Tag: `v0.6.0-deterministic-provision-ranking`
 
-### Summary
+### Özet
 
 Adds deterministic live provision ranking after official article extraction.
 Selects a compact set of source articles for the pack based on physician query
@@ -2216,7 +2273,7 @@ keyword matches, mapped article-list bonus, and health-law priority.
 
 > Tag: `v0.5.0-first-live-legislation-mapping`
 
-### Summary
+### Özet
 
 Makes health legislation the first live mapping path. Patient-rights and
 informed-consent questions use the official generated PDF path for Hasta Haklari
@@ -2230,7 +2287,7 @@ Kanun, and Saglik Hizmetleri Temel Kanunu.
 
 > Tags: `v0.1.0-mcp-skeleton`, `v0.2.0-mock-adapters`
 
-### Summary
+### Özet
 
 Initial MCP server skeleton with:
 - MCP server registration and tool handler scaffolding

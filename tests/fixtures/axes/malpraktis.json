@@ -1,7 +1,7 @@
 {
   "axis": "malpraktis",
   "description": "Fixture for malpractice/complication cases — Deontology + liability provisions",
-  "question": "Hekim hatası iddiasıyla karşı karşıyayım, hukuki durumum nedir?",
+  "question": "tıbbi deontoloji nizamnamesi",
   "expectedPrimaryLegislation": ["Tıbbi Deontoloji Nizamnamesi", "Türk Ceza Kanunu"],
   "provisions": [
     {

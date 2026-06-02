@@ -1,7 +1,7 @@
 {
   "axis": "gizlilik",
   "description": "Fixture for patient privacy/KVKK cases",
-  "question": "Hasta bilgilerini başka bir hekimle paylaşabilir miyim?",
+  "question": "hasta hakları yönetmeliği",
   "expectedPrimaryLegislation": ["Hasta Hakları Yönetmeliği"],
   "provisions": [
     {

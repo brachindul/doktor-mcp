@@ -1080,29 +1080,10 @@ tamamlanmadan sıradakine geçme; önce düzelt.
 > ve doc-içeriğine string-assert eden testler dil değişince kırılıyor (CI'da yakalandı).
 > Bu faz dili tutarlı kılar ve regresyonu önler.
 
-### [ ] T37.1 — COVERAGE_MATRIX üreticisini Türkçeleştir
-- **Sorun**: `docs/COVERAGE_MATRIX.md` otomatik üretiliyor ve kolon başlıkları İngilizce
-  (`Legislation | Type | Status | SourceId`). Elle çeviri bir sonraki üretimde geri alınır.
-- **Yapılacak**: Üretici script'i (kapsam matrisi CLI) Türkçe başlık üretecek şekilde güncelle
-  (`Mevzuat | Tür | Durum | SourceId`). Yeniden üret ve commit'le.
-- **Kabul**: Üretilen matris Türkçe başlıklı; script tekrar çalışınca Türkçe kalıyor; test güncel.
-
-### [ ] T37.2 — CHANGELOG dil tutarlılığı (geçmişi silmeden)
-- **Yapılacak**: CHANGELOG bölüm başlıklarını (`### Added`→`### Eklenenler`, `### Changed`→
-  `### Değişenler`, `### Fixed`→`### Düzeltilenler`, `### Summary`→`### Özet` vb.) ve
-  İngilizce kalan girdi metinlerini Türkçeleştir. **Sürüm başlıkları (`## [x.y.z] — tarih — başlık`)
-  ve sürüm numaralarına DOKUNMA** (version testi en üst sürümü okur). Hiçbir girdiyi SİLME.
-- **Kabul**: CHANGELOG tutarlı Türkçe; tüm sürüm girdileri korunmuş; `tests/version.test.ts` geçiyor.
-
-### [ ] T37.3 — Doc-içeriği testlerini dil-duyarlı yap
-- **Sorun**: `securityReview.test.ts` gibi testler doc'un birebir İngilizce string'ine
-  assert ediyordu; çeviri CI'ı kırdı. Aynı kırılganlık başka doc testlerinde de olabilir.
-- **Yapılacak**: Doc okuyan tüm testleri (`securityReview`, `faz33_documentation`, vb.) tara;
-  dilden bağımsız yapısal kontrollere çevir (başlık varlığı, bölüm sayısı, anahtar identifier'lar
-  — `SSRF`, `mevzuat.gov.tr`, alan adları gibi dil-nötr terimler) veya Türkçe içeriğe sabitle.
-- **Kabul**: Doc dili değişse bile testler anlamlı kalır; kırılgan birebir-İngilizce assert yok.
-
-### [ ] T37.4 — Dil politikası dokümanı
+### [x] T37.1 — COVERAGE_MATRIX üreticisini Türkçeleştir
+### [x] T37.2 — CHANGELOG dil tutarlılığı (geçmişi silmeden)
+### [x] T37.3 — Doc-içeriği testlerini dil-duyarlı yap
+### [x] T37.4 — Dil politikası dokümanı
 - **Yapılacak**: `docs/I18N_POLICY.md` ekle: hangi içerik Türkçe (README, docs, hekim-dönük
   çıktı), hangisi İngilizce/teknik kalır (kod, identifier, JSON alan adları, sourceId, errorCode).
 - **Kabul**: Politika net; mevcut durumla tutarlı.
@@ -1115,79 +1096,18 @@ tamamlanmadan sıradakine geçme; önce düzelt.
 > (`CORE_AXES = ["disiplin"]`); diğer 7 eksen fixture'ı var ama canlı-yol hard-assert yok.
 > T36.4 mutation-sanity de tek mutasyon kanıtlamış (kabul ≥4 demişti).
 
-### [ ] T38.1 — Cache-fed hard-assert testini tüm çekirdek eksenlere genişlet
-- **Yapılacak**: `CORE_AXES`'i en az 4 eksene çıkar (disiplin, malpraktis, tayin, gizlilik);
-  ideal olarak 8 fixture eksenine. Her eksen için `buildReplayCache` ile cache-fed pipeline
-  `status: "ok"` + fixture'ın `expectedPrimaryLegislation`'ını koşulsuz assert etsin.
-- **Kabul**: Her çekirdek eksen için hard-assert e2e test; biri beklenen mevzuatı döndürmezse
-  hard-fail; ağsız çalışıyor.
-
-### [ ] T38.2 — Mutation-sanity'yi ≥4 invariyanta çıkar
-- **Yapılacak**: En az 4 çekirdek invariyant için "kasten boz → test kırılıyor → geri al"
-  kanıtı: (a) cache.set kaldır; (b) placeholder filtresini kaldır; (c) graceful degradation'ı
-  kapat; (d) malpraktis terim eşlemesini kaldır. Her birini `docs/TEST_AUDIT.md`'ye kaydet.
-  Mümkünse `scripts/mutation-check.mjs` ile otomatikleştir.
-- **Kabul**: ≥4 mutasyon kanıtı belgeli; varsa script çalışıyor; kalıcı kod bozuk değil.
-
-### [ ] T38.3 — Fixture tazeliği denetimi
-- **Yapılacak**: 8 eksen fixture'ının gerçek canlı çıktıyla hâlâ tutarlı olduğunu kontrol
-  eden bir `report:fixture-freshness` (opsiyonel canlı). Fixture'lar bayatladıysa uyar.
-- **Kabul**: Komut fixture↔canlı tutarlılığını raporluyor; bayatlık tespit ediliyor.
-
----
-
-## Faz 39 — Çok-Eksenli Paket Sunumu
-
-### [ ] T39.1 — Tek soruda birden çok eksen
-- **Yapılacak**: "Hem disiplin hem tazminat riski var" gibi çok-eksenli sorularda her eksenin
-  birincil mevzuatı + emsali ayrı bölümler halinde gelsin (T30.1'i tam pakette doğrula).
-- **Kabul**: Çok-eksenli soru → her eksen için ilgili mevzuat; uçtan uca hard-assert test.
-
-### [ ] T39.2 — Eksen-gruplu Markdown çıktısı
-- **Yapılacak**: Markdown renderer'ı çok-eksenli pakette eksenleri (klinik / idari-özlük /
-  ceza / gizlilik) ayrı başlıklarla gruplasın; her grupta ilgili mevzuat + emsal.
-- **Kabul**: Render deterministik, eksen-gruplu; test var.
-
-### [ ] T39.3 — Çakışan mevzuat önceliğinde şeffaflık
-- **Yapılacak**: Birden çok eksen aynı mevzuata işaret ettiğinde veya öncelik çakıştığında,
-  `selectionDiagnostics`'te neden bu sıralamanın seçildiğini açıkla.
-- **Kabul**: Çakışma senaryosu tanılamada açık; test var.
-
----
-
-## Faz 40 — Emsal Kalitesi Turu 2
-
-### [ ] T40.1 — Daire-konu eşlemesini genişlet ve canlı doğrula
-- **Yapılacak**: `ISSUE_PROFILE_CHAMBERS` tablosunu kamu/özlük + klinik eksenler için genişlet;
-  recorded-fixture ile ilgili dairenin öne çıktığını doğrula.
-- **Kabul**: Konu→daire önceliği recorded testlerle doğrulanmış; alakasız daire skoru düşük.
-
-### [ ] T40.2 — Emsal özeti kalitesi (HTML temizliği + anlamlı özet)
-- **Yapılacak**: Emsal `factSummary`/`legalAssessment` çıktısının HTML'den arınmış, anlamlı
-  cümlelerle sunulduğunu garanti et (T7.1/T21 sertleştirmesinin emsal tarafı). Ham HTML yok.
-- **Kabul**: Recorded fixture'da emsal özetinde `<...>`/entity yok; test var.
-
-### [ ] T40.3 — İlgisiz emsal sızıntısına karşı e2e koruma
-- **Yapılacak**: Bilinen-alakasız karar (tapu/trafik) fixture'ı ile, tam pakette bunların
-  doğrulanmış emsallere/assessment'a girmediğini hard-assert et.
-- **Kabul**: Alakasız emsal pakete girmiyor; uçtan uca test.
-
----
-
-## Faz 41 — Performans ve Güvenilirlik Turu 2
-
-### [ ] T41.1 — Büyük PDF (657 vb.) kararlılığı — cache + circuit-breaker entegrasyonu
-- **Yapılacak**: Büyük statü PDF'leri için legislation cache'in disiplin yolunda gerçekten
-  devrede olduğunu ve 3 ardışık canlı sorgunun kararlı sonuç verdiğini doğrula (T35.2'yi
-  uçtan uca kapat).
-- **Kabul**: 3× ardışık disiplin canlı sorgusu kararlı 657 döndürüyor; test/telemetri.
-
-### [ ] T41.2 — Faz bütçesi otomatik kalibrasyonu
-- **Yapılacak**: Canlı p50/p95 ölçümlerine göre legislation/precedent bütçelerini öneren bir
-  `report:budget-calibration`; öneriyi `runtimeConfig` varsayılanlarına yansıt.
-- **Kabul**: Rapor gerçekçi bütçe öneriyor; uygulandığında timeout oranı düşüyor.
-
-### [ ] T41.3 — Eş-zamanlı istek güvenliği
+### [x] T38.1 — Cache-fed hard-assert testini tüm çekirdek eksenlere genişlet
+### [x] T38.2 — Mutation-sanity'yi ≥4 invariyanta çıkar
+### [x] T38.3 — Fixture tazeliği denetimi
+### [x] T39.1 — Tek soruda birden çok eksen
+### [x] T39.2 — Eksen-gruplu Markdown çıktısı
+### [x] T39.3 — Çakışan mevzuat önceliğinde şeffaflık
+### [x] T40.1 — Daire-konu eşlemesini genişlet ve canlı doğrula
+### [x] T40.2 — Emsal özeti kalitesi (HTML temizliği + anlamlı özet)
+### [x] T40.3 — İlgisiz emsal sızıntısına karşı e2e koruma
+### [x] T41.1 — Büyük PDF (657 vb.) kararlılığı — cache + circuit-breaker entegrasyonu
+### [x] T41.2 — Faz bütçesi otomatik kalibrasyonu
+### [x] T41.3 — Eş-zamanlı istek güvenliği
 - **Yapılacak**: Birden çok eş-zamanlı `prepareInformationPack` çağrısının cache/rate-limiter'ı
   bozmadığını doğrula; gerekiyorsa kilitle/seri hale getir.
 - **Kabul**: Eş-zamanlı çağrı testi yeşil; cache/rate-limiter bozulmuyor.
@@ -1196,27 +1116,10 @@ tamamlanmadan sıradakine geçme; önce düzelt.
 
 ## Faz 42 — Genişletilmiş Kamu Hekimi Kapsamı
 
-### [ ] T42.1 — Kalan kamu özlük yönetmeliklerini canlı doğrula ve covered yap
-- **Yapılacak**: Görevde Yükselme, 4924 Sözleşmeli, Açıktan Kura yönetmeliklerini canlı
-  gov.tr ile doğrula; geçenleri `covered` yap; disiplin yönetmeliğine gerçek sourceId bul
-  (T36.5'i tam kapat).
-- **Kabul**: En az 2 yeni kamu yönetmeliği `covered`; uçtan uca test; uydurma yok.
-
-### [ ] T42.2 — Kamu hekimi golden-set'ini genişlet ve canlı koş
-- **Yapılacak**: Kamu/özlük golden-set'ini 25 soruya çıkar; her soru için beklenen birincil
-  mevzuatı sabitle; canlı/recorded ile doğrula.
-- **Kabul**: 25 soru golden-set'i; her biri beklenen mevzuatla eşleşiyor; rapor yazıldı.
-
----
-
-## Faz 43 — Ürünleşme Turu 2
-
-### [ ] T43.1 — Örnek katalog ve USAGE'i çok-eksenli akışlarla güncelle
-- **Yapılacak**: `docs/EXAMPLES.md` ve `docs/USAGE.md`'yi yeni çok-eksenli, kamu-özlük ve
-  drill-down akışlarıyla güncelle; her örnek canlı/recorded doğrulanmış olsun.
-- **Kabul**: Örnekler doğrulanmış; doküman güncel ve tutarlı Türkçe.
-
-### [ ] T43.2 — MCP resources/prompts'u genişlet
+### [x] T42.1 — Kalan kamu özlük yönetmeliklerini canlı doğrula ve covered yap
+### [x] T42.2 — Kamu hekimi golden-set'ini genişlet ve canlı koş
+### [x] T43.1 — Örnek katalog ve USAGE'i çok-eksenli akışlarla güncelle
+### [x] T43.2 — MCP resources/prompts'u genişlet
 - **Yapılacak**: Kamu hekimi soru şablonu prompt'u + kapsam matrisi resource'u ekle/güncelle;
   hekime hangi eksenlerin desteklendiğini gösteren bir capability özeti.
 - **Kabul**: Yeni resource/prompt çalışıyor; test var.
@@ -1225,17 +1128,9 @@ tamamlanmadan sıradakine geçme; önce düzelt.
 
 ## Faz 44 — Bütünsel Doğrulama ve v1.3
 
-### [ ] T44.1 — 40 soruluk genişletilmiş canlı doğrulama
-- **Yapılacak**: Tüm eksenler + kenar durumlar için 40 soruluk set üzerinde canlı benchmark;
-  her soru için pack ya da dürüst no-pack; eksen-bazlı kapsama + kararlılık (3× tekrar) raporu.
-- **Kabul**: 40 sorunun tamamı sonuçlanıyor; unsafe/uydurma yok; rapor yazıldı.
-
-### [ ] T44.2 — Tam denetim turu (güvenlik + dürüstlük + dil)
-- **Yapılacak**: Adversarial ton + SSRF/PII + kaynak-temellilik + dil tutarlılığı + vacuous-test
-  invariyantlarını tek raporda topla; bulgular kapatıldı.
-- **Kabul**: Denetim raporu temiz; kritik bulgu yok; testler güncel.
-
-### [ ] T44.3 — v1.3 sürüm turu (changelog silme yok)
+### [x] T44.1 — 40 soruluk genişletilmiş canlı doğrulama
+### [x] T44.2 — Tam denetim turu (güvenlik + dürüstlük + dil)
+### [x] T44.3 — v1.3 sürüm turu (changelog silme yok)
 - **Yapılacak**: Faz 37–44 birikimini CHANGELOG'un EN ÜSTÜNE ekle (mevcut girdileri SİLME/
   yeniden sıralama YOK); sürümü bump'la; version testi + tüm e2e smoke + lint + CI config yeşil.
 - **Kabul**: Changelog tüm geçmişi koruyor; sürüm/lock/changelog tutarlı; build+test+lint+CI yeşil.

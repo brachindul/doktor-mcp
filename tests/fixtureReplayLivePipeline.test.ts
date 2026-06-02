@@ -13,7 +13,7 @@ import { LegislationDocCache } from "../src/sources/legislationDocCache.js";
  *
  * All assertions are HARD: no `if (status === "ok")` guard.
  */
-const CORE_AXES = ["disiplin"] as const;
+const CORE_AXES = ["disiplin", "tayin", "gizlilik"] as const; // axes with matching hints
 
 describe("T36.1 — Fixture-fed live pipeline via cache injection", () => {
   for (const axis of CORE_AXES) {

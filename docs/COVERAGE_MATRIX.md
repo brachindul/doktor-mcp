@@ -1,4 +1,4 @@
-| Legislation | Type | Status | SourceId |
+| Mevzuat | Tür | Durum | SourceId |
 |---|---|---|---|
 | Hasta Hakları Yönetmeliği | yonetmelik | verified | mevzuat:7.5.4847 |
 | Tıbbi Deontoloji Nizamnamesi | nizamname | verified | mevzuat:2.3.412578 |

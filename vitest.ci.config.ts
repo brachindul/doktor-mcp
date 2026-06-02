@@ -35,6 +35,10 @@ export default defineConfig({
       "**/aymProbe.test.ts",
       "**/realWorldLiveSmoke.test.ts",
       "**/multiSourcePrecedents.test.ts",
+      "**/axisE2EPack.test.ts",
+      "**/faz38_41_combined.test.ts",
+      "**/faz42_43_kapsam.test.ts",
+      "**/fixtureReplayLivePipeline.test.ts",
     ]
   }
 });

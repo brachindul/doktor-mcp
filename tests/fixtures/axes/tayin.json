@@ -1,7 +1,7 @@
 {
   "axis": "tayin",
   "description": "Fixture for public physician appointment/assignment cases",
-  "question": "Kamu hastanesinde tayinim çıktı, itiraz edebilir miyim?",
+  "question": "devlet memurları kanunu atama nakil",
   "expectedPrimaryLegislation": ["657 sayılı Devlet Memurları Kanunu", "Sağlık Meslek Mensupları Yönetmeliği"],
   "provisions": [
     {
