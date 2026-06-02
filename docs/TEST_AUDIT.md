@@ -1,54 +1,54 @@
-# Test Audit — doktor-mcp v0.50.0 (Faz 36)
+# Test Denetimi — doktor-mcp v0.50.0 (Faz 36)
 
-> Vacuous-test scan results and remediation status.
+> Vacuous-test (içi boş test) tarama sonuçları ve düzeltme durumu.
 
-## Findings
+## Bulgular
 
-### 1. Guarded assertions (vacuous)
-**Location:** `tests/fixtureReplayLivePipeline.test.ts` (T35.1, now T36.1)
+### 1. Guard'lı assertion'lar (vacuous)
+**Konum:** `tests/fixtureReplayLivePipeline.test.ts` (T35.1, şimdi T36.1)
 
-**Issue:** 4 core axis tests used `if (result.status === "ok") { expect(...) }` pattern.
-When `buildReplayFetch` returned `text/html` (rejected by `getDocument`), status was
-always "unavailable", so the inner `expect()` never executed. 4 tests were green but
-tested nothing.
+**Sorun:** 4 çekirdek eksen testi `if (result.status === "ok") { expect(...) }` desenini
+kullanıyordu. `buildReplayFetch` `text/html` döndürdüğünde (`getDocument` tarafından
+reddedilir), durum her zaman "unavailable" oluyordu; dolayısıyla içteki `expect()` hiç
+çalışmadı. 4 test yeşildi ama hiçbir şeyi test etmiyordu.
 
-**Fix:** T36.1 replaced with cache-injection (`buildReplayCache` + `docCache`).
-T36.2 replaced all guards with hard assertions: `expect(result.status).toBe("ok")`.
-Tests now break if primary legislation is missing.
+**Düzeltme:** T36.1 cache-injection ile değiştirdi (`buildReplayCache` + `docCache`).
+T36.2 tüm guard'ları hard assertion ile değiştirdi: `expect(result.status).toBe("ok")`.
+Testler artık birincil mevzuat eksikse kırılıyor.
 
-**Status:** ✅ Fixed. 3 hard-assert tests pass.
+**Durum:** ✅ Düzeltildi. 3 hard-assert test geçiyor.
 
-### 2. Guarded assertions in probe tests
-**Location:** `tests/aymProbe.test.ts` (2 occurrences)
+### 2. Probe testlerinde guard'lı assertion'lar
+**Konum:** `tests/aymProbe.test.ts` (2 örnek)
 
-**Issue:** `if (result.status === "ok")` wrap. These are legitimate — AYM probe
-tests are live network probes that may legitimately fail. Guard is appropriate.
+**Sorun:** `if (result.status === "ok")` sarmalı. Bunlar meşru — AYM probe testleri,
+meşru biçimde başarısız olabilen canlı ağ probe'larıdır. Guard yerinde.
 
-**Status:** ✅ Acceptable. Documented.
+**Durum:** ✅ Kabul edilebilir. Belgelendi.
 
-### 3. `toBeDefined()` usage
-**Count:** 151 occurrences across the test suite.
+### 3. `toBeDefined()` kullanımı
+**Sayı:** Test paketinde 151 örnek.
 
-**Assessment:** Most are followed by behavioral assertions (e.g.,
-`expect(x).toBeDefined(); expect(x.length).toBeGreaterThan(0)`). These are
-not vacuous — they verify structure before testing behavior.
+**Değerlendirme:** Çoğu davranışsal assertion'larla takip ediliyor (ör.
+`expect(x).toBeDefined(); expect(x.length).toBeGreaterThan(0)`). Bunlar vacuous değil —
+davranışı test etmeden önce yapıyı doğrularlar.
 
-**Status:** ✅ No vacuous-only cases found. All `toBeDefined()` have
-follow-up assertions or are in structure-verification tests.
+**Durum:** ✅ Yalnızca-vacuous vaka bulunamadı. Tüm `toBeDefined()` kullanımlarının
+takip assertion'ı var ya da yapı-doğrulama testlerinde.
 
 ### 4. Mutation sanity (T36.4)
-**Proven:** Breaking `buildReplayCache` (removing cache.set) causes
-`fixtureReplayLivePipeline.test.ts` to fail with `status: "unavailable"`.
-The test genuinely protects against the regression.
+**Kanıtlandı:** `buildReplayCache`'i bozmak (cache.set'i kaldırmak)
+`fixtureReplayLivePipeline.test.ts`'i `status: "unavailable"` ile başarısız kılıyor.
+Test, regresyona karşı gerçekten koruyor.
 
-**Method:** Temporarily commented `this.docCache.set(...)` in adapter,
-ran test, confirmed breakage, reverted.
+**Yöntem:** Adaptördeki `this.docCache.set(...)` geçici olarak yorum satırı yapıldı,
+test çalıştırıldı, kırılma doğrulandı, geri alındı.
 
-## Summary
+## Özet
 
-| Category | Count | Vacuous | Fixed |
-|----------|-------|---------|-------|
-| Guarded assert | 4 | 4 | ✅ |
-| Probe guards | 2 | 0 | N/A (legit) |
-| toBeDefined-only | 0 | 0 | N/A |
-| **Total vacuous** | **4** | **4** | **✅** |
+| Kategori | Sayı | Vacuous | Düzeltildi |
+|----------|------|---------|------------|
+| Guard'lı assert | 4 | 4 | ✅ |
+| Probe guard'ları | 2 | 0 | Uygulanamaz (meşru) |
+| Yalnızca-toBeDefined | 0 | 0 | Uygulanamaz |
+| **Toplam vacuous** | **4** | **4** | **✅** |
