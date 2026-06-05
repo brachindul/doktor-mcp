@@ -13,7 +13,7 @@ import { LegislationDocCache } from "../src/sources/legislationDocCache.js";
  *
  * All assertions are HARD: no `if (status === "ok")` guard.
  */
-const CORE_AXES = ["disiplin", "tayin", "gizlilik"] as const; // axes with matching hints
+const CORE_AXES = ["disiplin", "malpraktis", "tayin", "gizlilik"] as const;
 
 describe("T36.1 — Fixture-fed live pipeline via cache injection", () => {
   for (const axis of CORE_AXES) {
@@ -66,5 +66,16 @@ describe("T36.2 — HARD-FAIL assertions (no guard)", () => {
     const adapter = new LiveOfficialLegislationAdapter({ docCache: cache, wait: async () => {} });
     const result = await adapter.getMappedHealthProvisions(fixture.question);
     expect(result.sourceTrace.length).toBeGreaterThanOrEqual(1);
+  }, 15000);
+
+  it("malpraktis: cache-fed returns Deontology provisions", async () => {
+    const fixture = loadAxisFixture("malpraktis");
+    const cache = buildReplayCache(fixture);
+    const adapter = new LiveOfficialLegislationAdapter({ docCache: cache, wait: async () => {} });
+    const result = await adapter.getMappedHealthProvisions(fixture.question);
+    expect(result.status).toBe("ok");
+    expect(result.provisions.length).toBeGreaterThanOrEqual(1);
+    const text = result.provisions.map((p) => p.verbatimText ?? "").join(" ");
+    expect(text).toMatch(/deontoloji|ozen|hekim/i);
   }, 15000);
 });

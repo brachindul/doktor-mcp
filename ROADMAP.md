@@ -1,4 +1,4 @@
-# doktor-mcp — Geliştirme Roadmap'i
+﻿# doktor-mcp — Geliştirme Roadmap'i
 
 > Bu doküman otonom bir geliştirme döngüsü (ralph-loop / opencode orchestrator) tarafından
 > tüketilmek üzere yazılmıştır. Her görev bağımsız tamamlanabilir; sırayla ilerle.
@@ -1146,7 +1146,7 @@ tamamlanmadan sıradakine geçme; önce düzelt.
 > (`mevzuat:2.3.412578`) uyuşmuyor. Model dürüstçe dışlamış ama kapsam eksik. T38.2 mutation
 > kanıtı ~3 (kabul ≥4 idi); `scripts/mutation-check.mjs` yok.
 
-### [ ] T45.1 — malpraktis fixture'ını hint koordinatıyla hizala
+### [x] T45.1 — malpraktis fixture'ını hint koordinatıyla hizala
 - **Sorun**: `tests/fixtures/axes/malpraktis.json` provision'larının `sourceDocumentId`/`sourceId`'si,
   malpraktis sorgusunun çözümlendiği hint'in (Tıbbi Deontoloji Nizamnamesi, `mevzuat:2.3.412578`,
   md.14/2/13) koordinatıyla eşleşmiyor; bu yüzden `buildReplayCache` cache'i adapter'ın
@@ -1156,14 +1156,14 @@ tamamlanmadan sıradakine geçme; önce düzelt.
   `buildReplayCache` doğru cache anahtarını üretmeli.
 - **Kabul**: Cache-fed probe `malpraktis -> ok` + Deontoloji provision'ları döndürüyor.
 
-### [ ] T45.2 — CORE_AXES'i ≥4 ekseye çıkar (malpraktis dahil)
+### [x] T45.2 — CORE_AXES'i ≥4 ekseye çıkar (malpraktis dahil)
 - **Yapılacak**: `tests/fixtureReplayLivePipeline.test.ts`'te `CORE_AXES`'i en az
   `["disiplin","malpraktis","tayin","gizlilik"]` yap; her biri için cache-fed pipeline
   `status: "ok"` + `expectedPrimaryLegislation` koşulsuz hard-assert. Mümkünse kalan 4
   fixture ekseni (riza_onam, acil_mudahale, ek_odeme, mecburi_hizmet) için de hizalayıp ekle.
 - **Kabul**: ≥4 eksen hard-assert e2e; biri beklenen mevzuatı döndürmezse hard-fail; CI config yeşil.
 
-### [ ] T45.3 — Mutation-sanity'yi ≥4 invariyanta çıkar + otomatik script
+### [x] T45.3 — Mutation-sanity'yi ≥4 invariyanta çıkar + otomatik script
 - **Yapılacak**: `scripts/mutation-check.mjs` yaz: belirtilen invariyantlar için kodu geçici
   bozar, ilgili testi çalıştırır, kırıldığını doğrular, geri alır. En az 4 invariyant:
   (a) cache.set kaldır; (b) placeholder hint filtresi kaldır; (c) graceful degradation kapat;
@@ -1171,7 +1171,7 @@ tamamlanmadan sıradakine geçme; önce düzelt.
 - **Kabul**: Script ≥4 mutasyonun her birinde "test kırılıyor" kanıtlıyor; kalıcı kod bozuk değil;
   TEST_AUDIT güncel.
 
-### [ ] T45.4 — CHANGELOG + sürüm turu (silme yok)
+### [x] T45.4 — CHANGELOG + sürüm turu (silme yok)
 - **Yapılacak**: Faz 45 birikimini CHANGELOG'un EN ÜSTÜNE ekle (mevcut girdileri SİLME/yeniden
   sıralama YOK); sürümü bump'la; version testi + build + lint + CI config yeşil; push.
 - **Kabul**: Changelog tüm geçmişi koruyor; sürüm/lock/changelog tutarlı; her şey yeşil; origin senkron.

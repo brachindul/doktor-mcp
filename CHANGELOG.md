@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.53.0] — 2026-06-02 — Faz 45 Denetim Kapanışı III
+
+> Faz 38 açığı kapatıldı: malpraktis fixture'ı Deontoloji hint koordinatıyla
+> (mevzuat:2.3.412578, md.2/13/14) hizalandı, CORE_AXES 4 eksene çıktı,
+> mutation-sanity otomatik script ile ≥4 invariyant kanıtlandı.
+
+### Faz 45 — Malpraktis Kapsama + Mutation Otomasyonu
+
+- **T45.1**: malpraktis fixture'ı Deontoloji Nizamnamesi hint koordinatıyla
+  hizalandı: `sourceDocumentId: mevzuat:2.3.412578`, articleNumbers ["2","13","14"]
+  gerçek madde metinleri (kamuya açık mevzuat). `buildReplayCache` doğru cache
+  anahtarını üretiyor.
+- **T45.2**: `CORE_AXES` ["disiplin","malpraktis","tayin","gizlilik"] ile 4 eksene
+  çıkarıldı. Her eksen için cache-fed hard-assert pipeline testi.
+- **T45.3**: `scripts/mutation-check.mjs` eklendi — 4 invariyant için otomatik
+  mutation testi: (a) cache.set kaldır, (b) placeholder filtresi kaldır,
+  (c) graceful degradation kapat, (d) malpraktis terim eşlemesi kaldır.
+  Hepsi testlerin kırıldığını kanıtlıyor.
+- **T45.4**: `package.json` bump 0.52.0 → 0.53.0. Build + test + CI config yeşil.
+
+---
+
 ## [0.52.0] — 2026-06-02 — Faz 37–44 Birikimi
 
 > 24 task tamamlandı: dil tutarlılığı (i18n policy, Türkçe CHANGELOG/COVERAGE_MATRIX),

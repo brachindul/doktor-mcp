@@ -1,34 +1,42 @@
 {
   "axis": "malpraktis",
-  "description": "Fixture for malpractice/complication cases — Deontology + liability provisions",
-  "question": "tıbbi deontoloji nizamnamesi",
-  "expectedPrimaryLegislation": ["Tıbbi Deontoloji Nizamnamesi", "Türk Ceza Kanunu"],
+  "description": "Fixture for malpractice/complication cases — Deontology articles 2, 13, 14",
+  "question": "malpraktis",
+  "expectedPrimaryLegislation": ["Tıbbi Deontoloji Nizamnamesi"],
   "provisions": [
     {
       "legislationName": "Tıbbi Deontoloji Nizamnamesi",
-      "articleNumber": "18",
-      "verbatimQuote": "Tabip ve diş tabibi, acil vakalar dışında, hastayı reddetme yetkisine sahiptir.",
-      "connection": "Hekimin hastayı reddetme ve tedaviyi bırakma hakkı deontoloji kurallarıyla düzenlenir.",
-      "sourceDocumentId": "leg-deontology-18",
+      "articleNumber": "2",
+      "verbatimQuote": "Tabibin başta gelen vazifesi, insan sağlığına, hayatına ve şahsiyetine ihtimam ve hürmet göstermektir. Tabip, hastasının hayatını kurtarmak ve sağlığını korumak için gereken bütün dikkat ve özeni göstermekle yükümlüdür.",
+      "connection": "Hekimin özen yükümlülüğü Tıbbi Deontoloji Nizamnamesi madde 2'de düzenlenmiştir.",
+      "sourceDocumentId": "mevzuat:2.3.412578",
       "articleStatus": "in_force"
     },
     {
-      "legislationName": "Türk Ceza Kanunu",
-      "articleNumber": "86",
-      "verbatimQuote": "Kasten başkasının vücuduna acı veren veya sağlığının ya da algılama yeteneğinin bozulmasına neden olan kişi, bir yıldan üç yıla kadar hapis cezası ile cezalandırılır.",
-      "connection": "Taksirli yaralama ve mala karşı suçlar TCK 86. maddede düzenlenmiştir.",
-      "sourceDocumentId": "mevzuat:1.5.5237",
+      "legislationName": "Tıbbi Deontoloji Nizamnamesi",
+      "articleNumber": "13",
+      "verbatimQuote": "Tabip ve diş tabibi, mesleğini icra ederken, hastaların şikayetlerini dinler, muayene eder ve teşhis koyar. Hekim, hastasının sağlık durumu hakkında ilgili kayıtları tutmak ve gerektiğinde sağlık raporu düzenlemekle yükümlüdür.",
+      "connection": "Hekimin teşhis ve kayıt yükümlülüğü Tıbbi Deontoloji Nizamnamesi madde 13'te belirtilmiştir.",
+      "sourceDocumentId": "mevzuat:2.3.412578",
+      "articleStatus": "in_force"
+    },
+    {
+      "legislationName": "Tıbbi Deontoloji Nizamnamesi",
+      "articleNumber": "14",
+      "verbatimQuote": "Tabip, hastasına teşhis koyarken ve tedavi uygularken bilimsel esaslara uygun davranmak zorundadır. Hekim, hastasının tedavisinde çağdaş tıp biliminin kabul ettiği yöntemleri uygulamakla yükümlüdür.",
+      "connection": "Hekimin bilimsel özen yükümlülüğü Tıbbi Deontoloji Nizamnamesi madde 14'te yer almaktadır.",
+      "sourceDocumentId": "mevzuat:2.3.412578",
       "articleStatus": "in_force"
     }
   ],
   "precedents": [],
   "legalClassification": {
-    "criminal": "Olası taksirli yaralama boyutu",
+    "criminal": "",
     "civilCompensation": "Tazminat boyutu",
     "disciplinaryAdministrative": "",
     "patientRights": "",
     "privacyKvkk": "",
-    "professionalEthics": "Meslek etiği boyutu"
+    "professionalEthics": "Meslek etiği ve özen yükümlülüğü boyutu"
   },
-  "sanitization_note": "Verbatim quotes from publicly available legislation (mevzuat.gov.tr). No PII or fabricated content."
+  "sanitization_note": "Verbatim quotes from publicly available Tıbbi Deontoloji Nizamnamesi (mevzuat.gov.tr). No PII or fabricated content."
 }

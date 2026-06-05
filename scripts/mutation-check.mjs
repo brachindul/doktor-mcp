@@ -1,0 +1,85 @@
+#!/usr/bin/env node
+/**
+ * T45.3 — Mutation-Sanity Check Script
+ *
+ * Runs targeted mutation checks: temporarily breaks code, runs tests,
+ * verifies tests catch the breakage, then restores code.
+ *
+ * Usage: node scripts/mutation-check.mjs
+ */
+import { execSync } from "node:child_process";
+import { readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+
+const ROOT = process.cwd();
+const PASS = "\x1b[32m✓\x1b[0m";
+const FAIL = "\x1b[31m✗\x1b[0m";
+
+function run(cmd) {
+  try {
+    execSync(cmd, { cwd: ROOT, stdio: "pipe", timeout: 30000 });
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+}
+
+function mutate(file, find, replace) {
+  const path = join(ROOT, file);
+  const original = readFileSync(path, "utf-8");
+  writeFileSync(path, original.replace(find, replace));
+  return () => writeFileSync(path, original); // restore function
+}
+
+const results = [];
+
+// ── Invariant 1: cache.set removal breaks malpraktis test ──
+console.log("\n[1/4] Mutation: remove cache.set in legislationDocCache");
+let restore = mutate("src/sources/legislationDocCache.ts",
+  /await writeFile\(this\.filePath\(sourceId\),/g,
+  "// await writeFile(this.filePath(sourceId),");
+const r1 = run("npx vitest run tests/fixtureReplayLivePipeline.test.ts -t malpraktis");
+restore();
+results.push({ invariant: "cache.set kaldır (T35.2)", broken: !r1.ok, expected: "test kırılmalı" });
+console.log(r1.ok ? `  ${FAIL} Mutation FARK EDILMEDI` : `  ${PASS} Test kırıldı (beklendiği gibi)`);
+
+// ── Invariant 2: placeholder filter disabled ──
+console.log("\n[2/4] Mutation: disable hintHasDirectSourceId filter");
+restore = mutate("src/sources/legislation/liveOfficialLegislationAdapter.ts",
+  /hintHasDirectSourceId\(hint\) &&/g,
+  "true && // mutation");
+const r2 = run("npx vitest run tests/faz35_partialResults_and_invariants.test.ts -t placeholder");
+restore();
+results.push({ invariant: "placeholder hint filtresi kaldır (T35.5)", broken: !r2.ok, expected: "test kırılmalı" });
+console.log(r2.ok ? `  ${FAIL} Mutation FARK EDILMEDI` : `  ${PASS} Test kırıldı (beklendiği gibi)`);
+
+// ── Invariant 3: graceful degradation disabled ──
+console.log("\n[3/4] Mutation: break graceful degradation in article parser");
+restore = mutate("src/sources/legislation/articleParser.ts",
+  /a\.text\.length >= MIN_ARTICLE_LENGTH/g,
+  "true // mutation: all articles pass filter");
+const r3 = run("npx vitest run tests/gracefulDegradation.test.ts -t empty");
+restore();
+results.push({ invariant: "graceful degradation kapat (T27.3)", broken: !r3.ok, expected: "test kırılmalı" });
+console.log(r3.ok ? `  ${FAIL} Mutation FARK EDILMEDI` : `  ${PASS} Test kırıldı (beklendiği gibi)`);
+
+// ── Invariant 4: malpraktis term mapping removed ──
+console.log("\n[4/4] Mutation: remove malpraktis from deontology hint terms");
+restore = mutate("src/sources/legislation/healthMappings.ts",
+  /"malpraktis", "malpractice",/g,
+  "// \"malpraktis\", \"malpractice\",");
+const r4 = run("npx vitest run tests/fixtureReplayLivePipeline.test.ts -t malpraktis.cache-fed");
+restore();
+results.push({ invariant: "malpraktis terim eşlemesi kaldır (T45.1)", broken: !r4.ok, expected: "test kırılmalı" });
+console.log(r4.ok ? `  ${FAIL} Mutation FARK EDILMEDI` : `  ${PASS} Test kırıldı (beklendiği gibi)`);
+
+// ── Summary ──
+console.log("\n=== Mutation Check Summary ===");
+let passed = 0;
+for (const r of results) {
+  const icon = r.broken === true ? PASS : FAIL;
+  console.log(`  ${icon} ${r.invariant}: ${r.broken ? "test kırılıyor (KORUNUYOR)" : "test kırılmadı (AÇIK!)"}`);
+  if (r.broken) passed++;
+}
+console.log(`\n${passed}/${results.length} invariyant testlerle korunuyor.`);
+console.log(results.every(r => r.broken) ? "Tüm invariyantlar korunuyor ✓" : "Bazı invariyantlar açıkta!");

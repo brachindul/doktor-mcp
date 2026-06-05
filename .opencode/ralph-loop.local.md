@@ -1,7 +1,7 @@
 ---
 active: true
 iteration: 0
-maxIterations: 30
+maxIterations: 10
 ---
 
-Complete all remaining [ ] tasks in ROADMAP.md from Faz 37 through Faz 44. Rules: (1) build=0 + test=green + CI-config green before commit, (2) no vacuous/guarded assertions, (3) no fabricated legislation/sourceIds, (4) CHANGELOG: only ADD at top, never delete/reorder, (5) at end bump version, full suite, commit+push. Be efficient - batch similar tasks.
+Complete Faz 45 (T45.1-T45.4). T45.1: Fix malpraktis fixture to align with Deontology hint coordinates (mevzuat:2.3.412578, articles 14/2/13). T45.2: Expand CORE_AXES to 4+ with malpraktis. T45.3: Create mutation-check script for 4 invariants. T45.4: CHANGELOG + version bump. Rules: build+test+CI green, no vacuous tests, no fabricated legislation, CHANGELOG add-only at top.
