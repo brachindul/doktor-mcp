@@ -1190,7 +1190,7 @@ tamamlanmadan sıradakine geçme; önce düzelt.
 > **"4/4 invariyant testlerle korunuyor"** olmalı. Her görevden sonra script'i çalıştırıp
 > ilgili mutasyonun artık yakalandığını GÖSTER.
 
-### [ ] T46.1 — Cache yazımı (T35.2) için gerçek koruma testi
+### [x] T46.1 — Cache yazımı (T35.2) için gerçek koruma testi
 - **Sorun**: `cache.set` kaldırıldığında hiçbir test kırılmıyor → legislation/doc cache
   davranışı gerçekte test edilmiyor.
 - **Yapılacak**: Cache'in gerçekten yazıldığını ve ikinci çağrının cache'ten geldiğini
@@ -1198,7 +1198,7 @@ tamamlanmadan sıradakine geçme; önce düzelt.
   bu testi kırmalı.
 - **Kabul**: mutation-check'te "cache.set kaldır" → "test kırılıyor (KORUNUYOR)". Build+CI yeşil.
 
-### [ ] T46.2 — Placeholder hint filtresi (T35.5) için gerçek koruma testi
+### [x] T46.2 — Placeholder hint filtresi (T35.5) için gerçek koruma testi
 - **Sorun**: `matchingHints`'teki `hintHasDirectSourceId` filtresi kaldırıldığında hiçbir
   test kırılmıyor → placeholder-pollution fix'i korunmuyor.
 - **Yapılacak**: Placeholder bir hint (ör. `needs_manual_review:*`, boş legislationNumber)
@@ -1206,7 +1206,7 @@ tamamlanmadan sıradakine geçme; önce düzelt.
   çözümlemeye girmediğini doğrulayan test. Filtreyi kaldıran mutasyon bu testi kırmalı.
 - **Kabul**: mutation-check'te "placeholder filtresi kaldır" → "test kırılıyor (KORUNUYOR)".
 
-### [ ] T46.3 — Malpraktis terim eşlemesi (T45.1) için gerçek koruma testi
+### [x] T46.3 — Malpraktis terim eşlemesi (T45.1) için gerçek koruma testi
 - **Sorun**: Deontoloji hint'inden malpraktis terimleri silindiğinde hiçbir test kırılmıyor.
   Cache-fed test bunu yakalamıyor çünkü cache önceden doldurulup hint-matching atlanıyor.
 - **Yapılacak**: **Cache'siz** (hint-matching yolunu gerçekten çalıştıran) bir test ekle:
@@ -1214,13 +1214,13 @@ tamamlanmadan sıradakine geçme; önce düzelt.
   seviyesinde + tam pakette mock provision ile). Terim eşlemesini kaldıran mutasyon bu testi kırmalı.
 - **Kabul**: mutation-check'te "malpraktis terim eşlemesi kaldır" → "test kırılıyor (KORUNUYOR)".
 
-### [ ] T46.4 — Mutation-check'i CI'a ve genişlet
+### [x] T46.4 — Mutation-check'i CI'a ve genişlet
 - **Yapılacak**: `npm run mutation-check` script'i ekle; CI'da (network-free) çalıştırıp 4/4
   değilse uyar (başlangıçta bloke etmeyen, raporlayan adım). İleride yeni invariyantlar
   eklendikçe script'e mutasyon eklenebilsin diye yapıyı genişletilebilir kıl.
 - **Kabul**: `npm run mutation-check` çalışıyor; CI'da rapor adımı var; 4/4 yeşil.
 
-### [ ] T46.5 — Vacuous/zayıf test taraması turu 2 (TEST_AUDIT güncelle)
+### [x] T46.5 — Vacuous/zayıf test taraması turu 2 (TEST_AUDIT güncelle)
 - **Yapılacak**: Mutation-check'in ortaya çıkardığı "yeşil ama korumayan" desenini diğer
   çekirdek davranışlar için de ara (graceful degradation dışındaki kritik yollar). Bulunan
   zayıf testleri sertleştir; `docs/TEST_AUDIT.md`'yi gerçek koruma durumuyla güncelle
@@ -1228,7 +1228,7 @@ tamamlanmadan sıradakine geçme; önce düzelt.
 - **Kabul**: TEST_AUDIT, mutation-check çıktısına dayalı gerçek koruma tablosu içeriyor;
   abartılı "korunuyor" iddiası yok.
 
-### [ ] T46.6 — CHANGELOG + sürüm turu (silme yok)
+### [x] T46.6 — CHANGELOG + sürüm turu (silme yok)
 - **Yapılacak**: Faz 46 birikimini CHANGELOG'un EN ÜSTÜNE ekle (silme/yeniden sıralama YOK);
   sürümü bump'la; version + build + lint + CI config + `mutation-check 4/4` yeşil; push.
 - **Kabul**: Changelog bütün; sürüm/lock tutarlı; mutation-check 4/4; her şey yeşil; origin senkron.

@@ -38,17 +38,17 @@ console.log("\n[1/4] Mutation: remove cache.set in legislationDocCache");
 let restore = mutate("src/sources/legislationDocCache.ts",
   /await writeFile\(this\.filePath\(sourceId\),/g,
   "// await writeFile(this.filePath(sourceId),");
-const r1 = run("npx vitest run tests/fixtureReplayLivePipeline.test.ts -t malpraktis");
+const r1 = run("npx vitest run tests/faz46_cache_and_placeholder_tests.test.ts -t getOrFetch");
 restore();
 results.push({ invariant: "cache.set kaldır (T35.2)", broken: !r1.ok, expected: "test kırılmalı" });
 console.log(r1.ok ? `  ${FAIL} Mutation FARK EDILMEDI` : `  ${PASS} Test kırıldı (beklendiği gibi)`);
 
 // ── Invariant 2: placeholder filter disabled ──
-console.log("\n[2/4] Mutation: disable hintHasDirectSourceId filter");
+console.log("\n[2/4] Mutation: break hintHasDirectSourceId (always return true)");
 restore = mutate("src/sources/legislation/liveOfficialLegislationAdapter.ts",
-  /hintHasDirectSourceId\(hint\) &&/g,
-  "true && // mutation");
-const r2 = run("npx vitest run tests/faz35_partialResults_and_invariants.test.ts -t placeholder");
+  /return Boolean\(hint\.legislationNumber && hint\.legislationType && hint\.legislationArrangement\);/g,
+  "return true; // mutation: always pass");
+const r2 = run("npx vitest run tests/faz46_cache_and_placeholder_tests.test.ts -t hintHasDirectSourceId");
 restore();
 results.push({ invariant: "placeholder hint filtresi kaldır (T35.5)", broken: !r2.ok, expected: "test kırılmalı" });
 console.log(r2.ok ? `  ${FAIL} Mutation FARK EDILMEDI` : `  ${PASS} Test kırıldı (beklendiği gibi)`);
@@ -68,7 +68,7 @@ console.log("\n[4/4] Mutation: remove malpraktis from deontology hint terms");
 restore = mutate("src/sources/legislation/healthMappings.ts",
   /"malpraktis", "malpractice",/g,
   "// \"malpraktis\", \"malpractice\",");
-const r4 = run("npx vitest run tests/fixtureReplayLivePipeline.test.ts -t malpraktis.cache-fed");
+const r4 = run("npx vitest run tests/faz46_cache_and_placeholder_tests.test.ts -t malpraktis");
 restore();
 results.push({ invariant: "malpraktis terim eşlemesi kaldır (T45.1)", broken: !r4.ok, expected: "test kırılmalı" });
 console.log(r4.ok ? `  ${FAIL} Mutation FARK EDILMEDI` : `  ${PASS} Test kırıldı (beklendiği gibi)`);

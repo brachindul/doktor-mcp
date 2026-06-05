@@ -545,7 +545,7 @@ function matchingHints(query: string): HealthLegislationHint[] {
  * carries a verified mevzuat document coordinate (number/type/arrangement). Those three fields
  * are all that `mapHintToSearchResult` + `getDocument` need to build the PDF/GeneratePdf URL.
  */
-function hintHasDirectSourceId(hint: HealthLegislationHint): boolean {
+export function hintHasDirectSourceId(hint: HealthLegislationHint): boolean {
   return Boolean(hint.legislationNumber && hint.legislationType && hint.legislationArrangement);
 }
 

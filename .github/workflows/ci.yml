@@ -10,3 +10,4 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npx vitest run --config vitest.ci.config.ts
+      - run: npm run mutation-check || echo "Mutation check warnings (non-blocking)"

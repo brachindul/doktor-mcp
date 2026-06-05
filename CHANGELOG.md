@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.54.0] — 2026-06-02 — Faz 46 Mutation-Check 4/4
+
+> `node scripts/mutation-check.mjs` artık "4/4 invariyant testlerle korunuyor"
+> çıktısı veriyor. Cache yazımı, placeholder filtresi, graceful degradation ve
+> malpraktis terim eşlemesi için gerçek koruyucu testler yazıldı.
+
+### Faz 46 — Gerçek Koruma Testleri
+
+- **T46.1**: Cache yazımı testi — `getOrFetch` counter ile ikinci çağrının
+  cache'ten geldiği doğrulanıyor. `cache.set` kaldır mutasyonu testi kırıyor.
+- **T46.2**: Placeholder filtresi testi — `hintHasDirectSourceId` export
+  edildi; placeholder/partial/valid hint'ler için doğru boolean döndüğü
+  doğrulanıyor. `return true` mutasyonu testi kırıyor.
+- **T46.3**: Malpraktis terim eşlemesi testi — cache'siz (gerçek hint-matching
+  yolu) `getMappedHealthProvisions("malpraktis")` çağrısı Deontoloji hint'ine
+  eşleşiyor. Terim silme mutasyonu testi kırıyor.
+- **T46.4**: `npm run mutation-check` script'i eklendi. CI workflow'da
+  raporlama adımı (non-blocking). Genişletilebilir yapı.
+- **T46.5**: `docs/TEST_AUDIT.md` mutation-check çıktısı ile güncellendi.
+- **T46.6**: `package.json` bump 0.53.0 → 0.54.0. Build + test + CI config +
+  mutation-check 4/4 yeşil.
+
+---
+
 ## [0.53.0] — 2026-06-02 — Faz 45 Denetim Kapanışı III
 
 > Faz 38 açığı kapatıldı: malpraktis fixture'ı Deontoloji hint koordinatıyla

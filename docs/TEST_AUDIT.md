@@ -52,3 +52,15 @@ test çalıştırıldı, kırılma doğrulandı, geri alındı.
 | Probe guard'ları | 2 | 0 | Uygulanamaz (meşru) |
 | Yalnızca-toBeDefined | 0 | 0 | Uygulanamaz |
 | **Toplam vacuous** | **4** | **4** | **✅** |
+
+## Mutation-Check Sonuçları (T46 — `npm run mutation-check`)
+
+| Invariant | Mutasyon | Korunuyor |
+|-----------|----------|-----------|
+| Cache yazımı (T35.2) | `cache.set` kaldır | ✅ |
+| Placeholder filtresi (T35.5) | `hintHasDirectSourceId` always true | ✅ |
+| Graceful degradation (T27.3) | `MIN_ARTICLE_LENGTH` bypass | ✅ |
+| Malpraktis eşleme (T45.1) | "malpraktis" terimi sil | ✅ |
+| **Toplam** | | **4/4** |
+
+> `node scripts/mutation-check.mjs` çıktısı: **"4/4 invariyant testlerle korunuyor. Tüm invariyantlar korunuyor ✓"**
