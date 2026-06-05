@@ -1244,7 +1244,7 @@ tamamlanmadan sıradakine geçme; önce düzelt.
 > bilinçli olarak KAPSAM DIŞI (ağır, bayatlık riski; doktor-mcp canlı + hafif kalır).
 > Her görev TAM PAKETTE veya recorded-fixture ile doğrulanır; izole/vacuous test yasak.
 
-### [ ] T47.1 — Arama-zamanı daire filtresi (ISSUE_PROFILE_CHAMBERS → birimAdi)
+### [x] T47.1 — Arama-zamanı daire filtresi (ISSUE_PROFILE_CHAMBERS → birimAdi)
 - **Sorun**: `ISSUE_PROFILE_CHAMBERS` + `computeChamberBonus` (precedentRelevance.ts) yalnızca
   post-hoc skor bonusu; canlı Bedesten/Danıştay sorgusu daireyi filtrelemiyor → alakasız
   daire kararları geliyor. yargi-mcp-pro `birimAdi` filtresiyle bunu kaynakta çözüyor.
@@ -1256,7 +1256,7 @@ tamamlanmadan sıradakine geçme; önce düzelt.
   Yargıtay ilgili HD ile kısıtlanıyor; daire yoksa filtresiz çalışıyor. Canlı smoke'ta alakasız
   daire oranı düşüyor. Build+test+CI yeşil.
 
-### [ ] T47.2 — RRF (Reciprocal Rank Fusion) çok-sinyalli sıralama
+### [x] T47.2 — RRF (Reciprocal Rank Fusion) çok-sinyalli sıralama
 - **Sorun**: doktor-mcp tek skor (`assessPrecedentRelevance` → `rerankByIssueRelevance`)
   kullanıyor; sinyalleri normalize edip birleştirmek zor. emsal-mcp RRF ile çözüyor.
 - **Yapılacak**: `src/health/precedentRrf.ts` ekle — `rrfFuse(rankedLists, k=60)` saf fonksiyonu
@@ -1266,39 +1266,39 @@ tamamlanmadan sıradakine geçme; önce düzelt.
 - **Kabul**: Birim test: bilinen sıralı listeler → beklenen RRF sırası; determinizm; boş/tek-sinyal
   kenar durumları. Uçtan uca: çok-sinyalli sıralama tek-sinyalden daha ilgili üst sonuç veriyor.
 
-### [ ] T47.3 — Recency sinyali (yarılanma ömürlü) + quote-safe boost
+### [x] T47.3 — Recency sinyali (yarılanma ömürlü) + quote-safe boost
 - **Yapılacak**: `precedentRelevance` veya yeni `precedentSignals.ts`'e: karar tarihinden
   sürekli recency skoru (5 yıl yarılanma ömrü, emsal-mcp `heuristic_rerank` deseni) + tam-metin/
   `precedent_usable`/quote-safe kararlara boost. Bunlar RRF girdi sinyalleri olur.
 - **Kabul**: Birim test: eşit-ilgili iki karardan yeni olan öne geçiyor; tarihsiz karar nötr;
   quote-safe karar boost alıyor. Uçtan uca doğrulanmış.
 
-### [ ] T47.4 — Canlı-sonuç-üstü hafif leksik rerank (kalıcı korpus YOK)
+### [x] T47.4 — Canlı-sonuç-üstü hafif leksik rerank (kalıcı korpus YOK)
 - **Yapılacak**: Yalnızca o sorgunun canlı sonuç kümesi üzerinde, Türkçe-duyarlı tokenizasyon +
   TF-IDF/BM25-benzeri leksik örtüşme skoru (emsal-mcp `_tokenize`/`_tfidf_search` deseninin
   hafif/in-memory versiyonu). **Kalıcı indeks/embedding YOK.** Bu skor RRF'in üçüncü sinyali olur.
 - **Kabul**: Birim test: konu terimleri yoğun karar daha yüksek leksik skor; deterministik.
   Uçtan uca: alakasız (tapu/trafik) karar leksik+RRF ile elenip assessment'a girmiyor.
 
-### [ ] T47.5 — Sorgu kurma iyileştirmesi (operatör + çok-terim)
+### [x] T47.5 — Sorgu kurma iyileştirmesi (operatör + çok-terim)
 - **Yapılacak**: `healthLawQueryExpansion`'ı yargi-mcp-pro Solr deseninden esinlenerek
   güçlendir: çok-terimli sorgularda `+zorunlu`/`"birebir ifade"` kullan, Türkçe diakritikleri
   koru. Tek geniş kelime yerine 2–5 anahtar hukuki terim. (Mevcut canlı Bedesten/Danıştay
   operatör desteğiyle uyumlu kalmalı.)
 - **Kabul**: Recorded-fixture: iyileştirilmiş sorgu daha ilgili sonuç döndürüyor; diakritik korunuyor.
 
-### [ ] T47.6 — Çıktıda sıralama şeffaflığı
+### [x] T47.6 — Çıktıda sıralama şeffaflığı
 - **Yapılacak**: Her verified emsal için RRF bileşen skorlarını (relevance/recency/leksik +
   daire filtresi uygulandı mı) `precedentDiagnostics`'e ekle; "neden bu sırada" denetlenebilsin.
   Hukuki yorum DEĞİL, audit metadata.
 - **Kabul**: Diagnostic her emsalin RRF bileşenlerini gösteriyor; test var.
 
-### [ ] T47.7 — Emsal arama benchmark'ı (önce/sonra)
+### [x] T47.7 — Emsal arama benchmark'ı (önce/sonra)
 - **Yapılacak**: Temsili sorgu seti üzerinde "RRF+daire filtresi öncesi vs sonrası" ilgililik
   karşılaştırması (recorded-fixture, ağsız). Üst-K ilgililik ve alakasız-sızıntı oranı raporlansın.
 - **Kabul**: Rapor iyileşmeyi gösteriyor (alakasız oranı düşüyor); regresyon yok.
 
-### [ ] T47.8 — CHANGELOG + sürüm turu (silme yok)
+### [x] T47.8 — CHANGELOG + sürüm turu (silme yok)
 - **Yapılacak**: Faz 47 birikimini CHANGELOG'un EN ÜSTÜNE ekle (silme/yeniden sıralama YOK);
   sürümü bump'la; version + build + lint + CI config + mutation-check yeşil; push.
 - **Kabul**: Changelog bütün; sürüm/lock tutarlı; her şey yeşil; origin senkron.

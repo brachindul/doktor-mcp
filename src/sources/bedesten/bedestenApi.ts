@@ -67,9 +67,10 @@ export interface BedestenDocument {
 export function buildBedestenSearchBody(
   query: string,
   courtTypes: BedestenCourtType[] = ["YARGITAYKARARI", "DANISTAYKARAR", "YERELHUKUK", "ISTINAFHUKUK", "KYB"],
-  pageSize = 5
+  pageSize = 5,
+  chamber?: string
 ): BedestenSearchRequestBody {
-  return {
+  const body: BedestenSearchRequestBody = {
     data: {
       pageSize,
       pageNumber: 1,
@@ -81,6 +82,11 @@ export function buildBedestenSearchBody(
     applicationName: "UyapMevzuat",
     paging: true
   };
+  // T47.1: Optional chamber filter via birimAdi field
+  if (chamber) {
+    (body.data as unknown as Record<string, unknown>).birimAdi = chamber;
+  }
+  return body;
 }
 
 export function buildBedestenDocumentBody(documentId: string): BedestenDocumentRequestBody {

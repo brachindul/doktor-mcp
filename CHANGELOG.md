@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.55.0] — 2026-06-02 — Faz 47 Emsal Arama İyileştirmeleri
+
+> emsal-mcp/yargi-mcp-pro fikir portu: RRF çok-sinyalli sıralama,
+> recency yarılanma ömürlü skor, arama-zamanı daire filtresi, hafif
+> leksik rerank. Bağımlılık yok, kalıcı indeks yok, deterministic.
+
+### Faz 47 — Emsal Arama İyileştirmeleri
+
+- **T47.1**: Arama-zamanı daire filtresi — `buildBedestenSearchBody`'e opsiyonel
+  `chamber` parametresi eklendi (`birimAdi` field). `runtimeConfig` ile
+  kontrol edilebilir.
+- **T47.2**: RRF (Reciprocal Rank Fusion) — `src/health/precedentRrf.ts`: `rrfFuse`
+  saf fonksiyonu (k=60, 1/(k+rank) toplamı). `toRankedList` helper.
+  Deterministik, skor normalizasyonu gerekmez.
+- **T47.3**: Recency sinyali — 5 yıl yarılanma ömürlü `computeRecencyScore`
+  (1/(1+ageYears/5)). `computeQuoteSafeBoost`: usable+reasoned → 1.5,
+  usable → 1.2, none → 1.0.
+- **T47.4**: Leksik rerank — `src/health/lexicalRerank.ts`: `tokenize` (Türkçe
+  diakritik korumalı, min 3 karakter), `computeLexicalScore` (TF-IDF-like).
+  In-memory, kalıcı korpus/index YOK.
+- **T47.5**: Sorgu kurma — çok-terimli tokenizasyon + diakritik koruması.
+- **T47.6**: Sıralama şeffaflığı — RRF bileşen skorları dekompozisyonu testi.
+- **T47.7**: Emsal arama benchmark'ı — önce/sonra RRF karşılaştırması.
+- **T47.8**: `package.json` bump 0.54.0 → 0.55.0. Build + CI + mutation-check 4/4.
+
+---
+
 ## [0.54.0] — 2026-06-02 — Faz 46 Mutation-Check 4/4
 
 > `node scripts/mutation-check.mjs` artık "4/4 invariyant testlerle korunuyor"

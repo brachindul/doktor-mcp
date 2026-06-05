@@ -1,7 +1,7 @@
 ---
 active: true
 iteration: 0
-maxIterations: 15
+maxIterations: 20
 ---
 
-Complete Faz 46 (T46.1-T46.6). Core mission: make `node scripts/mutation-check.mjs` return "4/4 invariyant testlerle korunuyor" by writing real protecting tests for each invariant. T46.1: test that cache.set removal breaks tests. T46.2: test that placeholder hint filter removal breaks tests. T46.3: test that malpraktis term removal breaks tests (hint-matching path, not cache-fed). T46.4: add mutation-check to npm scripts + CI. T46.5: update TEST_AUDIT. T46.6: CHANGELOG + bump. Rules: build+test+CI green, no vacuous tests.
+Complete Phase 47 (T47.1-T47.8) - Precedent Search Improvements. Port ideas from emsal-mcp/yargi-mcp-pro WITHOUT dependencies: RRF fusion, recency half-life, search-time chamber filter, light lexical rerank (no persistent corpus/embeddings). Each task verified end-to-end or with recorded fixtures. Rules: build+test+CI+mutation 4/4 green before commit. No fabricated legislation/decisions. CHANGELOG add-only.
