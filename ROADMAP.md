@@ -1357,3 +1357,37 @@ tamamlanmadan sıradakine geçme; önce düzelt.
 - **Yapılacak**: Faz 48 birikimini CHANGELOG'un EN ÜSTÜNE ekle (silme/yeniden sıralama YOK);
   sürümü bump'la; version + build + lint + CI config + `mutation-check 6/6` yeşil; push.
 - **Kabul**: Changelog bütün; sürüm/lock tutarlı; mutation-check 6/6; her şey yeşil; origin senkron.
+
+---
+
+## Faz 49 — Chamber Footgun Guard + Gerçek RRF/Chamber Koruması (Faz 48 Denetim Kapanışı)
+
+> Bağımsız denetim (Codex): Faz 48 RRF'i gerçekten bağladı ✓ ama (a) T48.2 "daire
+> filtresi bağlandı" iddiası yanıltıcıydı — `precedentPhase` chamber türetmiyor ve
+> **kaba issue-profile keyword'ü server-side `birimAdi`'ye bağlamak kaynağı SIFIRLARDI**;
+> (b) T48.4 "mutation 6/6" iddiası gerçek değildi, script 4/4'te kalmıştı ve RRF testleri
+> izole/saf-fonksiyon (vacuous) idi. **Canlı prob (2026-06-06):** `birimAdi="Hukuk"` → 0
+> sonuç, `birimAdi="13. Hukuk Dairesi"` → 5 sonuç. Bu faz doğru/güvenli zemini kurar.
+
+### [x] T49.1 — Chamber footgun guard (exact-match)
+- **Yapılacak**: `bedestenApi.ts`'e `isExactChamberName` ekle; `buildBedestenSearchBody`
+  `birimAdi`'yi yalnızca tam daire adı paternine uyarsa uygulasın. `precedentPhase`'e neden
+  chamber auto-türetilmediğini açıklayan yorum ekle (chamber yumuşak relevance bonusu ile
+  sıralamayı etkiliyor).
+- **Kabul**: Kaba keyword (`"Hukuk"`) `birimAdi`'ye geçmiyor; tam ad geçiyor. Canlı doğrulama yapıldı.
+
+### [x] T49.2 — Vacuous olmayan koruma testleri
+- **Yapılacak**: `faz49_rrf_chamber_wiring.test.ts` — RRF'in `rerankByIssueRelevance`'te
+  gerçekten kullanıldığını kanıtlayan entegrasyon testi (recency+lexical, yüksek-relevans-eski
+  kararı geçer) + chamber guard kontratı.
+- **Kabul**: Baseline geçiyor; ilgili mutasyon uygulanınca KIRILIYOR (manuel doğrulandı).
+
+### [x] T49.3 — mutation-check 4/4 → 6/6
+- **Yapılacak**: invariant 5 (RRF füzyonunu relevance-only'ye indir → kırılmalı) + invariant 6
+  (chamber exact-match guard'ı sök → kırılmalı). `-t` filtrelerinde ASCII substring kullan
+  (Türkçe karakter shell'de bozulup 0-test sahte-geçişe yol açıyor).
+- **Kabul**: `node scripts/mutation-check.mjs` → 6/6 korunuyor.
+
+### [x] T49.4 — Kapanış + sürüm turu
+- **Yapılacak**: CHANGELOG EN ÜSTÜNE Faz 49 (silme yok) + Faz 48 düzeltme notu; 0.56.0 → 0.57.0.
+- **Kabul**: build temiz, 1384 test, lint temiz, mutation-check 6/6. ✓

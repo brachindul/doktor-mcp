@@ -34,7 +34,7 @@ function mutate(file, find, replace) {
 const results = [];
 
 // ── Invariant 1: cache.set removal breaks malpraktis test ──
-console.log("\n[1/4] Mutation: remove cache.set in legislationDocCache");
+console.log("\n[1/6] Mutation: remove cache.set in legislationDocCache");
 let restore = mutate("src/sources/legislationDocCache.ts",
   /await writeFile\(this\.filePath\(sourceId\),/g,
   "// await writeFile(this.filePath(sourceId),");
@@ -44,7 +44,7 @@ results.push({ invariant: "cache.set kaldır (T35.2)", broken: !r1.ok, expected:
 console.log(r1.ok ? `  ${FAIL} Mutation FARK EDILMEDI` : `  ${PASS} Test kırıldı (beklendiği gibi)`);
 
 // ── Invariant 2: placeholder filter disabled ──
-console.log("\n[2/4] Mutation: break hintHasDirectSourceId (always return true)");
+console.log("\n[2/6] Mutation: break hintHasDirectSourceId (always return true)");
 restore = mutate("src/sources/legislation/liveOfficialLegislationAdapter.ts",
   /return Boolean\(hint\.legislationNumber && hint\.legislationType && hint\.legislationArrangement\);/g,
   "return true; // mutation: always pass");
@@ -54,7 +54,7 @@ results.push({ invariant: "placeholder hint filtresi kaldır (T35.5)", broken: !
 console.log(r2.ok ? `  ${FAIL} Mutation FARK EDILMEDI` : `  ${PASS} Test kırıldı (beklendiği gibi)`);
 
 // ── Invariant 3: graceful degradation disabled ──
-console.log("\n[3/4] Mutation: break graceful degradation in article parser");
+console.log("\n[3/6] Mutation: break graceful degradation in article parser");
 restore = mutate("src/sources/legislation/articleParser.ts",
   /a\.text\.length >= MIN_ARTICLE_LENGTH/g,
   "true // mutation: all articles pass filter");
@@ -64,7 +64,7 @@ results.push({ invariant: "graceful degradation kapat (T27.3)", broken: !r3.ok, 
 console.log(r3.ok ? `  ${FAIL} Mutation FARK EDILMEDI` : `  ${PASS} Test kırıldı (beklendiği gibi)`);
 
 // ── Invariant 4: malpraktis term mapping removed ──
-console.log("\n[4/4] Mutation: remove malpraktis from deontology hint terms");
+console.log("\n[4/6] Mutation: remove malpraktis from deontology hint terms");
 restore = mutate("src/sources/legislation/healthMappings.ts",
   /"malpraktis", "malpractice",/g,
   "// \"malpraktis\", \"malpractice\",");
@@ -72,6 +72,26 @@ const r4 = run("npx vitest run tests/faz46_cache_and_placeholder_tests.test.ts -
 restore();
 results.push({ invariant: "malpraktis terim eşlemesi kaldır (T45.1)", broken: !r4.ok, expected: "test kırılmalı" });
 console.log(r4.ok ? `  ${FAIL} Mutation FARK EDILMEDI` : `  ${PASS} Test kırıldı (beklendiği gibi)`);
+
+// ── Invariant 5: RRF fusion downgraded to relevance-only ──
+console.log("\n[5/6] Mutation: collapse RRF fusion to relevance-only in rerank");
+restore = mutate("src/health/precedentRerank.ts",
+  /const fusedOrder = rrfFuse\(\[relevanceRanked, recencyRanked, lexicalRanked\]\);/g,
+  "const fusedOrder = relevanceRanked; // mutation: drop recency+lexical signals");
+const r5 = run("npx vitest run tests/faz49_rrf_chamber_wiring.test.ts -t \"recency\"");
+restore();
+results.push({ invariant: "RRF füzyonu rerank'e bağlı (T48.1)", broken: !r5.ok, expected: "test kırılmalı" });
+console.log(r5.ok ? `  ${FAIL} Mutation FARK EDILMEDI` : `  ${PASS} Test kırıldı (beklendiği gibi)`);
+
+// ── Invariant 6: chamber exact-match guard removed ──
+console.log("\n[6/6] Mutation: drop exact-chamber guard in buildBedestenSearchBody");
+restore = mutate("src/sources/bedesten/bedestenApi.ts",
+  /if \(chamber && isExactChamberName\(chamber\)\) \{/g,
+  "if (chamber) { // mutation: apply coarse keywords too");
+const r6 = run("npx vitest run tests/faz49_rrf_chamber_wiring.test.ts -t \"chamber filtresi\"");
+restore();
+results.push({ invariant: "chamber exact-match guard (T49.1)", broken: !r6.ok, expected: "test kırılmalı" });
+console.log(r6.ok ? `  ${FAIL} Mutation FARK EDILMEDI` : `  ${PASS} Test kırıldı (beklendiği gibi)`);
 
 // ── Summary ──
 console.log("\n=== Mutation Check Summary ===");

@@ -160,6 +160,11 @@ export async function searchPrecedents(
             }
           } else if (src === "bedesten") {
             try {
+              // T49.1: We deliberately do NOT pass a chamber here. Issue-profile
+              // chamber keywords are coarse ("hukuk"/"ceza") and bedesten's
+              // birimAdi is an exact-match filter — passing them would zero out
+              // the source (verified live). Chamber alignment instead influences
+              // ranking via the soft relevance bonus (computeChamberBonus).
               decisions = await adapters.liveBedesten.searchHealthPrecedents(classification);
               resultCount = decisions.length;
               success = resultCount > 0;

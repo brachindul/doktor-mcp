@@ -1,5 +1,41 @@
 # Changelog
 
+## [0.57.0] — 2026-06-06 — Faz 49 Chamber Footgun + Gerçek RRF/Chamber Koruması
+
+> Faz 48 denetiminin kapanışı. Canlı prob ile bedesten `birimAdi`'nin **tam
+> eşleşme** istediği doğrulandı: kaba keyword (`"Hukuk"`) → 0 sonuç, tam ad
+> (`"13. Hukuk Dairesi"`) → dolu sonuç. Issue-profile daire keyword'lerini
+> server-side filtreye bağlamak kaynağı sessizce sıfırlardı; bu önlendi.
+> Mutation-check 4/4 → **6/6** (RRF + chamber artık vacuous olmayan testlerle
+> korunuyor).
+
+### Faz 49 — Chamber Footgun Guard + Vacuous Olmayan Koruma
+
+- **T49.1**: `isExactChamberName` guard'ı `buildBedestenSearchBody`'ye eklendi —
+  `birimAdi` yalnızca tam daire adı paternine (`"13. Hukuk Dairesi"`,
+  `"Hukuk Genel Kurulu"`) uyarsa uygulanıyor; kaba keyword sessizce yok
+  sayılıyor (canlı 0-sonuç sıfırlamasını önler). Canlı doğrulama: kaba `"Hukuk"`
+  → 0, tam `"13. Hukuk Dairesi"` → 5 sonuç.
+- **T49.1 (service)**: `precedentPhase` bedesten çağrısına bilinçli olarak
+  chamber GEÇMİYOR — issue-profile keyword'leri kaba; chamber hizalaması yumuşak
+  relevance bonusu (`computeChamberBonus`) ile sıralamayı etkiliyor.
+- **T49.2**: Yeni `faz49_rrf_chamber_wiring.test.ts` — **vacuous olmayan**
+  koruma testleri: (a) `rerankByIssueRelevance`'in RRF füzyonunu (recency+lexical
+  dahil) gerçekten kullandığını kanıtlayan entegrasyon testi; (b) chamber
+  guard'ının tam adı uygulayıp kaba keyword'ü reddettiği.
+- **T49.3**: `mutation-check` 4/4 → 6/6 — invariant 5 (RRF füzyonu rerank'e
+  bağlı) + invariant 6 (chamber exact-match guard) eklendi; ikisi de mutasyonla
+  kırılıyor (gerçek koruma).
+- **T49.4**: Kapanış — build temiz, 1384 test, lint temiz, mutation-check 6/6.
+  `package.json` 0.56.0 → 0.57.0.
+
+> **Faz 48 düzeltmesi**: 0.56.0 changelog'u T48.2'yi "daire filtresi adapter'a
+> bağlandı" diye işaretlemişti; teknik olarak param geçişi vardı ama service
+> hiç chamber türetmiyordu ve kaba keyword bağlansaydı kaynağı sıfırlardı.
+> Faz 49 bunu doğru, güvenli zemine oturttu.
+
+---
+
 ## [0.56.0] — 2026-06-02 — Faz 48 Faz 47 Bağlantısı
 
 > Faz 47 modülleri gerçek pakete bağlandı: RRF `rerankByIssueRelevance`'te

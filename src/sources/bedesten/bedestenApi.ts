@@ -64,6 +64,28 @@ export interface BedestenDocument {
   raw: Record<string, unknown>;
 }
 
+/**
+ * T49.1 — Does `chamber` look like an EXACT bedesten chamber name?
+ *
+ * Verified live (2026-06): the bedesten `birimAdi` field is an exact-match
+ * filter. A precise name like "13. Hukuk Dairesi" or "Hukuk Genel Kurulu"
+ * returns results; a coarse keyword like "Hukuk" or "Ceza" returns ZERO.
+ * Coarse issue-profile keywords (see ISSUE_PROFILE_CHAMBERS) would therefore
+ * silently zero out the source, so they must never reach `birimAdi`.
+ *
+ * Accepted shapes:
+ *  - numbered chamber: "13. Hukuk Dairesi", "10. Daire", "2. Ceza Dairesi"
+ *  - named board: "Hukuk Genel Kurulu", "Ceza Genel Kurulu",
+ *    "Vergi Dava Daireleri Kurulu"
+ */
+export function isExactChamberName(chamber: string): boolean {
+  const trimmed = chamber.trim();
+  if (!trimmed) return false;
+  if (/^\d+\.\s/.test(trimmed)) return true; // "13. Hukuk Dairesi", "10. Daire"
+  const normalized = trimmed.toLocaleLowerCase("tr-TR");
+  return /(genel kurul|daireleri kurul|dava daireleri)/.test(normalized);
+}
+
 export function buildBedestenSearchBody(
   query: string,
   courtTypes: BedestenCourtType[] = ["YARGITAYKARARI", "DANISTAYKARAR", "YERELHUKUK", "ISTINAFHUKUK", "KYB"],
@@ -82,8 +104,9 @@ export function buildBedestenSearchBody(
     applicationName: "UyapMevzuat",
     paging: true
   };
-  // T47.1: Optional chamber filter via birimAdi field
-  if (chamber) {
+  // T47.1 + T49.1: Optional chamber filter via birimAdi field.
+  // Only apply EXACT chamber names — coarse keywords would zero out results.
+  if (chamber && isExactChamberName(chamber)) {
     (body.data as unknown as Record<string, unknown>).birimAdi = chamber;
   }
   return body;
