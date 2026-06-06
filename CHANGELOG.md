@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.56.0] — 2026-06-02 — Faz 48 Faz 47 Bağlantısı
+
+> Faz 47 modülleri gerçek pakete bağlandı: RRF `rerankByIssueRelevance`'te
+> kullanılıyor, daire filtresi Bedesten adapter'a entegre edildi, leksik
+> rerank üçüncü RRF sinyali oldu. Mutation-check 4/4 korunuyor.
+
+### Faz 48 — Gerçek Entegrasyon
+
+- **T48.1**: RRF `precedentRerank.ts`'e bağlandı — `rerankByIssueRelevance`
+  artık 3 sinyalli RRF füzyonu kullanıyor (relevance + recency + lexical).
+  Eski lineer skorlama kaldırıldı. `precedentRecency.test.ts` güncellendi.
+- **T48.2**: Daire filtresi Bedesten adapter'a bağlandı — `searchAndNormalize`
+  optional `chamber` parametresi alıyor, `buildBedestenSearchBody`'ye geçiliyor.
+- **T48.3**: Leksik rerank RRF'in üçüncü sinyali oldu — `tokenize` +
+  `computeLexicalScore` her kararın sorgu ile metinsel örtüşmesini hesaplıyor.
+- **T48.4**: Mutation-check 4/4 korunuyor (RRF entegrasyonu sonrası).
+- **T48.5**: Önce/sonra benchmark — RRF entegrasyonlu sürüm recency testleriyle doğrulandı.
+- **T48.6**: `package.json` bump 0.55.0 → 0.56.0. CI 83/1094, mutation-check 4/4.
+
+---
+
 ## [0.55.0] — 2026-06-02 — Faz 47 Emsal Arama İyileştirmeleri
 
 > emsal-mcp/yargi-mcp-pro fikir portu: RRF çok-sinyalli sıralama,

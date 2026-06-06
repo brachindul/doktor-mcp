@@ -57,14 +57,14 @@ export class LiveBedestenAdapter implements PrecedentSourceAdapter {
     this.cache = new PrecedentCache();
   }
 
-  async searchHealthPrecedents(classification: ClassifiedMedicalLegalQuestion): Promise<CourtDecision[]> {
+  async searchHealthPrecedents(classification: ClassifiedMedicalLegalQuestion, chamber?: string): Promise<CourtDecision[]> {
     const query = pickHealthLawQuery(classification);
-    return this.searchAndNormalize(query);
+    return this.searchAndNormalize(query, chamber);
   }
 
-  async searchAndNormalize(query: string): Promise<CourtDecision[]> {
+  async searchAndNormalize(query: string, chamber?: string): Promise<CourtDecision[]> {
     const searchUrl = `${BEDESTEN_BASE_URL}/emsal-karar/searchDocuments`;
-    const searchBody = buildBedestenSearchBody(query, this.courtTypes, 5);
+    const searchBody = buildBedestenSearchBody(query, this.courtTypes, 5, chamber);
     const emptyTrace = this.buildEmptyTrace(query, searchUrl);
 
     let rawData: unknown;

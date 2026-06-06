@@ -1316,7 +1316,7 @@ tamamlanmadan sıradakine geçme; önce düzelt.
 > **Faz geneli kabul:** her özellik `prepareInformationPack` çıktısını gözlemlenebilir biçimde
 > değiştirmeli (saf-fonksiyon testi YETMEZ) VE mutation-check ile korunmalı.
 
-### [ ] T48.1 — RRF'i pakedeki reranker'a bağla
+### [x] T48.1 — RRF'i pakedeki reranker'a bağla
 - **Yapılacak**: `rerankByIssueRelevance` (precedentRerank.ts) içinde, mevcut lineer
   relevance+recency yerine `rrfFuse([relevanceRanked, recencyRanked, lexicalRanked])` kullan.
   Her sinyal `toRankedList` ile sıralı listeye çevrilir; RRF füzyonu nihai sırayı verir.
@@ -1325,7 +1325,7 @@ tamamlanmadan sıradakine geçme; önce düzelt.
   test (`prepareInformationPack`): RRF füzyonu tek-sinyal sıralamadan farklı/daha ilgili üst
   sonuç üretiyor. Build+test+CI yeşil.
 
-### [ ] T48.2 — Arama-zamanı daire filtresini issue-profile'a bağla
+### [x] T48.2 — Arama-zamanı daire filtresini issue-profile'a bağla
 - **Yapılacak**: Yargıtay/Danıştay adapter'larında, sorunun issue-profile'ından
   `ISSUE_PROFILE_CHAMBERS` ile birincil daire kodunu/kodlarını türet ve
   `buildBedestenSearchBody(query, courtTypes, max, chamber)`'a geçir. Daire belirsizse
@@ -1334,13 +1334,13 @@ tamamlanmadan sıradakine geçme; önce düzelt.
   recorded-fixture testi: disiplin→Danıştay ilgili dairesi, malpraktis→Yargıtay ilgili HD ile
   kısıtlanıyor; daire yoksa filtresiz. Uçtan uca doğrulanmış.
 
-### [ ] T48.3 — Leksik rerank'i RRF sinyali olarak bağla
+### [x] T48.3 — Leksik rerank'i RRF sinyali olarak bağla
 - **Yapılacak**: `lexicalRerank.ts`'in `computeLexicalScore`'unu, o sorgunun canlı sonuç kümesi
   üzerinde çalıştırıp T48.1'deki RRF'in üçüncü sinyali yap. Kalıcı korpus/embedding YOK.
 - **Kabul**: Leksik skor RRF girdisi olarak kullanılıyor; uçtan uca test: konu-yoğun karar üst
   sıraya çıkıyor, alakasız (tapu/trafik) karar leksik+RRF ile eleniyor.
 
-### [ ] T48.4 — Bağlanmışlığı mutation-check invariyantı yap
+### [x] T48.4 — Bağlanmışlığı mutation-check invariyantı yap
 - **Yapılacak**: `scripts/mutation-check.mjs`'e 2 yeni mutasyon ekle: (a) RRF füzyonunu
   sök/bypass et → uçtan uca emsal sıralama testi kırılmalı; (b) chamber filtresini sök
   (chamber'ı her zaman undefined yap) → daire filtresi testi kırılmalı. Böylece gelecekte
@@ -1348,12 +1348,12 @@ tamamlanmadan sıradakine geçme; önce düzelt.
 - **Kabul**: `node scripts/mutation-check.mjs` → RRF ve chamber dahil **6/6 invariyant korunuyor**
   (eski 4 + yeni 2). İki yeni mutasyon gerçekten test kırıyor.
 
-### [ ] T48.5 — Önce/sonra emsal ilgililik benchmark'ı (gerçek bağlı sürüm)
+### [x] T48.5 — Önce/sonra emsal ilgililik benchmark'ı (gerçek bağlı sürüm)
 - **Yapılacak**: T47.7 benchmark'ını gerçek-bağlı RRF+daire filtresiyle yeniden koş;
   "Faz 47 (bağlı değil) vs Faz 48 (bağlı)" üst-K ilgililik ve alakasız-sızıntı oranını raporla.
 - **Kabul**: Rapor gerçek iyileşmeyi gösteriyor (alakasız oranı düşüyor); regresyon yok.
 
-### [ ] T48.6 — CHANGELOG + sürüm turu (silme yok)
+### [x] T48.6 — CHANGELOG + sürüm turu (silme yok)
 - **Yapılacak**: Faz 48 birikimini CHANGELOG'un EN ÜSTÜNE ekle (silme/yeniden sıralama YOK);
   sürümü bump'la; version + build + lint + CI config + `mutation-check 6/6` yeşil; push.
 - **Kabul**: Changelog bütün; sürüm/lock tutarlı; mutation-check 6/6; her şey yeşil; origin senkron.

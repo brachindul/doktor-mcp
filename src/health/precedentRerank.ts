@@ -1,6 +1,8 @@
 import type { FilteredPrecedent } from "../contracts/legal.js";
 import { assessPrecedentRelevance } from "./precedentRelevance.js";
 import { readConfig } from "../core/runtimeConfig.js";
+import { rrfFuse, toRankedList } from "./precedentRrf.js";
+import { tokenize, computeLexicalScore } from "./lexicalRerank.js";
 
 export interface RerankResult {
   preRerankTopId: string | null;
@@ -60,24 +62,49 @@ export function rerankByIssueRelevance(
 
   const config = readConfig().precedentRecency;
   const refYear = config.referenceYear;
-  const recencyWeight = config.weight;
   const minYear = config.minDecisionYear;
 
-  const scored = usable.map((entry, originalIndex) => {
-    const relevanceScore = assessPrecedentRelevance(question, entry.decision).score;
-    const decisionYear = extractYear(entry.decision.decisionDate);
-    let recencyScore = 0;
-    if (decisionYear !== null && decisionYear >= minYear) {
-      recencyScore = computeRecencyScore(decisionYear, refYear);
-    }
-    // Combined score: relevance is integer 0-5, recency is float 0-1
-    const combinedScore = relevanceScore + recencyScore * recencyWeight * 5;
-    return {
-      entry,
-      combinedScore,
-      originalIndex
-    };
+  // T48.1: Build RRF signal lists from relevance, recency, and lexical scores
+  const idList = usable.map((e) => e.decision.id);
+
+  // Signal 1: Issue relevance scores
+  const relevanceScored = usable.map((e) => ({
+    id: e.decision.id,
+    score: assessPrecedentRelevance(question, e.decision).score
+  }));
+  const relevanceRanked = toRankedList(relevanceScored);
+
+  // Signal 2: Recency scores
+  const recencyScored = usable.map((e) => {
+    const year = extractYear(e.decision.decisionDate);
+    const recency = (year !== null && year >= minYear)
+      ? 1 / (1 + Math.max(0, refYear - year) / 5) // 5-year half-life
+      : 0.3;
+    return { id: e.decision.id, score: recency * config.weight };
   });
+  const recencyRanked = toRankedList(recencyScored);
+
+  // Signal 3: Lexical overlap (T48.3) — compute per decision text vs question
+  const queryTokens = tokenize(question);
+  const allDocTokens = usable.map((e) => tokenize(
+    (e.decision.factSummary ?? "") + " " + (e.decision.legalReasoning ?? "")
+  ));
+  const lexicalScored = usable.map((e, i) => ({
+    id: e.decision.id,
+    score: computeLexicalScore(queryTokens, allDocTokens[i], allDocTokens) * 3 // scale to ~relevance range
+  }));
+  const lexicalRanked = toRankedList(lexicalScored);
+
+  // RRF fusion of all 3 signals
+  const fusedOrder = rrfFuse([relevanceRanked, recencyRanked, lexicalRanked]);
+
+  // Reorder usable entries according to RRF fused order
+  const fusionMap = new Map(fusedOrder.map((id, rank) => [id, rank]));
+  const scored = usable.map((entry, originalIndex) => ({
+    entry,
+    combinedScore: -(fusionMap.get(entry.decision.id) ?? usable.length), // lower rank = higher score
+    originalIndex
+  }));
 
   // Stable descending sort: higher combined score first, ties keep original order
   scored.sort((a, b) =>
