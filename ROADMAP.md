@@ -432,6 +432,7 @@
 46. Faz 45 (Faz 38 kapanışı — malpraktis fixture + eksen kapsamı + mutation) → T45.1 → T45.2 → T45.3 → T45.4
 47. Faz 46 (gerçek test koruması — mutation 4/4 — BLOKLAYICI) → T46.1 → T46.2 → T46.3 → T46.4 → T46.5 → T46.6
 48. Faz 47 (emsal arama iyileştirmeleri — emsal-mcp fikir portu) → T47.1 → T47.2 → T47.3 → T47.4 → T47.5 → T47.6 → T47.7 → T47.8
+49. Faz 48 (Faz 47'yi gerçekten bağla — BLOKLAYICI) → T48.1 → T48.2 → T48.3 → T48.4 → T48.5 → T48.6
 
 **Her görev sonunda**: build + test yeşil → commit. Bir görev testi kırıyorsa, görev
 tamamlanmadan sıradakine geçme; önce düzelt.
@@ -1302,3 +1303,57 @@ tamamlanmadan sıradakine geçme; önce düzelt.
 - **Yapılacak**: Faz 47 birikimini CHANGELOG'un EN ÜSTÜNE ekle (silme/yeniden sıralama YOK);
   sürümü bump'la; version + build + lint + CI config + mutation-check yeşil; push.
 - **Kabul**: Changelog bütün; sürüm/lock tutarlı; her şey yeşil; origin senkron.
+
+---
+
+## Faz 48 — Faz 47'yi Gerçekten Bağla (Denetim Bulguları — BLOKLAYICI)
+
+> Bağımsız denetim: Faz 47'nin modülleri (`precedentRrf.ts` rrfFuse, `lexicalRerank.ts`,
+> bedestenApi `birimAdi` param) yazıldı ve **saf-fonksiyon** olarak test edildi, ama
+> **gerçek pakete BAĞLANMADI**: pakedeki reranker `rerankByIssueRelevance` RRF'i import
+> etmiyor; adapter `buildBedestenSearchBody`'ye chamber argümanı geçmiyor. Yani RRF + daire
+> filtresi kullanıcının çıktısında YOK. Yalnızca recency entegre. Bu faz onları gerçekten bağlar.
+> **Faz geneli kabul:** her özellik `prepareInformationPack` çıktısını gözlemlenebilir biçimde
+> değiştirmeli (saf-fonksiyon testi YETMEZ) VE mutation-check ile korunmalı.
+
+### [ ] T48.1 — RRF'i pakedeki reranker'a bağla
+- **Yapılacak**: `rerankByIssueRelevance` (precedentRerank.ts) içinde, mevcut lineer
+  relevance+recency yerine `rrfFuse([relevanceRanked, recencyRanked, lexicalRanked])` kullan.
+  Her sinyal `toRankedList` ile sıralı listeye çevrilir; RRF füzyonu nihai sırayı verir.
+  `service.ts`'in çağırdığı yol (satır 295/379) değişmeden RRF'i kullanır hale gelir.
+- **Kabul**: `precedentRrf` artık `precedentRerank.ts` tarafından import ediliyor; uçtan uca
+  test (`prepareInformationPack`): RRF füzyonu tek-sinyal sıralamadan farklı/daha ilgili üst
+  sonuç üretiyor. Build+test+CI yeşil.
+
+### [ ] T48.2 — Arama-zamanı daire filtresini issue-profile'a bağla
+- **Yapılacak**: Yargıtay/Danıştay adapter'larında, sorunun issue-profile'ından
+  `ISSUE_PROFILE_CHAMBERS` ile birincil daire kodunu/kodlarını türet ve
+  `buildBedestenSearchBody(query, courtTypes, max, chamber)`'a geçir. Daire belirsizse
+  filtresiz ara (geri-dönüş). `runtimeConfig`'ten kapatılabilir.
+- **Kabul**: Adapter `buildBedestenSearchBody`'ye chamber geçiyor (artık argümansız değil);
+  recorded-fixture testi: disiplin→Danıştay ilgili dairesi, malpraktis→Yargıtay ilgili HD ile
+  kısıtlanıyor; daire yoksa filtresiz. Uçtan uca doğrulanmış.
+
+### [ ] T48.3 — Leksik rerank'i RRF sinyali olarak bağla
+- **Yapılacak**: `lexicalRerank.ts`'in `computeLexicalScore`'unu, o sorgunun canlı sonuç kümesi
+  üzerinde çalıştırıp T48.1'deki RRF'in üçüncü sinyali yap. Kalıcı korpus/embedding YOK.
+- **Kabul**: Leksik skor RRF girdisi olarak kullanılıyor; uçtan uca test: konu-yoğun karar üst
+  sıraya çıkıyor, alakasız (tapu/trafik) karar leksik+RRF ile eleniyor.
+
+### [ ] T48.4 — Bağlanmışlığı mutation-check invariyantı yap
+- **Yapılacak**: `scripts/mutation-check.mjs`'e 2 yeni mutasyon ekle: (a) RRF füzyonunu
+  sök/bypass et → uçtan uca emsal sıralama testi kırılmalı; (b) chamber filtresini sök
+  (chamber'ı her zaman undefined yap) → daire filtresi testi kırılmalı. Böylece gelecekte
+  "modül var ama bağlı değil" durumu otomatik yakalanır.
+- **Kabul**: `node scripts/mutation-check.mjs` → RRF ve chamber dahil **6/6 invariyant korunuyor**
+  (eski 4 + yeni 2). İki yeni mutasyon gerçekten test kırıyor.
+
+### [ ] T48.5 — Önce/sonra emsal ilgililik benchmark'ı (gerçek bağlı sürüm)
+- **Yapılacak**: T47.7 benchmark'ını gerçek-bağlı RRF+daire filtresiyle yeniden koş;
+  "Faz 47 (bağlı değil) vs Faz 48 (bağlı)" üst-K ilgililik ve alakasız-sızıntı oranını raporla.
+- **Kabul**: Rapor gerçek iyileşmeyi gösteriyor (alakasız oranı düşüyor); regresyon yok.
+
+### [ ] T48.6 — CHANGELOG + sürüm turu (silme yok)
+- **Yapılacak**: Faz 48 birikimini CHANGELOG'un EN ÜSTÜNE ekle (silme/yeniden sıralama YOK);
+  sürümü bump'la; version + build + lint + CI config + `mutation-check 6/6` yeşil; push.
+- **Kabul**: Changelog bütün; sürüm/lock tutarlı; mutation-check 6/6; her şey yeşil; origin senkron.
