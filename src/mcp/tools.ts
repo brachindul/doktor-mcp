@@ -76,7 +76,7 @@ function jsonResult(value: unknown): CallToolResult {
  * Uses the runtime config's default source mode as the origin.
  * When sourceMode is "mock", injects an unmissable mockDataWarning.
  */
-function withDataOrigin(value: unknown, sourceMode?: string): Record<string, unknown> {
+export function withDataOrigin(value: unknown, sourceMode?: string): Record<string, unknown> {
   const mode = sourceMode ?? readConfig().sourceMode;
   if (typeof value === "object" && value !== null && !Array.isArray(value)) {
     const result = value as Record<string, unknown>;

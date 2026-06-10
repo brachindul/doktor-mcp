@@ -59,9 +59,42 @@ Bu alanlar hata ayıklama içindir. Önceden haber verilmeden değişebilir:
 
 ## Kırıcı Değişiklikler
 
+### v0.45.0 — E2.1: `dataOrigin` ve `mockDataWarning` eklentisi
+
+Tüm araç yanıtlarına `dataOrigin` alanı eklenmiştir. Mock modda `mockDataWarning`
+alanı da eklenir. Bu, mevcut istemcilerin beklenmedik üst-seviye alanlar görmesine
+neden olabilir.
+
+**Etkilenen araçlar:**
+
+| Araç | Eski çıktı | Yeni çıktı |
+|------|-----------|-----------|
+| `search_health_legislation` | `CourtDecision[]` (dizi) | `{ dataOrigin, results: CourtDecision[] }` |
+| `get_legislation_provisions` | `LegislationProvision[]` (dizi) | `{ dataOrigin, results: LegislationProvision[] }` |
+| `search_health_precedents` | `CourtDecision[]` (dizi) | `{ dataOrigin, results: CourtDecision[] }` |
+| `prepare_doctor_legal_information_pack` | `DoctorPackResponse` | `DoctorPackResponse` + `dataOrigin` + `mockDataWarning?` |
+| `classify_medical_legal_question` | `ClassifiedMedicalLegalQuestion` | `ClassifiedMedicalLegalQuestion` + `dataOrigin: "computed"` |
+| `filter_reasoned_precedents` | `{ filtered, diagnostics }` | `{ filtered, diagnostics }` + `dataOrigin: "client-provided"` |
+| `drill_down_pack_item` | `{ matchedLegislation, ... }` | `{ matchedLegislation, ... }` + `dataOrigin` |
+
+**Dizi dönen araçlar** (`search_health_legislation`, `get_legislation_provisions`,
+`search_health_precedents`) artık ham dizi yerine `{ dataOrigin, results: [...] }`
+sarmalı döndürür. Bu bir kırıcı değişikliktir; mevcut istemcilerin `results`
+alanını erişmesi gerekir.
+
+**`DoctorPackResponse` tipi** güncellenmiştir:
+
+```typescript
+interface DoctorPackResponse {
+  // ... mevcut alanlar
+  dataOrigin: "mock" | "live" | "snapshot";
+  mockDataWarning?: string;  // yalnızca dataOrigin === "mock" olduğunda
+}
+```
+
 Kırıcı değişiklikler `responseVersion` artırılarak sinyallenir (ör.
 `"doctor-pack-response/v1"`'den `"doctor-pack-response/v2"`'ye). MCP
-`serverInfo.version`, `package.json` sürümünü izler (şu an 0.44.0).
+`serverInfo.version`, `package.json` sürümünü izler (şu an 0.45.0).
 
 Bir 1.0 sürümü:
 - Stabil katmanı dondurur

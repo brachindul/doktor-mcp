@@ -48,7 +48,11 @@ describe("formatDoctorPackResponse", () => {
     expect(response.responseVersion).toBe("doctor-pack-response/v1");
     expect(response.ok).toBe(true);
     expect(response.status).toBe("full_pack");
-    expect(response.pack).toBe(pack);
+    expect(response.dataOrigin).toBe("mock");
+    // E3.2: pack is stripped by default (includeDiagnostics defaults to false)
+    expect(response.pack).toBeDefined();
+    expect(response.pack!.shortAnswer).toBe(pack.shortAnswer);
+    expect(response.pack!.relevantLegislation).toHaveLength(1);
   });
 
   it("derives sufficient when both legislation and precedents present", () => {
@@ -78,7 +82,8 @@ describe("formatDoctorPackResponse", () => {
     const pack = makeFullPack();
     const response = formatDoctorPackResponse(pack, {
       coverageGaps: ["Özel hastaneler yönetmeliği gap"],
-      retrievalTimeouts: []
+      retrievalTimeouts: [],
+      includeDiagnostics: true
     });
     expect(response.diagnostics).toBeDefined();
     expect(response.diagnostics!.coverageGaps).toHaveLength(1);

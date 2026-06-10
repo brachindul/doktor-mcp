@@ -99,6 +99,29 @@ Derlenen pakette doğrulanmış emsal bölümüne yalnızca `precedent_usable` k
 
 ## Yanıt Sözleşmesi (Response Contract)
 
+Tüm araç yanıtları `dataOrigin` alanı taşır. Bu alan, yanıtın kaynağını belirtir:
+
+| `dataOrigin` | Anlamı |
+|---|---|
+| `"mock"` | Yanıt fixture (kurgu) verisi içerir. Gerçek mevzuat veya karar **değildir**. |
+| `"live"` | Yanıt canlı kaynaklardan (mevzuat.gov.tr, Bedesten, Danıştay) gelmiştir. |
+| `"snapshot"` | Yanıt önceden kaydedilmiş canlı kaynak snapshot'ıdır. |
+| `"computed"` | Yanıt yalnızca hesaplama sonucudur (sınflandırıcı gibi). Kaynak veri içermez. |
+| `"client-provided"` | Yanıt, istemci tarafından sağlanan girdiye dayanır. |
+
+`dataOrigin: "mock"` olduğunda, yanıt ayrıca `mockDataWarning` alanı taşır:
+
+```json
+{
+  "dataOrigin": "mock",
+  "mockDataWarning": "BU YANIT KURGU (FIXTURE) VERİSİDİR. Gerçek mevzuat veya mahkeme kararı DEĞİLDİR. Gerçek kaynaklar için sourceMode: 'live' kullanın."
+}
+```
+
+Bu uyarı, mock verinin gerçek mevzuat alıntısı gibi görünmesini önlemek için
+kaçırılamaz şekilde eklenmiştir. `shortAnswer` gibi hekime-dönük metin alanlarına
+ek önek eklenmez; üst-seviye `dataOrigin` ve `mockDataWarning` alanları yeterlidir.
+
 Yapılandırılmış paket, istenen hekime-dönük bölümler etrafında şekillenir:
 
 1. `shortAnswer`

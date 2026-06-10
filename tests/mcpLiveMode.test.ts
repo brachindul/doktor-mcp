@@ -136,7 +136,8 @@ describe("MCP legislation sourceMode", () => {
     }));
     const result = await handlers.prepare_doctor_legal_information_pack({
       question: "kişisel sağlık verisi",
-      sourceMode: "live"
+      sourceMode: "live",
+      includeDiagnostics: true
     });
     const pack = (result as any).pack ?? result;
 

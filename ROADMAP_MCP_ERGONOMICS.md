@@ -202,7 +202,7 @@
 > Varsayılanı doğrudan `"live"` yapmak da riskli (testler, CI, ağsız ortamlar).
 > Çözüm iki katmanlı: yapılandırılabilir varsayılan + kaçırılamaz mock işareti.
 
-### [ ] E2.1 — Mock çıktıyı kaçırılamaz şekilde işaretle
+### [x] E2.1 — Mock çıktıyı kaçırılamaz şekilde işaretle
 
 - **Dosyalar**: `src/mcp/formatDoctorPackResponse.ts`, `src/mcp/tools.ts`,
   ilgili contract tipleri.
