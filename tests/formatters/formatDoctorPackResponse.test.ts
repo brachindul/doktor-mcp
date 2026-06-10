@@ -95,6 +95,18 @@ describe("formatDoctorPackResponse", () => {
     const response = formatDoctorPackResponse(pack);
     expect(response.diagnostics).toBeUndefined();
   });
+
+  it("includes packId when provided in options", () => {
+    const pack = makeFullPack();
+    const response = formatDoctorPackResponse(pack, { packId: "pack-abc123" });
+    expect(response.packId).toBe("pack-abc123");
+  });
+
+  it("omits packId when not provided in options", () => {
+    const pack = makeFullPack();
+    const response = formatDoctorPackResponse(pack);
+    expect(response.packId).toBeUndefined();
+  });
 });
 
 describe("formatNoPackDiagnosticResponse", () => {
@@ -120,6 +132,21 @@ describe("formatNoPackDiagnosticResponse", () => {
     expect(response.diagnostics!.retrievalTimeouts).toHaveLength(1);
     expect(response.summary.coverageGapCount).toBe(2);
     expect(response.summary.timeoutOrRetrievalIssue).toBe(true);
+  });
+
+  it("omits packId when not provided", () => {
+    const response = formatNoPackDiagnosticResponse({
+      noPackReason: "No data available"
+    });
+    expect(response.packId).toBeUndefined();
+  });
+
+  it("includes packId when provided", () => {
+    const response = formatNoPackDiagnosticResponse({
+      noPackReason: "No data available",
+      packId: "pack-xyz789"
+    });
+    expect(response.packId).toBe("pack-xyz789");
   });
 });
 

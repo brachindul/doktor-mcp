@@ -198,6 +198,8 @@ export function formatDoctorPackResponse(
     noPackReason?: string;
     /** E3.2: Include full diagnostics in response. Default false for token savings. */
     includeDiagnostics?: boolean;
+    /** E1.2: Pack session cache ID for drill-down follow-up. */
+    packId?: string;
   } = {}
 ): DoctorPackResponse {
   const includeDiag = options.includeDiagnostics ?? false;
@@ -234,6 +236,9 @@ export function formatDoctorPackResponse(
     diagnosticsIncluded: includeDiag,
     diagnostics
   };
+  if (options.packId) {
+    result.packId = options.packId;
+  }
   if (!includeDiag) {
     result.diagnosticsHint = "Tam denetim izi için includeDiagnostics: true ile yeniden çağırın.";
   }
@@ -249,8 +254,10 @@ export function formatNoPackDiagnosticResponse(options: {
   retrievalTimeouts?: string[];
   missingAuthorityTypes?: string[];
   gateObservations?: string[];
+  /** E1.2: Pack session cache ID — typically absent for no-pack responses. */
+  packId?: string;
 }): DoctorPackResponse {
-  return {
+  const result: DoctorPackResponse = {
     responseVersion: "doctor-pack-response/v1",
     ok: false,
     status: "no_pack_diagnostic",
@@ -271,4 +278,8 @@ export function formatNoPackDiagnosticResponse(options: {
       gateObservations: options.gateObservations
     }
   };
+  if (options.packId) {
+    result.packId = options.packId;
+  }
+  return result;
 }

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, afterEach } from "vitest";
 import { PackSessionCache } from "../src/app/packSessionCache.js";
+import { DoktorMcpInformationService } from "../src/app/service.js";
 import type { DoctorLegalInformationPack } from "../src/contracts/legal.js";
 
 function makePack(shortAnswer = "Test pack"): DoctorLegalInformationPack {
@@ -124,5 +125,45 @@ describe("E1.1 — PackSessionCache", () => {
     expect(cache.size).toBe(20);
     // First pack should be evicted
     expect(cache.get(ids[0])).toBeNull();
+  });
+});
+
+describe("E1.2 — packId in pack response", () => {
+  it("prepareInformationPack returns a packId in mock mode", async () => {
+    const service = new DoktorMcpInformationService();
+    const result = await service.prepareInformationPack({
+      question: "Hasta tedaviyi reddederse hekimin sorumluluğu nedir?",
+      sourceMode: "mock"
+    });
+    expect(result.packId).toMatch(/^pack-[a-f0-9]{6}$/);
+  });
+
+  it("packId from prepareInformationPack can retrieve the same pack from cache", async () => {
+    const cache = new PackSessionCache();
+    const service = new DoktorMcpInformationService({ packSessionCache: cache });
+    const result = await service.prepareInformationPack({
+      question: "Kişisel sağlık verisi mahremiyet",
+      sourceMode: "mock"
+    });
+    expect(result.packId).toBeTruthy();
+
+    const retrieved = cache.get(result.packId);
+    expect(retrieved).not.toBeNull();
+    expect(retrieved?.shortAnswer).toBe(result.shortAnswer);
+    expect(retrieved?.relevantLegislation.length).toBe(result.relevantLegislation.length);
+  });
+
+  it("different packs get different packIds", async () => {
+    const cache = new PackSessionCache();
+    const service = new DoktorMcpInformationService({ packSessionCache: cache });
+    const result1 = await service.prepareInformationPack({
+      question: "Hasta mahremiyeti",
+      sourceMode: "mock"
+    });
+    const result2 = await service.prepareInformationPack({
+      question: "Acil müdahale yükümlülüğü",
+      sourceMode: "mock"
+    });
+    expect(result1.packId).not.toBe(result2.packId);
   });
 });

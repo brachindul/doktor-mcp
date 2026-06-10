@@ -25,6 +25,7 @@ Bu alanların stabil olduğu garanti edilir. Değişiklikler yalnızca geriye-d�
 | `diagnostics.coverageGaps` | `string[]` | v0.42.0 |
 | `diagnostics.retrievalTimeouts` | `string[]` | v0.42.0 |
 | `diagnostics.noPackReason` | `string?` | v0.42.0 |
+| `packId` | `string?` | v0.46.0 |
 | `diagnostics.gateObservations` | `string[]?` | v0.43.0 |
 
 ### 🧪 Deneysel

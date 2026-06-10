@@ -225,6 +225,8 @@ export class DoktorMcpInformationService {
       queryTelemetry: QueryAttemptTelemetry[];
       rerankResult: RerankResult;
       timeBudgetTelemetry?: TimeBudgetTelemetry;
+      /** E1.2: Pack session cache ID for drill-down follow-up. */
+      packId: string;
     }
   > {
     let classification = this.classify(input.question);
@@ -360,13 +362,17 @@ export class DoktorMcpInformationService {
       // v0.42.0: Successful completion — clear partial state
       this.rescueManager.clearPartialState();
 
+      // E1.2: Store pack in session cache and attach packId for drill-down
+      const packId = this.packSessionCache.store(pack);
+
       return {
         ...pack,
         selectionDiagnostics,
         precedentDiagnostics,
         queryTelemetry,
         rerankResult,
-        timeBudgetTelemetry
+        timeBudgetTelemetry,
+        packId
       };
     }
 
@@ -401,12 +407,16 @@ export class DoktorMcpInformationService {
     }
     const selectionDiagnostics = undefined;
 
+    // E1.2: Store pack in session cache and attach packId for drill-down
+    const packId = this.packSessionCache.store(pack);
+
     return {
       ...pack,
       ...(selectionDiagnostics ? { selectionDiagnostics } : {}),
       precedentDiagnostics,
       queryTelemetry,
-      rerankResult
+      rerankResult,
+      packId
     };
   }
 

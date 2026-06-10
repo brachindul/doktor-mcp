@@ -104,6 +104,8 @@ function formatPackResponse(pack: DoctorLegalInformationPack, options: {
   missingAuthorityTypes?: string[];
   gateObservations?: string[];
   includeDiagnostics?: boolean;
+  /** E1.2: Pack session cache ID for drill-down follow-up. */
+  packId?: string;
 } = {}): DoctorPackResponse | Record<string, unknown> {
   try {
     const response = formatDoctorPackResponse(pack, options);
@@ -189,10 +191,9 @@ export function createMedicalLegalToolHandlers(service = new DoktorMcpInformatio
         precedentSources: parsed.precedentSources,
         assessmentTone: parsed.assessmentTone
       });
-      const response = formatPackResponse(pack, { includeDiagnostics: parsed.includeDiagnostics });
-      // E1.2: Store pack in session cache and attach packId for drill-down
-      const packId = packCache.store(pack);
-      return { packId, ...response as Record<string, unknown> };
+      // E1.2: packId is already stored by service.prepareInformationPack; reuse for drill-down
+      const response = formatPackResponse(pack, { includeDiagnostics: parsed.includeDiagnostics, packId: pack.packId });
+      return { packId: pack.packId, ...response as Record<string, unknown> };
     },
     get_decision_full_text: async (input: unknown) => {
       const parsed = decisionFetchSchema.parse(input);

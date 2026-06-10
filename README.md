@@ -122,6 +122,12 @@ Bu uyarı, mock verinin gerçek mevzuat alıntısı gibi görünmesini önlemek 
 kaçırılamaz şekilde eklenmiştir. `shortAnswer` gibi hekime-dönük metin alanlarına
 ek önek eklenmez; üst-seviye `dataOrigin` ve `mockDataWarning` alanları yeterlidir.
 
+`prepare_doctor_legal_information_pack` yanıtı ayrıca bir `packId` alanı taşır.
+Bu, `"pack-"` önekiyle başlayan 6 haneli bir hex kimliktir (ör. `"pack-3f9a2c"`).
+`drill_down_pack_item` aracına `packId` ileterek paketi yeniden oluşturmadan
+belirli bir madde veya kararı detaylandırabilirsiniz. `packId`, sunucu belleğinde
+30 dakika süreyle saklanır.
+
 Yapılandırılmış paket, istenen hekime-dönük bölümler etrafında şekillenir:
 
 1. `shortAnswer`
