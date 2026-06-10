@@ -322,12 +322,12 @@ export function registerMedicalLegalTools(
   const handlers = createMedicalLegalToolHandlers(service);
 
   server.registerTool("classify_medical_legal_question", {
-    description: "Advanced/granular tool: prefer prepare_doctor_legal_information_pack for end-to-end questions. Classifies a physician's legal question by medical-legal dimensions (criminal, civil compensation, patient rights, privacy/KVKK, professional ethics). Use this only when you specifically need classification in isolation.",
+    description: "Advanced/granular tool: prefer prepare_doctor_legal_information_pack for end-to-end questions; use this only when you specifically need medical-legal question classification in isolation. Classifies a physician question into legal dimensions (patient_rights, professional_ethics, criminal, privacy_kvkk, civil_compensation, etc.) and extracts search terms. Example: { \"question\": \"Hasta onami olmadan mudahale edilirse ne olur?\" }",
     inputSchema: legislationQuestionSchema.shape
   }, async (input) => jsonResult(withDataOrigin(await handlers.classify_medical_legal_question(input))));
 
   server.registerTool("search_health_legislation", {
-    description: "Advanced/granular tool: prefer prepare_doctor_legal_information_pack for end-to-end questions. Searches official health-related legislation provisions (mevzuat.gov.tr). Use this only when you specifically need raw legislation search in isolation. Set sourceMode:'live' for official sources.",
+    description: "Advanced/granular tool: prefer prepare_doctor_legal_information_pack for end-to-end questions; use this only when you specifically need legislation search in isolation. Searches health-related legislation by keywords. Returns legislation titles, document IDs, and matched provisions. Example: { \"searchTerms\": [\"hasta haklari\", \"tedaviyi red\"], \"sourceMode\": \"mock\" }",
     inputSchema: legislationQuestionSchema.shape
   }, async (input) => {
     const parsed = legislationQuestionSchema.parse(input);
@@ -335,7 +335,7 @@ export function registerMedicalLegalTools(
   });
 
   server.registerTool("get_legislation_provisions", {
-    description: "Advanced/granular tool: prefer prepare_doctor_legal_information_pack for end-to-end questions. Returns verbatim official legislation provisions by document ID. Use this only when you have specific document IDs from a previous search or pack.",
+    description: "Advanced/granular tool: prefer prepare_doctor_legal_information_pack for end-to-end questions; use this only when you specifically need legislation provisions by document ID in isolation. Fetches full text of legislation provisions by document IDs. Example: { \"documentIds\": [\"mevzuat:hastahaklari-yonetmelik:madde-5\"], \"sourceMode\": \"mock\" }",
     inputSchema: provisionIdsSchema.shape
   }, async (input) => {
     const parsed = provisionIdsSchema.parse(input);
@@ -343,7 +343,7 @@ export function registerMedicalLegalTools(
   });
 
   server.registerTool("search_health_precedents", {
-    description: "Advanced/granular tool: prefer prepare_doctor_legal_information_pack for end-to-end questions. Searches high court precedent candidates (Yargitay, Danistay). Live mode uses live official sources. Use this only when you specifically need raw precedent search in isolation.",
+    description: "Advanced/granular tool: prefer prepare_doctor_legal_information_pack for end-to-end questions; use this only when you specifically need court precedent search in isolation. Searches health-related court decisions from Yargitay and Danistay. Returns decision summaries, document IDs, and relevance scores. Example: { \"searchTerms\": [\"hekim sorumlulugu\", \"tedaviyi red\"], \"sourceMode\": \"mock\" }",
     inputSchema: legislationQuestionSchema.shape
   }, async (input) => {
     const parsed = legislationQuestionSchema.parse(input);
@@ -351,7 +351,7 @@ export function registerMedicalLegalTools(
   });
 
   server.registerTool("filter_reasoned_precedents", {
-    description: "Advanced/granular tool: prefer prepare_doctor_legal_information_pack for end-to-end questions. Classifies precedent candidates by full text availability, legal reasoning presence, and health-law relevance. Use this only when you have raw decisions to filter manually.",
+    description: "Advanced/granular tool: prefer prepare_doctor_legal_information_pack for end-to-end questions; use this only when you specifically need to filter/classify court decisions for reasoned analysis. Takes a list of decisions and filters them by eligibility (full text, legal reasoning, relevance). Optionally accepts a packId to operate on a previously prepared pack's decisions. Example: { \"decisions\": [...], \"query\": \"hekim ihmal\" }",
     inputSchema: decisionsSchema.shape
   }, async (input) => jsonResult(withDataOrigin(await handlers.filter_reasoned_precedents(input))));
 
