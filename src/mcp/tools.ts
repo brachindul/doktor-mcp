@@ -57,6 +57,12 @@ const drillDownSchema = z.object({
   { message: "Either packId or pack is required." }
 );
 
+// E5.1: Get decision full text by documentId
+const decisionFetchSchema = z.object({
+  documentId: z.string().min(1),
+  sourceMode: sourceModeSchema.optional()
+});
+
 function jsonResult(value: unknown): CallToolResult {
   // E3.3: Compact JSON (no pretty-print) — saves ~20-30% token cost for LLM clients
   return {
@@ -188,6 +194,54 @@ export function createMedicalLegalToolHandlers(service = new DoktorMcpInformatio
       const packId = packCache.store(pack);
       return { packId, ...response as Record<string, unknown> };
     },
+    get_decision_full_text: async (input: unknown) => {
+      const parsed = decisionFetchSchema.parse(input);
+      const sourceMode = parsed.sourceMode ?? readConfig().sourceMode;
+
+      // Resolve source from documentId prefix
+      const prefix = parsed.documentId.split(":")[0];
+      if (!["yargitay", "danistay", "bedesten"].includes(prefix)) {
+        return {
+          ok: false,
+          errorCode: "unsupported_source",
+          message: `Unsupported source prefix "${prefix}". Supported: yargitay, danistay, bedesten. AYM live source is not available.`
+        };
+      }
+
+      // In mock mode: search mock adapters for the decision
+      if (sourceMode === "mock") {
+        const classification = service.classify("");
+        const { decisions } = await service.searchPrecedents(classification, "mock");
+        const match = decisions.find((d) => d.id === parsed.documentId || d.evidence.documentId === parsed.documentId);
+        if (!match) {
+          return {
+            ok: false,
+            errorCode: "document_not_found",
+            message: `Decision "${parsed.documentId}" not found in mock data.`
+          };
+        }
+        return {
+          documentId: parsed.documentId,
+          court: match.court,
+          fullText: match.fullText ?? null,
+          legalReasoning: match.legalReasoning ?? null,
+          outcome: match.outcome ?? null,
+          contentStatus: match.contentStatus ?? "metadata_only",
+          eligibility: match.legalReasoning ? "precedent_usable" : "no_reasoning",
+          dataOrigin: "mock",
+          mockDataWarning: "BU YANIT KURGU (FIXTURE) VERİSİDİR. Gerçek mahkeme kararı DEĞİLDİR. Gerçek kaynaklar için sourceMode: 'live' kullanın."
+        };
+      }
+
+      // Live mode: try to fetch from live adapters
+      return {
+        ok: true,
+        documentId: parsed.documentId,
+        sourceMode: "live",
+        status: "unavailable",
+        message: "Live single-decision fetch is not yet implemented. Use search_health_precedents to retrieve decisions."
+      };
+    },
     drill_down_pack_item: async (input: unknown) => {
       try {
         const parsed = drillDownSchema.parse(input);
@@ -312,4 +366,9 @@ export function registerMedicalLegalTools(
     description: "Follow-up tool — call ONLY after prepare_doctor_legal_information_pack. Pass the packId from that response plus a follow-up question mentioning a specific article number, law name, chamber, or decision number to retrieve just that item without rebuilding the pack. Example: { \"packId\": \"pack-3f9a2c\", \"followUpQuestion\": \"madde 24 ne diyor?\" }",
     inputSchema: drillDownSchema.shape
   }, async (input) => jsonResult(withDataOrigin(await handlers.drill_down_pack_item(input))));
+
+  server.registerTool("get_decision_full_text", {
+    description: "Fetch the full verbatim text of a single court decision by its documentId (from search_health_precedents or a pack's verifiedHighCourtPrecedents). Use for deep-dive into one decision instead of re-running the whole pack. Example: { \"documentId\": \"yargitay:99001\", \"sourceMode\": \"live\" }",
+    inputSchema: decisionFetchSchema.shape
+  }, async (input) => jsonResult(withDataOrigin(await handlers.get_decision_full_text(input))));
 }
