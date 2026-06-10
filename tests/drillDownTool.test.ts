@@ -119,6 +119,54 @@ describe("T24.1 — Drill-down aracı", () => {
     expect(match26.matchedLegislation).toHaveLength(0);
   });
 
+  describe("E0.2: Zod validation gap", () => {
+    it("filter_reasoned_precedents returns structured error for invalid decisions input", async () => {
+      const result = await handlers.filter_reasoned_precedents({
+        decisions: [{ foo: "bar" }],
+        query: "malpraktis"
+      });
+      expect(result).toHaveProperty("ok", false);
+      expect(result).toHaveProperty("errorCode", "invalid_input");
+      expect(result).toHaveProperty("issues");
+    });
+
+    it("filter_reasoned_precedents accepts valid CourtDecision array", async () => {
+      const result = await handlers.filter_reasoned_precedents({
+        decisions: [{
+          id: "valid-1",
+          court: "yargitay",
+          evidence: { fullText: true, documentId: "doc-1" }
+        }],
+        query: "malpraktis"
+      });
+      expect(result).toHaveProperty("filtered");
+      expect(result).toHaveProperty("diagnostics");
+      expect(Array.isArray(result.filtered)).toBe(true);
+    });
+
+    it("drill_down_pack_item returns structured error for invalid pack input", async () => {
+      const result = await handlers.drill_down_pack_item({
+        pack: { notRelevantLegislation: "wrong" },
+        followUpQuestion: "bir soru"
+      });
+      expect(result).toHaveProperty("ok", false);
+      expect(result).toHaveProperty("errorCode", "invalid_input");
+    });
+
+    it("drill_down_pack_item works with valid pack", async () => {
+      const pack = makePack([
+        { legislationName: "Test Kanunu", articleNumber: "1", verbatimQuote: "Test", connection: "c", sourceDocumentId: "1" }
+      ]);
+      const result = await handlers.drill_down_pack_item({
+        pack,
+        followUpQuestion: "1. madde ne diyor?"
+      });
+      expect(result).toHaveProperty("matchedLegislation");
+      expect(result.matchedLegislation).toHaveLength(1);
+      expect(result).not.toHaveProperty("ok", false);
+    });
+  });
+
   it("includes disclaimer and counts in response", async () => {
     const pack = makePack([
       { legislationName: "Kanun A", articleNumber: "1", verbatimQuote: "x", connection: "c", sourceDocumentId: "1" },

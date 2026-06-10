@@ -105,7 +105,8 @@ export function createMedicalLegalToolHandlers(service = new DoktorMcpInformatio
     filter_reasoned_precedents: async (input: unknown) => {
       try {
         const parsed = decisionsSchema.parse(input);
-        const filtered = service.filterPrecedents(parsed.decisions);
+        const decisions = parsed.decisions as unknown as CourtDecision[];
+        const filtered = service.filterPrecedents(decisions);
         const diagnostics = buildPrecedentSelectionDiagnostics(filtered, parsed.query ?? "");
         return { filtered, diagnostics };
       } catch (err) {
@@ -122,10 +123,11 @@ export function createMedicalLegalToolHandlers(service = new DoktorMcpInformatio
     drill_down_pack_item: async (input: unknown) => {
       try {
         const parsed = drillDownSchema.parse(input);
+        const pack = parsed.pack as unknown as DoctorLegalInformationPack;
         const q = parsed.followUpQuestion.toLowerCase();
         // Simple keyword-based matching to find the relevant provision or precedent
-        const legislation = parsed.pack.relevantLegislation;
-        const precedents = parsed.pack.verifiedHighCourtPrecedents;
+        const legislation = pack.relevantLegislation;
+        const precedents = pack.verifiedHighCourtPrecedents;
 
         // Extract digit sequences as potential article/decision numbers.
         // `\d+` guarantees digits is never empty — safe for .includes() below.
