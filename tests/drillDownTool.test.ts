@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createMedicalLegalToolHandlers } from "../src/mcp/tools.js";
+import { DoktorMcpInformationService } from "../src/app/service.js";
+import { PackSessionCache } from "../src/app/packSessionCache.js";
 import type { DoctorLegalInformationPack, LegislationProvision, CourtDecision } from "../src/contracts/legal.js";
 
 describe("T24.1 — Drill-down aracı", () => {
@@ -179,5 +181,66 @@ describe("T24.1 — Drill-down aracı", () => {
     expect(result.totalLegislationInPack).toBe(2);
     expect(result.totalPrecedentsInPack).toBe(0);
     expect(result.disclaimer).toContain("nihai hukuki yorum değildir");
+  });
+});
+
+// E1.3 tests need their own describe with makePack accessible
+describe("E1.3 — packId-based drill-down", () => {
+  function makePack(legislation: LegislationProvision[] = [], precedents: CourtDecision[] = []): DoctorLegalInformationPack {
+    return {
+      legalClassification: {
+        criminal: "", civilCompensation: "", disciplinaryAdministrative: "",
+        patientRights: "", privacyKvkk: "", professionalEthics: ""
+      },
+      relevantLegislation: legislation,
+      verifiedHighCourtPrecedents: precedents,
+      missingInformation: [],
+      lawyerReviewPoints: [],
+      sourceWarnings: [],
+      sourceUnavailable: [],
+      shortAnswer: "Test pack"
+    };
+  }
+
+  it("drill-down works with packId from shared cache", async () => {
+    const cache = new PackSessionCache();
+    const pack = makePack([
+      { legislationName: "Hasta Hakları Yönetmeliği", articleNumber: "5", verbatimQuote: "Hasta bilgilendirilir.", connection: "c", sourceDocumentId: "2" }
+    ]);
+    const packId = cache.store(pack as unknown as DoctorLegalInformationPack);
+    const svc = new DoktorMcpInformationService({ packSessionCache: cache });
+    const h = createMedicalLegalToolHandlers(svc);
+
+    const result = await h.drill_down_pack_item({
+      packId,
+      followUpQuestion: "5. madde ne diyor?"
+    });
+    expect(result).toHaveProperty("matchedLegislation");
+    expect(result.matchedLegislation).toHaveLength(1);
+  });
+
+  it("returns pack_not_found for unknown packId", async () => {
+    const h = createMedicalLegalToolHandlers();
+    const result = await h.drill_down_pack_item({
+      packId: "pack-deadbeef",
+      followUpQuestion: "herhangi bir soru"
+    });
+    expect(result).toHaveProperty("ok", false);
+    expect(result).toHaveProperty("errorCode", "pack_not_found");
+  });
+
+  it("inline pack still works but carries deprecationWarning", async () => {
+    const h2 = createMedicalLegalToolHandlers();
+    const pack = makePack([
+      { legislationName: "Test Kanunu", articleNumber: "99", verbatimQuote: "Test", connection: "c", sourceDocumentId: "100" }
+    ]);
+    const result = await h2.drill_down_pack_item({
+      pack,
+      followUpQuestion: "99. madde"
+    });
+    expect(result).toHaveProperty("matchedLegislation");
+    expect(result.matchedLegislation).toHaveLength(1);
+    expect(result).toHaveProperty("deprecationWarning");
+    expect(result.deprecationWarning).toContain("packId");
   });
 });

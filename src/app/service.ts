@@ -53,6 +53,7 @@ import {
   type MinimalPackRescueContext,
   type PartialDiagnosticPack
 } from "./minimalPackRescue.js";
+import { PackSessionCache } from "./packSessionCache.js";
 
 // Re-export types that were previously defined here for backward compatibility
 export type { MinimalPackRescueReason, MinimalPackRescueContext, PartialDiagnosticPack } from "./minimalPackRescue.js";
@@ -89,6 +90,8 @@ export interface DoktorMcpInformationServiceOptions {
   liveBedesten?: LiveBedestenAdapter;
   /** Optional shared cache for live precedent adapters. Defaults to disabled. */
   precedentCache?: PrecedentCache;
+  /** Optional pack session cache for packId-based drill-down. Defaults to a fresh instance. */
+  packSessionCache?: PackSessionCache;
 }
 
 export class DoktorMcpInformationService {
@@ -107,6 +110,9 @@ export class DoktorMcpInformationService {
   /** v0.42.0: Partial state for minimal pack rescue on timeout — delegated to MinimalPackRescueManager */
   private readonly rescueManager = new MinimalPackRescueManager();
 
+  /** E1.1: In-memory pack session cache for packId-based drill-down */
+  readonly packSessionCache: PackSessionCache;
+
   constructor(options: DoktorMcpInformationServiceOptions = {}) {
     this.mockLegislation = options.mockLegislation ?? new MockLegislationAdapter();
     this.liveLegislation = options.liveLegislation ?? new LiveOfficialLegislationAdapter();
@@ -115,6 +121,7 @@ export class DoktorMcpInformationService {
     this.liveDanistay = options.liveDanistay ?? new LiveDanistayAdapter({ cache });
     this.liveBedesten = options.liveBedesten ?? new LiveBedestenAdapter();
     this.legislationMapper = new LegislationMapper(this.mockLegislation);
+    this.packSessionCache = options.packSessionCache ?? new PackSessionCache();
   }
 
   /** v0.42.0: Retrieve partial state for minimal pack rescue. Returns null if not available or already consumed. */

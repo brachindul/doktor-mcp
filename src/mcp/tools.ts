@@ -3,6 +3,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z, ZodError } from "zod";
 import { DoktorMcpInformationService } from "../app/service.js";
 import type { CourtDecision, DoctorLegalInformationPack } from "../contracts/legal.js";
+import type { PackSessionCache } from "../app/packSessionCache.js";
 import { buildPrecedentSelectionDiagnostics } from "../health/precedentFilter.js";
 import { formatDoctorPackResponse, detectForbiddenOutputPhrases } from "./formatDoctorPackResponse.js";
 import type { DoctorPackResponse } from "./formatDoctorPackResponse.js";
@@ -33,14 +34,26 @@ const provisionIdsSchema = z.object({
   sourceMode: sourceModeSchema.optional()
 });
 const decisionsSchema = z.object({
-  decisions: z.array(courtDecisionSchema),
+  decisions: z.array(courtDecisionSchema).optional(),
+  packId: z.string().min(1).optional(),
   query: z.string().optional()
-});
+}).refine(
+  (data) => data.decisions || data.packId,
+  { message: "Either decisions or packId is required." }
+).refine(
+  (data) => !(data.decisions && data.packId),
+  { message: "Provide either decisions or packId, not both." }
+);
 
 const drillDownSchema = z.object({
-  pack: doctorLegalInformationPackSchema,
+  // E1.3: prefer packId (from pack response); inline pack remains for backward compat
+  packId: z.string().min(1).optional(),
+  pack: doctorLegalInformationPackSchema.optional(),
   followUpQuestion: z.string().min(1)
-});
+}).refine(
+  (data) => data.packId || data.pack,
+  { message: "Either packId or pack is required." }
+);
 
 function jsonResult(value: unknown): CallToolResult {
   return {
@@ -87,6 +100,8 @@ function formatPackResponse(pack: DoctorLegalInformationPack, options: {
 }
 
 export function createMedicalLegalToolHandlers(service = new DoktorMcpInformationService()) {
+  const packCache = service.packSessionCache;
+
   return {
     classify_medical_legal_question: async (input: unknown) => service.classify(questionSchema.parse(input).question),
     search_health_legislation: async (input: unknown) => {
@@ -105,9 +120,26 @@ export function createMedicalLegalToolHandlers(service = new DoktorMcpInformatio
     filter_reasoned_precedents: async (input: unknown) => {
       try {
         const parsed = decisionsSchema.parse(input);
-        const decisions = parsed.decisions as unknown as CourtDecision[];
+        const query = parsed.query ?? "";
+
+        // E1.4: Resolve decisions from packId if provided
+        let decisions: CourtDecision[];
+        if (parsed.packId) {
+          const cached = packCache.get(parsed.packId);
+          if (!cached) {
+            return {
+              ok: false,
+              errorCode: "pack_not_found",
+              message: "packId bulunamadı veya süresi doldu. Önce prepare_doctor_legal_information_pack çağırın."
+            };
+          }
+          decisions = cached.verifiedHighCourtPrecedents as unknown as CourtDecision[];
+        } else {
+          decisions = parsed.decisions as unknown as CourtDecision[];
+        }
+
         const filtered = service.filterPrecedents(decisions);
-        const diagnostics = buildPrecedentSelectionDiagnostics(filtered, parsed.query ?? "");
+        const diagnostics = buildPrecedentSelectionDiagnostics(filtered, query);
         return { filtered, diagnostics };
       } catch (err) {
         if (err instanceof ZodError) {
@@ -118,12 +150,36 @@ export function createMedicalLegalToolHandlers(service = new DoktorMcpInformatio
     },
     prepare_doctor_legal_information_pack: async (input: unknown) => {
       const pack = await service.prepareInformationPack(packInputSchema.parse(input));
-      return formatPackResponse(pack);
+      const response = formatPackResponse(pack);
+      // E1.2: Store pack in session cache and attach packId for drill-down
+      const packId = packCache.store(pack);
+      return { packId, ...response as Record<string, unknown> };
     },
     drill_down_pack_item: async (input: unknown) => {
       try {
         const parsed = drillDownSchema.parse(input);
-        const pack = parsed.pack as unknown as DoctorLegalInformationPack;
+
+        // E1.3: Resolve pack from packId (preferred) or inline pack (deprecated)
+        let pack: DoctorLegalInformationPack;
+        let deprecationWarning: string | undefined;
+
+        if (parsed.packId) {
+          const cached = packCache.get(parsed.packId);
+          if (!cached) {
+            return {
+              ok: false,
+              errorCode: "pack_not_found",
+              message: "packId bulunamadı veya süresi doldu. Önce prepare_doctor_legal_information_pack çağırın.",
+              recommendedNextStep: "Re-run prepare_doctor_legal_information_pack and use the new packId."
+            };
+          }
+          pack = cached;
+        } else if (parsed.pack) {
+          pack = parsed.pack as unknown as DoctorLegalInformationPack;
+          deprecationWarning = "Inline 'pack' girişi v1.0'da kaldırılacak; packId kullanın.";
+        } else {
+          return { ok: false, errorCode: "invalid_input", message: "Either packId or pack is required." };
+        }
         const q = parsed.followUpQuestion.toLowerCase();
         // Simple keyword-based matching to find the relevant provision or precedent
         const legislation = pack.relevantLegislation;
@@ -149,7 +205,7 @@ export function createMedicalLegalToolHandlers(service = new DoktorMcpInformatio
           digits.some((d) => (p.meritsNumber ?? "").includes(d) || (p.decisionNumber ?? "").includes(d))
         );
 
-        return {
+        const result: Record<string, unknown> = {
           matchedLegislation: legislationMatches,
           matchedPrecedents: precedentMatches,
           followUpQuestion: parsed.followUpQuestion,
@@ -157,6 +213,10 @@ export function createMedicalLegalToolHandlers(service = new DoktorMcpInformatio
           totalPrecedentsInPack: precedents.length,
           disclaimer: "Bu detaylar kaynak kayıtlarına dayanmaktadır; nihai hukuki yorum değildir."
         };
+        if (deprecationWarning) {
+          result.deprecationWarning = deprecationWarning;
+        }
+        return result;
       } catch (err) {
         if (err instanceof ZodError) {
           return { ok: false, errorCode: "invalid_input", issues: err.issues };

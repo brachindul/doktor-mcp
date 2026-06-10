@@ -33,6 +33,8 @@ export interface DoctorPackResponse {
   responseVersion: "doctor-pack-response/v1";
   ok: boolean;
   status: DoctorPackResponseStatus;
+  /** E1.2: Pack session cache ID for drill-down follow-up. Present when pack is cached. */
+  packId?: string;
   pack?: DoctorLegalInformationPack;
   summary: DoctorPackSummary;
   diagnostics?: DoctorPackDiagnostics;
