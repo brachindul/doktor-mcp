@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { readConfig, resetConfig, DoktorMcpConfigSchema, readRateLimitConfig } from "../src/core/runtimeConfig.js";
 
 describe("runtimeConfig", () => {
@@ -119,6 +119,47 @@ describe("runtimeConfig", () => {
     expect(rateConfig.bedestenBurst).toBe(5);
     expect(rateConfig.bedestenConcurrency).toBe(1);
     expect(rateConfig.bedestenAdaptiveThrottle).toBe(true);
+  });
+
+  // E2.2: DOKTOR_MCP_DEFAULT_SOURCE_MODE env var tests
+  describe("DOKTOR_MCP_DEFAULT_SOURCE_MODE", () => {
+    afterEach(() => {
+      delete process.env.DOKTOR_MCP_DEFAULT_SOURCE_MODE;
+    });
+
+    it("should use 'live' when DOKTOR_MCP_DEFAULT_SOURCE_MODE is set to 'live'", () => {
+      process.env.DOKTOR_MCP_DEFAULT_SOURCE_MODE = "live";
+      const config = readConfig();
+      expect(config.sourceMode).toBe("live");
+    });
+
+    it("should use 'snapshot' when DOKTOR_MCP_DEFAULT_SOURCE_MODE is set to 'snapshot'", () => {
+      process.env.DOKTOR_MCP_DEFAULT_SOURCE_MODE = "snapshot";
+      const config = readConfig();
+      expect(config.sourceMode).toBe("snapshot");
+    });
+
+    it("should default to 'mock' when DOKTOR_MCP_DEFAULT_SOURCE_MODE is not set", () => {
+      const config = readConfig();
+      expect(config.sourceMode).toBe("mock");
+    });
+
+    it("should fallback to 'mock' and log warning when DOKTOR_MCP_DEFAULT_SOURCE_MODE is invalid", () => {
+      const stderrSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      process.env.DOKTOR_MCP_DEFAULT_SOURCE_MODE = "production";
+      const config = readConfig();
+      expect(config.sourceMode).toBe("mock");
+      expect(stderrSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Invalid DOKTOR_MCP_DEFAULT_SOURCE_MODE value "production"')
+      );
+      stderrSpy.mockRestore();
+    });
+
+    it("both DOKTOR_MCP_SOURCE_MODE and DOKTOR_MCP_DEFAULT_SOURCE_MODE set sourceMode", () => {
+      process.env.DOKTOR_MCP_DEFAULT_SOURCE_MODE = "live";
+      const config = readConfig();
+      expect(config.sourceMode).toBe("live");
+    });
   });
 
   it("should apply multiple env overrides simultaneously", () => {

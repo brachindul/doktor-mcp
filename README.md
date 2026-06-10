@@ -655,6 +655,50 @@ Bir canlı adaptör JSON-olmayan bir yanıt aldığında, `DecisionSourceTrace.e
 
 Tam kontrol referansı için `docs/PACK_AUDIT.md`.
 
+## Üretim Kurulumu
+
+`sourceMode` varsayılan olarak `"mock"`'tur — yani tool çağrısında `sourceMode`
+belirtilmezse, yanıt fixture (kurgu) verisi içerir ve `mockDataWarning` alanı eklenir.
+
+Canlı modda çalışmak için iki seçeneğiniz vardır:
+
+1. Her tool çağrısında `sourceMode: "live"` ekleyin (en basit yol)
+2. MCP istemci yapılandırmanızda `DOKTOR_MCP_DEFAULT_SOURCE_MODE=live` ortam değişkenini ayarlayın
+
+İkinci seçenek, tüm tool çağrıları için varsayılanı `"live"` yapar — böylece her çağrıda
+`sourceMode` belirtmenize gerek kalmaz.
+
+### Örnek: Claude Desktop Yapılandırması
+
+```json
+{
+  "mcpServers": {
+    "doktor-mcp": {
+      "command": "node",
+      "args": ["dist/mcp/server.js"],
+      "env": {
+        "DOKTOR_MCP_DEFAULT_SOURCE_MODE": "live"
+      }
+    }
+  }
+}
+```
+
+### Geçerli Değerler
+
+| Değer | Anlamı |
+|-------|--------|
+| `"mock"` | Varsayılan. Fixture (kurgu) verisi döner. Gerçek mevzuat veya karar **değildir**. |
+| `"live"` | Canlı resmî kaynaklardan sorgular (mevzuat.gov.tr, Yargıtay, Danıştay). |
+| `"snapshot"` | Önceden kaydedilmiş canlı kaynak snapshot'ını kullanır. |
+
+Geçersiz bir değer ayarlanırsa (`DOKTOR_MCP_DEFAULT_SOURCE_MODE=production` gibi),
+stderr'ye uyarı yazılır ve `"mock"`'a geri dönülür.
+
+> **Not:** `DOKTOR_MCP_DEFAULT_SOURCE_MODE`, `DOKTOR_MCP_SOURCE_MODE`'un daha keşfedilebilir
+> bir karşılığıdır. İkisi de `sourceMode`'u ayarlar; ikisi birden ayarlandığında
+> `DOKTOR_MCP_DEFAULT_SOURCE_MODE` son işleme alınır.
+
 ## Geliştirme
 
 ```powershell
