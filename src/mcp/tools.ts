@@ -1,11 +1,23 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { z } from "zod";
+import { z, ZodError } from "zod";
 import { DoktorMcpInformationService } from "../app/service.js";
 import type { CourtDecision, DoctorLegalInformationPack } from "../contracts/legal.js";
 import { buildPrecedentSelectionDiagnostics } from "../health/precedentFilter.js";
 import { formatDoctorPackResponse, detectForbiddenOutputPhrases } from "./formatDoctorPackResponse.js";
 import type { DoctorPackResponse } from "./formatDoctorPackResponse.js";
+import { courtDecisionSchema, doctorLegalInformationPackSchema } from "./schemas.js";
+
+/**
+ * Safe string-includes check: returns false for undefined, null, or empty needles.
+ * Prevents the JavaScript `"anyString".includes("") === true` footgun.
+ */
+function includesNonEmpty(haystack: string, needle: string | undefined | null): boolean {
+  if (!needle) return false;
+  const trimmed = needle.trim().toLowerCase();
+  if (trimmed.length === 0) return false;
+  return haystack.toLowerCase().includes(trimmed);
+}
 
 const sourceModeSchema = z.enum(["mock", "live", "snapshot"]).default("mock");
 const precedentSourceSchema = z.enum(["yargitay", "danistay", "aym"]);
@@ -21,12 +33,12 @@ const provisionIdsSchema = z.object({
   sourceMode: sourceModeSchema.optional()
 });
 const decisionsSchema = z.object({
-  decisions: z.array(z.custom<CourtDecision>()),
+  decisions: z.array(courtDecisionSchema),
   query: z.string().optional()
 });
 
 const drillDownSchema = z.object({
-  pack: z.custom<DoctorLegalInformationPack>(),
+  pack: doctorLegalInformationPackSchema,
   followUpQuestion: z.string().min(1)
 });
 
@@ -91,47 +103,64 @@ export function createMedicalLegalToolHandlers(service = new DoktorMcpInformatio
       return decisions;
     },
     filter_reasoned_precedents: async (input: unknown) => {
-      const parsed = decisionsSchema.parse(input);
-      const filtered = service.filterPrecedents(parsed.decisions);
-      const diagnostics = buildPrecedentSelectionDiagnostics(filtered, parsed.query ?? "");
-      return { filtered, diagnostics };
+      try {
+        const parsed = decisionsSchema.parse(input);
+        const filtered = service.filterPrecedents(parsed.decisions);
+        const diagnostics = buildPrecedentSelectionDiagnostics(filtered, parsed.query ?? "");
+        return { filtered, diagnostics };
+      } catch (err) {
+        if (err instanceof ZodError) {
+          return { ok: false, errorCode: "invalid_input", issues: err.issues };
+        }
+        throw err;
+      }
     },
     prepare_doctor_legal_information_pack: async (input: unknown) => {
       const pack = await service.prepareInformationPack(packInputSchema.parse(input));
       return formatPackResponse(pack);
     },
     drill_down_pack_item: async (input: unknown) => {
-      const parsed = drillDownSchema.parse(input);
-      const q = parsed.followUpQuestion.toLowerCase();
-      // Simple keyword-based matching to find the relevant provision or precedent
-      const legislation = parsed.pack.relevantLegislation;
-      const precedents = parsed.pack.verifiedHighCourtPrecedents;
+      try {
+        const parsed = drillDownSchema.parse(input);
+        const q = parsed.followUpQuestion.toLowerCase();
+        // Simple keyword-based matching to find the relevant provision or precedent
+        const legislation = parsed.pack.relevantLegislation;
+        const precedents = parsed.pack.verifiedHighCourtPrecedents;
 
-      // Extract digit sequences as potential article/decision numbers
-      const digits = q.match(/\d+/g) ?? [];
+        // Extract digit sequences as potential article/decision numbers.
+        // `\d+` guarantees digits is never empty — safe for .includes() below.
+        const digits = q.match(/\d+/g) ?? [];
 
-      // Look for legislation name mentions
-      const legislationMatches = legislation.filter((l) =>
-        q.includes(l.legislationName.toLowerCase()) ||
-        digits.some((d) => l.articleNumber?.includes(d))
-      );
+        // Look for legislation name mentions
+        const legislationMatches = legislation.filter((l) =>
+          includesNonEmpty(q, l.legislationName) ||
+          digits.some((d) => l.articleNumber?.includes(d))
+        );
 
-      // Look for precedent mentions (by sourceDocumentId, chamber, or decision/merits number)
-      const precedentMatches = precedents.filter((p) =>
-        q.includes(p.sourceDocumentId?.toLowerCase() ?? "") ||
-        q.includes(p.sourceId?.toLowerCase() ?? "") ||
-        q.includes(p.chamber?.toLowerCase() ?? "") ||
-        digits.some((d) => (p.meritsNumber ?? "").includes(d) || (p.decisionNumber ?? "").includes(d))
-      );
+        // Look for precedent mentions (by sourceDocumentId, chamber, or decision/merits number)
+        // NOTE: digits matching is safe — `"".includes(d)` returns false, and `d` is always
+        // non-empty since it comes from /\d+/ match. No empty-string footgun here.
+        const precedentMatches = precedents.filter((p) =>
+          includesNonEmpty(q, p.sourceDocumentId) ||
+          includesNonEmpty(q, p.sourceId) ||
+          includesNonEmpty(q, p.chamber) ||
+          digits.some((d) => (p.meritsNumber ?? "").includes(d) || (p.decisionNumber ?? "").includes(d))
+        );
 
-      return {
-        matchedLegislation: legislationMatches,
-        matchedPrecedents: precedentMatches,
-        followUpQuestion: parsed.followUpQuestion,
-        totalLegislationInPack: legislation.length,
-        totalPrecedentsInPack: precedents.length,
-        disclaimer: "Bu detaylar kaynak kayıtlarına dayanmaktadır; nihai hukuki yorum değildir."
-      };
+        return {
+          matchedLegislation: legislationMatches,
+          matchedPrecedents: precedentMatches,
+          followUpQuestion: parsed.followUpQuestion,
+          totalLegislationInPack: legislation.length,
+          totalPrecedentsInPack: precedents.length,
+          disclaimer: "Bu detaylar kaynak kayıtlarına dayanmaktadır; nihai hukuki yorum değildir."
+        };
+      } catch (err) {
+        if (err instanceof ZodError) {
+          return { ok: false, errorCode: "invalid_input", issues: err.issues };
+        }
+        throw err;
+      }
     }
   };
 }

@@ -74,6 +74,51 @@ describe("T24.1 — Drill-down aracı", () => {
     expect(result.matchedPrecedents).toHaveLength(0);
   });
 
+  it("E0.1: does NOT match precedent with undefined chamber/sourceDocumentId/sourceId (includes-empty-string bug)", async () => {
+    // Precedent with all optional fields undefined. Before E0.1 fix,
+    // `q.includes(undefined ?? "")` === `q.includes("")` === true for EVERY question.
+    const pack = makePack([], [
+      { id: "prec:1", court: "yargitay", chamber: undefined, decisionDate: "2023-01-01", factSummary: "x",
+        evidence: { source: "yargitay", documentId: "prec:1", accessTimestamp: "2023-01-01", retrievalMethod: "api" } }
+    ]);
+    const result = await handlers.drill_down_pack_item({
+      pack,
+      followUpQuestion: "Tamamen alakasız bir soru bu, hiçbir terim içermiyor."
+    });
+    expect(result.matchedPrecedents).toHaveLength(0);
+  });
+
+  it("E0.1: DOES match precedent by chamber when chamber is mentioned in follow-up", async () => {
+    const pack = makePack([], [
+      { id: "prec:2", court: "yargitay", chamber: "13. Hukuk Dairesi", decisionDate: "2023-01-01", factSummary: "x",
+        evidence: { source: "yargitay", documentId: "prec:2", accessTimestamp: "2023-01-01", retrievalMethod: "api" } }
+    ]);
+    const result = await handlers.drill_down_pack_item({
+      pack,
+      followUpQuestion: "13. Hukuk Dairesi kararını açar mısınız?"
+    });
+    expect(result.matchedPrecedents).toHaveLength(1);
+    expect(result.matchedPrecedents[0].chamber).toBe("13. Hukuk Dairesi");
+  });
+
+  it("E0.1: matches legislation by article number, does NOT match different article number", async () => {
+    const pack = makePack([
+      { legislationName: "Kanun X", articleNumber: "24", verbatimQuote: "Madde 24 metni...", connection: "c", sourceDocumentId: "3" }
+    ]);
+    const match24 = await handlers.drill_down_pack_item({
+      pack,
+      followUpQuestion: "Madde 24 ne diyor?"
+    });
+    expect(match24.matchedLegislation).toHaveLength(1);
+    expect(match24.matchedLegislation[0].articleNumber).toBe("24");
+
+    const match26 = await handlers.drill_down_pack_item({
+      pack,
+      followUpQuestion: "Madde 26 ne diyor?"
+    });
+    expect(match26.matchedLegislation).toHaveLength(0);
+  });
+
   it("includes disclaimer and counts in response", async () => {
     const pack = makePack([
       { legislationName: "Kanun A", articleNumber: "1", verbatimQuote: "x", connection: "c", sourceDocumentId: "1" },
