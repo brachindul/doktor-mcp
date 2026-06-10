@@ -28,7 +28,8 @@ const questionSchema = z.object({ question: z.string().min(1) });
 const legislationQuestionSchema = questionSchema.extend({ sourceMode: sourceModeSchema.optional() });
 const packInputSchema = legislationQuestionSchema.extend({
   precedentSources: z.array(precedentSourceSchema).optional(),
-  assessmentTone: assessmentToneSchema.optional()
+  assessmentTone: assessmentToneSchema.optional(),
+  includeDiagnostics: z.boolean().optional().default(false)
 });
 const provisionIdsSchema = z.object({
   documentIds: z.array(z.string().min(1)).min(1),
@@ -96,6 +97,7 @@ function formatPackResponse(pack: DoctorLegalInformationPack, options: {
   retrievalTimeouts?: string[];
   missingAuthorityTypes?: string[];
   gateObservations?: string[];
+  includeDiagnostics?: boolean;
 } = {}): DoctorPackResponse | Record<string, unknown> {
   try {
     const response = formatDoctorPackResponse(pack, options);
@@ -174,8 +176,14 @@ export function createMedicalLegalToolHandlers(service = new DoktorMcpInformatio
       }
     },
     prepare_doctor_legal_information_pack: async (input: unknown) => {
-      const pack = await service.prepareInformationPack(packInputSchema.parse(input));
-      const response = formatPackResponse(pack);
+      const parsed = packInputSchema.parse(input);
+      const pack = await service.prepareInformationPack({
+        question: parsed.question,
+        sourceMode: parsed.sourceMode,
+        precedentSources: parsed.precedentSources,
+        assessmentTone: parsed.assessmentTone
+      });
+      const response = formatPackResponse(pack, { includeDiagnostics: parsed.includeDiagnostics });
       // E1.2: Store pack in session cache and attach packId for drill-down
       const packId = packCache.store(pack);
       return { packId, ...response as Record<string, unknown> };
@@ -259,12 +267,12 @@ export function registerMedicalLegalTools(
   const handlers = createMedicalLegalToolHandlers(service);
 
   server.registerTool("classify_medical_legal_question", {
-    description: "Classifies a doktor legal information question for source mapping.",
+    description: "Advanced/granular tool: prefer prepare_doctor_legal_information_pack for end-to-end questions. Classifies a physician's legal question by medical-legal dimensions (criminal, civil compensation, patient rights, privacy/KVKK, professional ethics). Use this only when you specifically need classification in isolation.",
     inputSchema: legislationQuestionSchema.shape
   }, async (input) => jsonResult(withDataOrigin(await handlers.classify_medical_legal_question(input))));
 
   server.registerTool("search_health_legislation", {
-    description: "Searches health-related official legislation provisions through the adapter layer.",
+    description: "Advanced/granular tool: prefer prepare_doctor_legal_information_pack for end-to-end questions. Searches official health-related legislation provisions (mevzuat.gov.tr). Use this only when you specifically need raw legislation search in isolation. Set sourceMode:'live' for official sources.",
     inputSchema: legislationQuestionSchema.shape
   }, async (input) => {
     const parsed = legislationQuestionSchema.parse(input);
@@ -272,7 +280,7 @@ export function registerMedicalLegalTools(
   });
 
   server.registerTool("get_legislation_provisions", {
-    description: "Returns verbatim official legislation provisions by document id.",
+    description: "Advanced/granular tool: prefer prepare_doctor_legal_information_pack for end-to-end questions. Returns verbatim official legislation provisions by document ID. Use this only when you have specific document IDs from a previous search or pack.",
     inputSchema: provisionIdsSchema.shape
   }, async (input) => {
     const parsed = provisionIdsSchema.parse(input);
@@ -280,7 +288,7 @@ export function registerMedicalLegalTools(
   });
 
   server.registerTool("search_health_precedents", {
-    description: "Searches high court precedent candidates. Live mode uses live Yargitay and Danistay sources; AYM stays disabled outside mock mode.",
+    description: "Advanced/granular tool: prefer prepare_doctor_legal_information_pack for end-to-end questions. Searches high court precedent candidates (Yargitay, Danistay). Live mode uses live official sources. Use this only when you specifically need raw precedent search in isolation.",
     inputSchema: legislationQuestionSchema.shape
   }, async (input) => {
     const parsed = legislationQuestionSchema.parse(input);
@@ -288,12 +296,12 @@ export function registerMedicalLegalTools(
   });
 
   server.registerTool("filter_reasoned_precedents", {
-    description: "Classifies precedent candidates by full text, reasoning, and relevance.",
+    description: "Advanced/granular tool: prefer prepare_doctor_legal_information_pack for end-to-end questions. Classifies precedent candidates by full text availability, legal reasoning presence, and health-law relevance. Use this only when you have raw decisions to filter manually.",
     inputSchema: decisionsSchema.shape
   }, async (input) => jsonResult(withDataOrigin(await handlers.filter_reasoned_precedents(input))));
 
   server.registerTool("prepare_doctor_legal_information_pack", {
-    description: "Prepares a source-grounded doktor legal information pack without a final legal opinion.",
+    description: "PRIMARY ENTRY POINT — use this tool first for any physician legal question. Prepares a complete source-grounded legal information pack: classification, verbatim legislation provisions, verified high-court precedents, missing information, and lawyer review points. Returns a packId for follow-up drill-down. Set sourceMode:'live' to query official sources (mevzuat.gov.tr, Yargitay, Danistay); default mode returns clearly-marked mock fixture data for testing only. Example: { \"question\": \"Hasta tedaviyi reddederse hekimin sorumluluğu nedir?\", \"sourceMode\": \"live\" }",
     inputSchema: packInputSchema.shape
   }, async (input) => {
     const parsed = packInputSchema.parse(input);
@@ -301,7 +309,7 @@ export function registerMedicalLegalTools(
   });
 
   server.registerTool("drill_down_pack_item", {
-    description: "Drill-down into a specific provision or precedent from a previously prepared doctor legal information pack. Matches the follow-up question against pack items.",
+    description: "Follow-up tool — call ONLY after prepare_doctor_legal_information_pack. Pass the packId from that response plus a follow-up question mentioning a specific article number, law name, chamber, or decision number to retrieve just that item without rebuilding the pack. Example: { \"packId\": \"pack-3f9a2c\", \"followUpQuestion\": \"madde 24 ne diyor?\" }",
     inputSchema: drillDownSchema.shape
   }, async (input) => jsonResult(withDataOrigin(await handlers.drill_down_pack_item(input))));
 }

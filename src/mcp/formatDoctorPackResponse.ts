@@ -29,14 +29,24 @@ export interface DoctorPackDiagnostics {
   gateObservations?: string[];
 }
 
+export type DataOrigin = "mock" | "live" | "snapshot" | "computed" | "client-provided";
+
 export interface DoctorPackResponse {
   responseVersion: "doctor-pack-response/v1";
   ok: boolean;
   status: DoctorPackResponseStatus;
+  /** E2.1: Origin of the data in this response. */
+  dataOrigin: DataOrigin;
+  /** E2.1: Present only when dataOrigin is "mock". Unmissable warning that response is fixture data. */
+  mockDataWarning?: string;
   /** E1.2: Pack session cache ID for drill-down follow-up. Present when pack is cached. */
   packId?: string;
   pack?: DoctorLegalInformationPack;
   summary: DoctorPackSummary;
+  /** E3.2: Whether full diagnostics are included in this response. */
+  diagnosticsIncluded?: boolean;
+  /** E3.2: Hint when diagnostics are stripped; tells the client how to get them. */
+  diagnosticsHint?: string;
   diagnostics?: DoctorPackDiagnostics;
   _forbiddenPhraseWarning?: string[];
 }
@@ -109,6 +119,53 @@ function collectAllText(obj: Record<string, unknown>): string {
 
 // ─── Response builder ─────────────────────────────────────────────────────
 
+/**
+ * E3.2: Strip diagnostic-heavy fields from the pack for token savings.
+ * Keeps verifiedHighCourtPrecedents entries (the core content) but removes
+ * per-entry sourceTrace fields, selectionDiagnostics, and precedentDiagnostics
+ * excludedDecisions detail.
+ */
+function stripDiagnosticFields(pack: DoctorLegalInformationPack): DoctorLegalInformationPack {
+  return {
+    ...pack,
+    // Strip per-legislation provision sourceTrace (audit-only)
+    relevantLegislation: pack.relevantLegislation.map((l) => {
+      const { sourceTrace, ...rest } = l;
+      return rest;
+    }),
+    // Strip per-precedent decisionSourceTrace (audit-only)
+    verifiedHighCourtPrecedents: pack.verifiedHighCourtPrecedents.map((p) => {
+      const { decisionSourceTrace, ...rest } = p;
+      return rest;
+    }),
+    // Keep summary-level diagnostics counts but drop detail
+    selectionDiagnostics: pack.selectionDiagnostics ? {
+      query: pack.selectionDiagnostics.query,
+      sourceMode: pack.selectionDiagnostics.sourceMode,
+      selectedLegislationCount: pack.selectionDiagnostics.selectedLegislationCount,
+      selectedProvisionCount: pack.selectionDiagnostics.selectedProvisionCount,
+      selectedLegislations: [],
+      selectedProvisions: [],
+      unavailableCount: pack.selectionDiagnostics.unavailableCount,
+      warningCount: pack.selectionDiagnostics.warningCount
+    } : undefined,
+    precedentDiagnostics: pack.precedentDiagnostics ? {
+      query: pack.precedentDiagnostics.query,
+      selectedPrecedentCount: pack.precedentDiagnostics.selectedPrecedentCount,
+      excludedDecisionCount: pack.precedentDiagnostics.excludedDecisionCount,
+      dedupedCount: pack.precedentDiagnostics.dedupedCount,
+      sourceSummaries: pack.precedentDiagnostics.sourceSummaries,
+      selectedPrecedents: [],
+      excludedDecisions: []
+    } : undefined,
+    sourceTrace: [],
+    sourceUnavailable: pack.sourceUnavailable?.map((su) => {
+      const { sourceTrace, ...rest } = su;
+      return rest;
+    })
+  };
+}
+
 function deriveStatus(pack: DoctorLegalInformationPack): DoctorPackResponseStatus {
   if (pack.relevantLegislation.length === 0 && pack.verifiedHighCourtPrecedents.length === 0) {
     return "no_pack_diagnostic";
@@ -139,8 +196,11 @@ export function formatDoctorPackResponse(
     missingAuthorityTypes?: string[];
     gateObservations?: string[];
     noPackReason?: string;
+    /** E3.2: Include full diagnostics in response. Default false for token savings. */
+    includeDiagnostics?: boolean;
   } = {}
 ): DoctorPackResponse {
+  const includeDiag = options.includeDiagnostics ?? false;
   const status = deriveStatus(pack);
   const sourceSufficiency = deriveSourceSufficiency(pack);
 
@@ -154,7 +214,7 @@ export function formatDoctorPackResponse(
   };
 
   const diagnostics: DoctorPackDiagnostics | undefined =
-    status !== "full_pack" || (options.coverageGaps ?? []).length > 0 || (options.retrievalTimeouts ?? []).length > 0
+    includeDiag && (status !== "full_pack" || (options.coverageGaps ?? []).length > 0 || (options.retrievalTimeouts ?? []).length > 0)
       ? {
           missingAuthorityTypes: options.missingAuthorityTypes ?? [],
           coverageGaps: options.coverageGaps ?? [],
@@ -164,14 +224,20 @@ export function formatDoctorPackResponse(
         }
       : undefined;
 
-  return {
+  const result: DoctorPackResponse = {
     responseVersion: "doctor-pack-response/v1",
     ok: true,
     status,
-    pack,
+    dataOrigin: "mock", // E3.2: caller overrides in tools.ts via withDataOrigin
+    pack: includeDiag ? pack : stripDiagnosticFields(pack),
     summary,
+    diagnosticsIncluded: includeDiag,
     diagnostics
   };
+  if (!includeDiag) {
+    result.diagnosticsHint = "Tam denetim izi için includeDiagnostics: true ile yeniden çağırın.";
+  }
+  return result;
 }
 
 /**
@@ -188,6 +254,7 @@ export function formatNoPackDiagnosticResponse(options: {
     responseVersion: "doctor-pack-response/v1",
     ok: false,
     status: "no_pack_diagnostic",
+    dataOrigin: "mock",
     summary: {
       shortAnswer: "Bu soru için güvenli research pack üretilemedi. Aşağıdaki resmi kaynaklar sınırlı bilgi sağlamaktadır.",
       sourceSufficiency: "insufficient",
