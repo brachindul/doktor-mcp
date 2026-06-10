@@ -146,6 +146,15 @@ const ENV_SETTERS: Record<string, ConfigSetter> = {
   DOKTOR_MCP_ASSESSMENT_TONE: (c, v) => { c.assessmentTone = v; },
   DOKTOR_MCP_SOURCE_MODE:     (c, v) => { c.sourceMode = v; },
   DOKTOR_MCP_FETCH_TIMEOUT_MS: (c, v) => { c.fetchTimeoutMs = parseNum(v); },
+
+  // E2.2: More discoverable env var for default source mode
+  DOKTOR_MCP_DEFAULT_SOURCE_MODE: (c, v) => {
+    if (v === "mock" || v === "live" || v === "snapshot") {
+      c.sourceMode = v;
+    } else {
+      console.error(`doktor-mcp: Invalid DOKTOR_MCP_DEFAULT_SOURCE_MODE value "${v}". Falling back to "mock".`);
+    }
+  }
 };
 
 // ── Runtime Config ──

@@ -8,6 +8,7 @@ import { buildPrecedentSelectionDiagnostics } from "../health/precedentFilter.js
 import { formatDoctorPackResponse, detectForbiddenOutputPhrases } from "./formatDoctorPackResponse.js";
 import type { DoctorPackResponse } from "./formatDoctorPackResponse.js";
 import { courtDecisionSchema, doctorLegalInformationPackSchema } from "./schemas.js";
+import { readConfig } from "../core/runtimeConfig.js";
 
 /**
  * Safe string-includes check: returns false for undefined, null, or empty needles.
@@ -20,7 +21,7 @@ function includesNonEmpty(haystack: string, needle: string | undefined | null): 
   return haystack.toLowerCase().includes(trimmed);
 }
 
-const sourceModeSchema = z.enum(["mock", "live", "snapshot"]).default("mock");
+const sourceModeSchema = z.enum(["mock", "live", "snapshot"]);
 const precedentSourceSchema = z.enum(["yargitay", "danistay", "aym"]);
 const assessmentToneSchema = z.enum(["strict", "grounded-advisory"]).default("grounded-advisory");
 const questionSchema = z.object({ question: z.string().min(1) });
@@ -56,9 +57,33 @@ const drillDownSchema = z.object({
 );
 
 function jsonResult(value: unknown): CallToolResult {
+  // E3.3: Compact JSON (no pretty-print) — saves ~20-30% token cost for LLM clients
   return {
-    content: [{ type: "text", text: JSON.stringify(value, null, 2) }],
+    content: [{ type: "text", text: JSON.stringify(value) }],
     structuredContent: value as Record<string, unknown>
+  };
+}
+
+/**
+ * E2.1: Wrap tool response with dataOrigin and mock warning.
+ * Uses the runtime config's default source mode as the origin.
+ * When sourceMode is "mock", injects an unmissable mockDataWarning.
+ */
+function withDataOrigin(value: unknown, sourceMode?: string): Record<string, unknown> {
+  const mode = sourceMode ?? readConfig().sourceMode;
+  if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+    const result = value as Record<string, unknown>;
+    result.dataOrigin = mode;
+    if (mode === "mock") {
+      result.mockDataWarning = "BU YANIT KURGU (FIXTURE) VERİSİDİR. Gerçek mevzuat veya mahkeme kararı DEĞİLDİR. Gerçek kaynaklar için sourceMode: 'live' kullanın.";
+    }
+    return result;
+  }
+  // Wrap arrays/primitive responses
+  return {
+    dataOrigin: mode,
+    ...(mode === "mock" ? { mockDataWarning: "BU YANIT KURGU (FIXTURE) VERİSİDİR. Gerçek mevzuat veya mahkeme kararı DEĞİLDİR. Gerçek kaynaklar için sourceMode: 'live' kullanın." } : {}),
+    results: value
   };
 }
 
@@ -106,15 +131,15 @@ export function createMedicalLegalToolHandlers(service = new DoktorMcpInformatio
     classify_medical_legal_question: async (input: unknown) => service.classify(questionSchema.parse(input).question),
     search_health_legislation: async (input: unknown) => {
       const parsed = legislationQuestionSchema.parse(input);
-      return service.searchLegislation(service.classify(parsed.question), parsed.sourceMode);
+      return service.searchLegislation(service.classify(parsed.question), parsed.sourceMode ?? readConfig().sourceMode);
     },
     get_legislation_provisions: async (input: unknown) => {
       const parsed = provisionIdsSchema.parse(input);
-      return service.getLegislationProvisions(parsed.documentIds, parsed.sourceMode);
+      return service.getLegislationProvisions(parsed.documentIds, parsed.sourceMode ?? readConfig().sourceMode);
     },
     search_health_precedents: async (input: unknown) => {
       const parsed = legislationQuestionSchema.parse(input);
-      const { decisions } = await service.searchPrecedents(service.classify(parsed.question), parsed.sourceMode);
+      const { decisions } = await service.searchPrecedents(service.classify(parsed.question), parsed.sourceMode ?? readConfig().sourceMode);
       return decisions;
     },
     filter_reasoned_precedents: async (input: unknown) => {
@@ -236,35 +261,47 @@ export function registerMedicalLegalTools(
   server.registerTool("classify_medical_legal_question", {
     description: "Classifies a doktor legal information question for source mapping.",
     inputSchema: legislationQuestionSchema.shape
-  }, async (input) => jsonResult(await handlers.classify_medical_legal_question(input)));
+  }, async (input) => jsonResult(withDataOrigin(await handlers.classify_medical_legal_question(input))));
 
   server.registerTool("search_health_legislation", {
     description: "Searches health-related official legislation provisions through the adapter layer.",
     inputSchema: legislationQuestionSchema.shape
-  }, async (input) => jsonResult(await handlers.search_health_legislation(input)));
+  }, async (input) => {
+    const parsed = legislationQuestionSchema.parse(input);
+    return jsonResult(withDataOrigin(await handlers.search_health_legislation(input), parsed.sourceMode ?? readConfig().sourceMode));
+  });
 
   server.registerTool("get_legislation_provisions", {
     description: "Returns verbatim official legislation provisions by document id.",
     inputSchema: provisionIdsSchema.shape
-  }, async (input) => jsonResult(await handlers.get_legislation_provisions(input)));
+  }, async (input) => {
+    const parsed = provisionIdsSchema.parse(input);
+    return jsonResult(withDataOrigin(await handlers.get_legislation_provisions(input), parsed.sourceMode ?? readConfig().sourceMode));
+  });
 
   server.registerTool("search_health_precedents", {
     description: "Searches high court precedent candidates. Live mode uses live Yargitay and Danistay sources; AYM stays disabled outside mock mode.",
     inputSchema: legislationQuestionSchema.shape
-  }, async (input) => jsonResult(await handlers.search_health_precedents(input)));
+  }, async (input) => {
+    const parsed = legislationQuestionSchema.parse(input);
+    return jsonResult(withDataOrigin(await handlers.search_health_precedents(input), parsed.sourceMode ?? readConfig().sourceMode));
+  });
 
   server.registerTool("filter_reasoned_precedents", {
     description: "Classifies precedent candidates by full text, reasoning, and relevance.",
     inputSchema: decisionsSchema.shape
-  }, async (input) => jsonResult(await handlers.filter_reasoned_precedents(input)));
+  }, async (input) => jsonResult(withDataOrigin(await handlers.filter_reasoned_precedents(input))));
 
   server.registerTool("prepare_doctor_legal_information_pack", {
     description: "Prepares a source-grounded doktor legal information pack without a final legal opinion.",
     inputSchema: packInputSchema.shape
-  }, async (input) => jsonResult(await handlers.prepare_doctor_legal_information_pack(input)));
+  }, async (input) => {
+    const parsed = packInputSchema.parse(input);
+    return jsonResult(withDataOrigin(await handlers.prepare_doctor_legal_information_pack(input), parsed.sourceMode ?? readConfig().sourceMode));
+  });
 
   server.registerTool("drill_down_pack_item", {
     description: "Drill-down into a specific provision or precedent from a previously prepared doctor legal information pack. Matches the follow-up question against pack items.",
     inputSchema: drillDownSchema.shape
-  }, async (input) => jsonResult(await handlers.drill_down_pack_item(input)));
+  }, async (input) => jsonResult(withDataOrigin(await handlers.drill_down_pack_item(input))));
 }
