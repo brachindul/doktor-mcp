@@ -302,4 +302,18 @@ describe("edge cases", () => {
     expect(matchesTermTr(tokens, "ışık", "token")).toBe(true);
     expect(matchesTermTr(tokens, "cogus", "prefix")).toBe(true);
   });
+
+  it("fullText parameter overrides tokens[0] for substring mode", () => {
+    const tokens = tokenizeTr("mecburi hizmet ataması").map(foldTr);
+    // Without fullText, substring uses tokens[0] which is just "mecburi"
+    // With fullText, we pass the full folded text
+    const fullText = foldTr("mecburi hizmet ataması");
+    expect(matchesTermTr(tokens, "mecburi hizmet", "substring", undefined, undefined, fullText)).toBe(true);
+  });
+
+  it("fullText parameter: non-matching substring returns false", () => {
+    const tokens = tokenizeTr("mecburi degil").map(foldTr);
+    const fullText = foldTr("mecburi degil");
+    expect(matchesTermTr(tokens, "mecburi hizmet", "substring", undefined, undefined, fullText)).toBe(false);
+  });
 });

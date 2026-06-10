@@ -136,6 +136,8 @@ export interface ClassifiedMedicalLegalQuestion {
   question: string;
   dimensions: LegalDimension[];
   searchTerms: string[];
+  /** Whether the classification matched known terms ("matched") or fell back to defaults ("fallback"). */
+  classificationConfidence?: "fallback" | "matched";
   missingInformation: string[];
 }
 

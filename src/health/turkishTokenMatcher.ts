@@ -71,14 +71,16 @@ const VALID_SUFFIX_START = new Set(
  *
  * - **"prefix"**: any folded token starts with the folded term.
  *
- * - **"substring"**: the full original text (passed as first token array
- *   source) contains the term (for multi-word terms).
+ * - **"substring"**: the full original text (passed as `fullText` parameter or
+ *   as `tokens[0]`) contains the folded term (for multi-word terms).
  *
  * @param tokens          Array of folded tokens (use `tokenizeTr` + `foldTr`).
  * @param term            The term to look for (plain string).
  * @param mode            Matching strategy.
  * @param blockedPrefixes Optional folded prefixes that must NOT match.
  * @param allowedTokens   Optional folded tokens that always match (checked first).
+ * @param fullText        Optional full folded text for substring mode. When
+ *                        provided, this is used instead of `tokens[0]`.
  */
 export function matchesTermTr(
   tokens: string[],
@@ -86,13 +88,14 @@ export function matchesTermTr(
   mode: "token" | "prefix" | "substring",
   blockedPrefixes?: string[],
   allowedTokens?: string[],
+  fullText?: string,
 ): boolean {
   const foldedTerm = foldTr(term);
 
   // ── substring mode (uses full original text) ─────────────────────────────
   if (mode === "substring") {
-    // tokens[0] is expected to be the full lowered text; fall back gracefully
-    const haystack = tokens.length > 0 ? tokens[0] : "";
+    // Use fullText parameter if provided, otherwise fall back to tokens[0]
+    const haystack = fullText ?? (tokens.length > 0 ? tokens[0] : "");
     return haystack.includes(foldedTerm);
   }
 
