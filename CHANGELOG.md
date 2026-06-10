@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.58.0] — 2026-06-10 — E0–E7: Dokümantasyon ve Sürüm Senkronizasyonu
+
+> E0–E7 fazlarının tamamının dokümantasyonu ve sürüm senkronizasyonu.
+> README, COMPATIBILITY.md ve CHANGELOG güncellendi; sürüm 0.57.0 → 0.58.0.
+
+### E0–E7 Özeti
+
+- **E0**: Temel MCP araç iskeleti ve yanıt sözleşmesi
+- **E1**: Mock mevzuat ve yüksek mahkeme adaptörleri
+- **E2**: `dataOrigin` ve `mockDataWarning` yanıt alanları (kırıcı değişiklik)
+- **E3**: `assessmentTone` ve `preliminaryAssessment` değerlendirme alanları
+- **E4**: `classificationConfidence` sınıflandırma güvenilirliği alanı; `drill_down_pack_item` ve `get_decision_full_text` araçları
+- **E5**: `get_decision_full_text` tam karar metni getirme aracı
+- **E6**: `packId` tabanlı `drill_down_pack_item` kullanımı; `includeDiagnostics` parametresi
+- **E7**: Dokümantasyon ve sürüm senkronizasyonu — README, COMPATIBILITY.md, CHANGELOG tutarlılığı
+
+### Değişenler
+
+- README.md: Sürüm satırı dinamik kaynaklara yönlendirildi; MCP araçları listesi 8 araca tamamlandı; `dataOrigin`, `mockDataWarning`, `includeDiagnostics` notları eklendi
+- docs/COMPATIBILITY.md: Sürüm v0.57.0 olarak güncellendi; `drill_down_pack_item` ve `get_decision_full_text` stabil araçlara eklendi; `classificationConfidence` stabil tabloya eklendi; `includeDiagnostics` deneysel parametrelere eklendi
+- package.json: 0.57.0 → 0.58.0
+
+---
+
 ## [0.57.0] — 2026-06-06 — Faz 49 Chamber Footgun + Gerçek RRF/Chamber Koruması
 
 > Faz 48 denetiminin kapanışı. Canlı prob ile bedesten `birimAdi`'nin **tam

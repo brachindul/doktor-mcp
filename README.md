@@ -1,6 +1,6 @@
 # Doktor MCP
 
-> **v1 Sürüm Adayı** — `doktor-mcp v0.45.0`, v1.0.0 sürüm adayıdır.
+> **v1 Sürüm Adayı** — Güncel sürüm için [package.json](package.json) ve [CHANGELOG.md](CHANGELOG.md) dosyalarına bakın.
 > Kontrol listesi için [docs/RELEASE_v1.md](docs/RELEASE_v1.md) dosyasına bakın.
 
 `doktor-mcp`, hekimlere yönelik **kaynak-temelli hukuki bilgilendirme paketleri** üreten,
@@ -187,6 +187,14 @@ olmadan agresif bir kısıtlama değildir.
 - `search_health_precedents`
 - `filter_reasoned_precedents`
 - `prepare_doctor_legal_information_pack`
+- `drill_down_pack_item` — Takip sorusu: `packId` ile paketi yeniden oluşturmadan belirli bir madde/kararı detaylandırır. Örnek: `{ "packId": "pack-3f9a2c", "followUpQuestion": "madde 24 ne diyor?" }`
+- `get_decision_full_text` — Belirli bir mahkeme kararının tam metnini getirir. Örnek: `{ "documentId": "yargitay:99001", "sourceMode": "live" }`
+
+### Yanıt Sözleşmesi Notları
+
+Tüm araç yanıtları `dataOrigin` alanı taşır (`"mock"`, `"live"`, `"snapshot"`, `"computed"`, `"client-provided"`). Mock modda `mockDataWarning` alanı eklenir.
+
+`prepare_doctor_legal_information_pack` çağrısında `includeDiagnostics: true` parametresi eklenerek tam denetim izi (seçim tanılaması, kaynak izi vb.) alınabilir.
 
 Mevzuata-dönük MCP girdileri opsiyonel `sourceMode` kabul eder:
 

@@ -2,7 +2,7 @@
 
 ## Sürüm 0.44.0 → 1.0 Geçişi
 
-doktor-mcp şu an **v0.44.0**'da (1.0 öncesi). `responseVersion` alanı
+doktor-mcp şu an **v0.57.0**'da (1.0 öncesi). `responseVersion` alanı
 (`"doctor-pack-response/v1"`), kırıcı (breaking) değişiklikleri sinyallemek için kullanılacaktır.
 
 ## Kararlılık Katmanları
@@ -27,6 +27,7 @@ Bu alanların stabil olduğu garanti edilir. Değişiklikler yalnızca geriye-d�
 | `diagnostics.noPackReason` | `string?` | v0.42.0 |
 | `packId` | `string?` | v0.46.0 |
 | `diagnostics.gateObservations` | `string[]?` | v0.43.0 |
+| `classificationConfidence` | `"fallback" \| "matched"?` | v0.57.0 |
 
 ### 🧪 Deneysel
 Bu alanlar ek değer sağlar ama minor sürümlerde değişebilir:
@@ -95,7 +96,7 @@ interface DoctorPackResponse {
 
 Kırıcı değişiklikler `responseVersion` artırılarak sinyallenir (ör.
 `"doctor-pack-response/v1"`'den `"doctor-pack-response/v2"`'ye). MCP
-`serverInfo.version`, `package.json` sürümünü izler (şu an 0.45.0).
+`serverInfo.version`, `package.json` sürümünü izler (şu an 0.57.0).
 
 Bir 1.0 sürümü:
 - Stabil katmanı dondurur
@@ -112,10 +113,13 @@ Bu araç adları, girdi şemaları ve çıktı sözleşmeleri stabildir:
 - `search_health_precedents`
 - `filter_reasoned_precedents`
 - `prepare_doctor_legal_information_pack`
+- `drill_down_pack_item` — Takip sorusu aracı; `packId` parametresiyle paketi yeniden oluşturmadan belirli bir madde/kararı detaylandırır (v0.46.0'dan beri stabil)
+- `get_decision_full_text` — Belirli bir mahkeme kararının tam metnini getirir (E5.1)
 
 ### Deneysel Parametreler
 Bu girdi parametreleri değişebilir:
 - `assessmentTone` — v0.44.0'da eklendi, değerler: `"strict"` | `"grounded-advisory"` (varsayılan)
+- `includeDiagnostics` — `prepare_doctor_legal_information_pack` çağrısında tam denetim izi (seçim tanılaması, kaynak izi) sağlar
 
 ## Kaynak (Resource) URI'leri
 
