@@ -15,7 +15,7 @@ describe("Ingest Fixture CLI", () => {
       data: [
         {
           ID: "12345",
-          OZET: "This is a summary of the decision containing PII like Sozer's name.",
+          OZET: "This is a summary of the decision containing PII like a party's name.",
           KARAR_TARIHI: "2026-05-22",
           DAIRESI: "15. Daire",
           ESAS_YILI: "2025",

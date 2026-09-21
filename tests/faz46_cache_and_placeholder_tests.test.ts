@@ -58,7 +58,8 @@ describe("T46.2 — Placeholder filtresi koruma", () => {
  * Mutation "remove malpraktis from terms" → no hint match → unavailable.
  */
 describe("T46.3 — Malpraktis terim eşlemesi koruma", () => {
-  it("malpraktis query matches a hint via live adapter (hint-matching path)", async () => {
+  // Canli mevzuat.gov.tr'ye gider; CI kosucularindan erisim guvenilmez (bkz. vitest.ci.config.ts).
+  it.skipIf(process.env.CI === "true")("malpraktis query matches a hint via live adapter (hint-matching path)", async () => {
     const adapter = new LiveOfficialLegislationAdapter();
     const result = await adapter.getMappedHealthProvisions("malpraktis");
     // With malpraktis term present in Deontology hint terms, should match

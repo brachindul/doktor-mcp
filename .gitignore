@@ -25,3 +25,10 @@ fixtures/live-samples/*-probe-*.json
 exports/
 # Windows NUL device artifact (appears as untracked on Windows; not a real file)
 nul
+
+# Yerel ajan/senkron dosyalari
+.opencode/
+AGENTS.md
+CLAUDE.md
+.stfolder/
+.stignore
