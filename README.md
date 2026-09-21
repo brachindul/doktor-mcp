@@ -908,3 +908,8 @@ eksiksizdir — önbelleğe alınmış sorgular için hiç ağ çağrısı yapı
 ---
 
 Sürüm geçmişi için bkz. [CHANGELOG.md](./CHANGELOG.md).
+
+## Lisans
+
+Tüm hakları saklıdır. Kaynak kod yalnızca inceleme amacıyla yayımlanmıştır;
+yazılı izin olmadan kullanılamaz, kopyalanamaz, değiştirilemez veya dağıtılamaz.
